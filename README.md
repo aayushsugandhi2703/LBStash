@@ -87,7 +87,7 @@ sequenceDiagram
   participant You
   Bank->>Phone: SMS "Rs 450 debited..."
   Phone->>Ingest: POST /ingest/message (token + nonce + time)
-  Ingest->>Ingest: check token, nonce, time; drop OTPs; read amount and payee; discard text
+  Ingest->>Ingest: check token, nonce, time, drop OTPs, read amount and payee, discard text
   Ingest->>Ledger: save transaction (duplicates ignored)
   Ledger->>Q: transaction.changed (same DB transaction)
   Q->>Telegram: send prompt
