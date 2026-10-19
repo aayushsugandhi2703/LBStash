@@ -99,7 +99,7 @@ sequenceDiagram
 
 ## System design
 
-Requirements, estimates, API, data schema, deep dives, failure handling and scaling are in **[docs/SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md)**, written as the four steps from Alex Xu's *System Design Interview*.
+Built for one person's money data, so correctness and privacy come before scale: one Postgres database, small services that own their data, safe retries, and a balance check that catches anything lost. Full design (requirements, estimates, API, data, failure handling, scaling): [docs/SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md).
 
 ## Security
 
