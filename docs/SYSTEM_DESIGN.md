@@ -1,6 +1,6 @@
 # System Design
 
-Written in the style of Alex Xu's *System Design Interview*: four steps, from the problem to the bottlenecks. Terms are explained in one line where they first appear.
+Four steps, from the problem to the bottlenecks, in the style of Alex Xu's *System Design Interview*. Terms are explained where they first appear.
 
 1. [Understand the problem and scope](#step-1-understand-the-problem-and-scope)
 2. [High-level design](#step-2-high-level-design)
@@ -156,7 +156,7 @@ sequenceDiagram
   Telegram->>Bot: webhook
   Bot->>Ledger: save tagged payment
   Ledger->>Queue: transaction.changed (same DB transaction)
-  Bot->>Telegram: "Tagged Food" + Open Google Pay
+  Bot->>Telegram: "Money out · ₹350 · Food ✓" + Open Google Pay
   Queue->>Planning: re-check limits
 ```
 Without a tag (`/350`) the row is saved untagged and the queue sends the category buttons.
@@ -167,11 +167,11 @@ Without a tag (`/350`) the row is saved untagged and the queue sends the categor
 
 ### 3.1 Logging a payment
 
-The Telegram service accepts `/<amount>` (money out) and `+<amount>` (money in), with up to two decimals and an optional tag after it. Checks run in order, and anyone who fails gets no reply: webhook secrets, private chat, your Telegram id, an active `/signin` session. Then the amount is read, the tag is validated, and the ledger saves one manual row (with the tag, so it is confirmed at once; without one it stays pending and gets the category buttons). Your typed message is deleted and the reply repeats the amount you typed (`Money out · ₹350 · Food ✓`). Money out also gets an **Open Google Pay** button. Telegram buttons can only open web links, so it opens `/pay` on the web app, which hands the phone to Google Pay.
+The bot accepts `/<amount>` (money out) and `+<amount>` (money in), up to two decimals, with an optional tag. Checks run in order and anyone who fails gets no reply: webhook secrets, private chat, your Telegram id, an active `/signin` session. Then the tag is validated and the ledger saves one manual row (tagged = confirmed at once; untagged = pending, with category buttons). Your message is deleted and the reply repeats the amount (`Money out · ₹350 · Food ✓`). Money out also gets **Open Google Pay**: Telegram buttons only open web links, so it opens `/pay` on the web app, which hands the phone to Google Pay.
 
 Each Telegram update is processed once (its update id is stored), so a retry cannot log a payment twice.
 
-**Linking.** Setup first asks for your Telegram username (or numeric id), stored on the bot row (`owner_tg`). A pairing code is made only after that. `/start <code>` links only if the sender is that account; anyone else is ignored and the code stays unused. The Setup page also offers `https://t.me/<bot>?start=<code>`, which opens the bot with the command ready. The link status shows `@name`, or only the last four digits of an id.
+**Linking.** Setup first asks for your Telegram username or id (stored as `owner_tg`); a code is made only after that. `/start <code>` links only for that account. Anyone else is ignored and the code stays unused. The Setup page also offers `https://t.me/<bot>?start=<code>`, which opens the bot with the command ready. The status shows `@name`, or only the last four digits of an id.
 
 ### 3.1b Optional bank-message route
 
@@ -225,13 +225,19 @@ You enter your bank balance. `gap = bank - ledger`. If there is a gap, wait a **
 
 ### 3.6 Telegram privacy
 
-Telegram stores what it is sent, so prompts for detected payments carry no amount, payee, balance or account number: only "Money out, 6:42 pm" and category buttons. An optional **Reveal** button shows details for 30 seconds. The one exception is a payment you type yourself: its confirmation repeats the amount you typed.
+Telegram keeps what it is sent, so prompts for detected payments show no amount, payee, balance or account number: only "Money out, 6:42 pm" and category buttons. An optional **Reveal** button shows details for 30 seconds. Exception: a payment you type yourself is confirmed with the amount you typed.
 
 ### 3.7 Auth, sessions and rate limiting
 
 Short-lived access token (15 min) plus rotating refresh token with reuse detection; progressive lockout; per-IP limits on login, second step, reset, ingest and webhook. Details: [README](../README.md#security).
 
-**Allowed addresses (optional).** A user can limit the web app to a list of IPs or CIDR ranges (`users.allowed_ips`, empty = anywhere). The gateway sends the caller's address with every session check; auth refuses it when a list exists and the address is not on it (also at sign-in and token refresh), and the gateway caches "alive" per session **and** address, so a copied cookie is re-checked from a new address. Saving the list needs a fresh authenticator code and must include the caller's own address. The address comes from nginx (`CF-Connecting-IP`, trusted only from private proxy ranges). It cannot cover the Telegram bot, because Telegram never shows our server your address; the bot is locked to one Telegram account instead.
+**Allowed addresses (optional).** A user can limit the web app to a list of IPs or ranges (`users.allowed_ips`; empty = anywhere).
+
+- The gateway sends the caller's address with each session check. Auth refuses it if a list exists and the address is not on it. The same check runs at sign-in and token refresh.
+- "Alive" is cached per session **and** address, so a copied cookie is re-checked from a new address.
+- Saving needs a fresh authenticator code, and the list must include the caller's own address.
+- The address comes from nginx (`CF-Connecting-IP`, trusted only from private proxy ranges).
+- It cannot cover the bot: Telegram never shows our server your address. The bot is locked to one Telegram account instead.
 
 ### 3.8 Consistency choices
 
@@ -280,10 +286,10 @@ Short-lived access token (15 min) plus rotating refresh token with reuse detecti
 
 | Chose | Gave up |
 |---|---|
-| Microservices | More parts than a monolith needs at this size, in return for clear data ownership and security boundaries |
-| Postgres as queue | Raw throughput, in return for one less system to run |
-| Server-side parsing | The raw SMS briefly reaches the server, in return for one parser to fix for all banks |
-| Compute on read | Some CPU per report, in return for numbers that cannot drift |
+| Microservices | More parts than a monolith needs, for clear data ownership and security boundaries |
+| Postgres as queue | Raw throughput, for one less system to run |
+| Server-side parsing | The raw SMS briefly reaches the server, for one parser to fix for all banks |
+| Compute on read | Some CPU per report, for numbers that cannot drift |
 
 ### Future work
 

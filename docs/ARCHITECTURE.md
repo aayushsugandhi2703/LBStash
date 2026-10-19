@@ -1,7 +1,6 @@
 # Architecture: modular microservices
 
-This is how the README's design is built. The README says *what* the product does; this file says *where the code lives*.
-Where this file and README section 7/8/16 differ, this file wins (the differences are listed at the end).
+The README says *what* the product does; this file says *where the code lives*. Where they differ, this file wins (listed at the end).
 
 ## Services
 
@@ -17,9 +16,7 @@ Where this file and README section 7/8/16 differ, this file wins (the difference
 | **telegram** | 3007 | `telegram` | links, pairings, bot sessions, prompts, bot token (encrypted), webhook handling, digest | ledger, auth |
 | **web** | 3000 (container) | – | Next.js app, 16 screens from `docs/ui-spec/` | gateway only |
 
-Every backend service is Python 3.12 + FastAPI (async, pydantic, psycopg). The web app is the only TypeScript left.
-
-Shared backend code is one installable library, `packages/bt` (import `bt.*`), and is the only thing services have in common:
+Every backend service is Python 3.12 + FastAPI. The web app is the only TypeScript. Services share one library, `packages/bt` (import `bt.*`), and nothing else:
 
 | Module | What it gives every service |
 |---|---|
@@ -31,19 +28,19 @@ Shared backend code is one installable library, `packages/bt` (import `bt.*`), a
 | `bt.clients` | one typed client per service (`deps.clients.ledger.tag(...)`), signing, timeouts, retries, error mapping |
 | `bt.kit` | `run_service` (boot), `create_app`, request dependencies (`user_ctx`, `service_claims`), `MemoryRateLimiter`, test fixtures, a software WebAuthn authenticator |
 
-Logo, name and icons are in `apps/web/src/brand` (import from `@/brand`; SVG files in `apps/web/public/brand`). The web app keeps its own browser-side copy of what it needs: `apps/web/src/common` (money formatting, month maths, tag and password rules, so what a page promises is what the server enforces) and `apps/web/src/contracts` (the response types). They mirror `bt.common` / `bt.contracts`; the Python models are the source of truth and `scripts/e2e.py` keeps the two honest.
+Web code: logo, name and icons in `apps/web/src/brand` (import from `@/brand`; SVGs in `apps/web/public/brand`). The web app keeps browser-side copies in `src/common` (money, month maths, tag and password rules, so pages promise what the server enforces) and `src/contracts` (response types). The Python models are the source of truth; `scripts/e2e.py` keeps the two honest.
 
 ## Rules of the road
 
-1. **A service owns its data.** One Postgres instance, one schema and one login role per service (`svc_ledger` owns schema `ledger`). A service never reads another service's tables; it calls its API. Joins across services happen in code (usually `reports`).
+1. **A service owns its data.** One Postgres, one schema and one login role per service (`svc_ledger` owns `ledger`). Never read another service's tables; call its API. Cross-service joins happen in code (usually `reports`).
 2. **Every user table has RLS.** Migration ends with `SELECT bt.enable_rls('table')`; queries run in `async with deps.as_user(ctx) as tx:` (sets `app.user_id`). Scheduler scans use `deps.as_system()`.
-3. **Writes that cause work use the outbox.** `await deps.bus.emit(tx, event, payload)` / `await deps.bus.enqueue(tx, job, payload)` inside the same transaction as the change. Delivery is at-least-once: consumers must be idempotent.
+3. **Writes that cause work use the outbox.** `deps.bus.emit(tx, event, payload)` or `enqueue(tx, job, payload)` in the same transaction as the change. Delivery can repeat: consumers must be idempotent.
 4. **Events, not polling.** Budget evaluation is triggered by `transaction.changed`, never a timer. Catalogue in `packages/bt/src/bt/contracts/events.py`.
-5. **Auth between services.** Every request carries `x-internal-token` (60-second HS256 JWT: calling service, user id, time zone). `/internal/*` routes refuse requests the gateway forwarded from outside. Services are not published on the host; only the proxy is.
+5. **Auth between services.** Every request carries `x-internal-token` (60-second JWT: service, user id, time zone). `/internal/*` refuses requests forwarded from outside. Only the proxy is published on the host.
 6. **Money is integer paise.** Never floats. Format only at the edge (`format_inr`). Month boundaries and "today" use the user's time zone (`month_range`, `month_progress`).
-7. **Derive, don't duplicate.** Balance, per-category spend, pace, trends are computed on read. No cached totals. The metric functions live in `bt.common` and are used by every service.
+7. **Derive, don't duplicate.** Balance, spend, pace and trends are computed on read, with no cached totals. The metric functions live in `bt.common`.
 8. **No sensitive data in logs.** Ids and outcome codes only (the logger also redacts common fields).
-9. **Reuse before writing.** If two services need the same logic it belongs in `packages/bt` (see table above), not copied. If you find yourself writing the same ten lines a third time, extract them.
+9. **Reuse before writing.** Logic two services need goes in `packages/bt`, not copied.
 
 ## Request paths
 
@@ -92,11 +89,11 @@ Typed in `bt.clients`; payloads in `bt.contracts`. Paths are the contract.
 
 ## Docker
 
-- `docker/base.Dockerfile` is the **common image** (`budget-base`): Python 3.12 slim, `uv`, the locked dependencies (`uv.lock`) and the shared library `bt`. It also runs the one-shot `db-init` job (`python -m bt.db.init`).
-- Each `services/<name>/Dockerfile` is the **service image**, so it can be built and pushed on its own: `ARG BASE_IMAGE=budget-base`, `FROM ${BASE_IMAGE}`, adds that service's source, installs only its own dependencies, runs as a non-root user with a health check (`python -m bt_<name>.main`). Push `budget-base` first, then each service; point a service at a registry copy of the base with `--build-arg BASE_IMAGE=<registry>/budget-base:<tag>`.
-- `apps/web/Dockerfile` is self-contained (Node 24, Next.js standalone build, build context `apps/web`); it does not use the base image.
-- `docker-compose.yml` is the only compose file and wires everything: `db` → `db-init` → services → `gateway` → `proxy`, plus `web`. `docker compose up --build` starts it all. Published to the host: `proxy` (`PUBLIC_PORT`, default 8088) and the gateway on `127.0.0.1` only (`GATEWAY_PORT`, default 3010, where `scripts/e2e.py` talks to it). Image names are `${REGISTRY}budget-<name>:${IMAGE_TAG}`, so `REGISTRY=... docker compose build && docker compose push` publishes every image.
-- The `test` profile adds `test-db`, a throwaway Postgres on `127.0.0.1:5544` for the backend tests (`docker compose --profile test up -d test-db`).
+- `docker/base.Dockerfile` is the common image (`budget-base`): Python 3.12 slim, `uv`, locked dependencies (`uv.lock`) and `bt`. It also runs the one-shot `db-init` job (`python -m bt.db.init`).
+- Each `services/<name>/Dockerfile` builds on it (`ARG BASE_IMAGE=budget-base`), adds that service's source and dependencies, and runs as a non-root user with a health check (`python -m bt_<name>.main`). Push `budget-base` first; use `--build-arg BASE_IMAGE=<registry>/budget-base:<tag>` to build from a registry copy.
+- `apps/web/Dockerfile` is self-contained (Node 24, Next.js standalone build, context `apps/web`).
+- `docker-compose.yml` is the only compose file: `db` → `db-init` → services → `gateway` → `proxy`, plus `web`. `docker compose up --build` starts it all. On the host: `proxy` (`PUBLIC_PORT`, default 8088) and the gateway on `127.0.0.1` only (`GATEWAY_PORT`, default 3010, used by `scripts/e2e.py`). Images are `${REGISTRY}budget-<name>:${IMAGE_TAG}`, so `docker compose build && docker compose push` publishes them all.
+- The `test` profile adds `test-db`: throwaway Postgres on `127.0.0.1:5544` (`docker compose --profile test up -d test-db`).
 
 ## Where this differs from the README
 
