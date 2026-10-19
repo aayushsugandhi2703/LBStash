@@ -34,8 +34,9 @@ REFERENCE = rx(
 ACCOUNT = rx(r'(?:a/c|acct?\.?|account|card)(?:\s*(?:no\.?|number|ending(?:\s+(?:with|in))?))?\s*[:\-]?\s*[Xx*•]*\s*\d*?(\d{3,4})(?!\d)')
 REVERSAL = rx(r'\b(?:revers(?:ed|al)|refund(?:ed)?|failed|failure|declined|unsuccessful|chargeback)\b')
 
-DEBIT_WORDS = rx(r'\b(?:debited|debit|sent|paid|spent|withdrawn|withdrawal|purchase|purchased|deducted)\b')
-CREDIT_WORDS = rx(r'\b(?:credited|credit|received|deposited|deposit)\b')
+# `Dr.` / `Cr.` (Bank of Baroda: "Dr. from A/C .. and Cr. to payee") only count before from/to, so "Dr. Mehta" is not a debit
+DEBIT_WORDS = rx(r'\b(?:debited|debit|sent|paid|spent|withdrawn|withdrawal|purchase|purchased|deducted)\b|\bdr\b\.?(?=\s+(?:from|to)\b)')
+CREDIT_WORDS = rx(r'\b(?:credited|credit|received|deposited|deposit)\b|\bcr\b\.?(?=\s+(?:from|to)\b)')
 
 _END = r"(?=\s+(?:on|ref|refno|upi|avl|not|if|call|dt|dated|via|using|utr|imps|neft|with|txn)\b|\s*[.;,(]|\s+-\s|$)"
 PAYEE_VPA = rx(r'\b(?:to|from|by)\s+(?:a/c\s+linked\s+to\s+)?(?:VPA|UPI\s*ID)\s*[:\-]?\s*([\w.\-+]+@[\w.\-]+)')

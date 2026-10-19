@@ -171,4 +171,8 @@ TABLE: list[Row] = [
     Row('No amount at all', 'Your a/c ending 4821 has been updated. Please check the app for details.', unreadable='no_amount'),
     Row('Garbage', 'asdf qwer zxcv', unreadable='no_amount'),
     Row('Emoji and noise', '??? 😀 ###', unreadable='no_amount'),
+    # Bank of Baroda: "Dr. from A/C .. and Cr. to payee", AvlBal glued to the amount, yyyy:mm:dd time in brackets
+    Row('BOB UPI debit with Dr./Cr. and a colon date', 'Rs.228.00 Dr. from A/C XXXXXX1234 and Cr. to shop.pay@hdfcbank. Ref:104278033903. AvlBal:Rs46354.89(2026:10:19 09:58:14). Not you? Call 18005700/5000-BOB',
+        received_at='2026-10-19T10:00:00+05:30',
+        expect=out(22800, payee='shop.pay@hdfcbank', reference='104278033903', account_last4='1234', balance_after_minor=4635489, at=ist('2026-10-19 09:58:14'), template=None)),
 ]
