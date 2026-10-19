@@ -2,8 +2,8 @@
 ARG BASE_IMAGE=budget-base
 FROM ${BASE_IMAGE}
 COPY services/reports ./services/reports
-RUN uv sync --frozen --package bt-reports
-ENV PORT=3006 SERVICE_NAME=reports APP_ENV=production
+RUN python -m compileall -q services/reports/src
+ENV PYTHONPATH=/app/packages/bt/src:/app/services/reports/src PORT=3006 SERVICE_NAME=reports APP_ENV=production
 USER app
 EXPOSE 3006
 HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=5 \

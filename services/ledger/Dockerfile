@@ -2,8 +2,8 @@
 ARG BASE_IMAGE=budget-base
 FROM ${BASE_IMAGE}
 COPY services/ledger ./services/ledger
-RUN uv sync --frozen --package bt-ledger
-ENV PORT=3002 SERVICE_NAME=ledger APP_ENV=production
+RUN python -m compileall -q services/ledger/src
+ENV PYTHONPATH=/app/packages/bt/src:/app/services/ledger/src PORT=3002 SERVICE_NAME=ledger APP_ENV=production
 USER app
 EXPOSE 3002
 HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=5 \

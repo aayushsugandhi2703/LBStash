@@ -2,8 +2,8 @@
 ARG BASE_IMAGE=budget-base
 FROM ${BASE_IMAGE}
 COPY services/gateway ./services/gateway
-RUN uv sync --frozen --package bt-gateway
-ENV PORT=3000 SERVICE_NAME=gateway APP_ENV=production
+RUN python -m compileall -q services/gateway/src
+ENV PYTHONPATH=/app/packages/bt/src:/app/services/gateway/src PORT=3000 SERVICE_NAME=gateway APP_ENV=production
 USER app
 EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=5 \

@@ -89,8 +89,8 @@ Typed in `bt.clients`; payloads in `bt.contracts`. Paths are the contract.
 
 ## Docker
 
-- `docker/base.Dockerfile` is the common image (`budget-base`): Python 3.12 slim, `uv`, locked dependencies (`uv.lock`) and `bt`. It also runs the one-shot `db-init` job (`python -m bt.db.init`).
-- Each `services/<name>/Dockerfile` builds on it (`ARG BASE_IMAGE=budget-base`), adds that service's source and dependencies, and runs as a non-root user with a health check (`python -m bt_<name>.main`). Push `budget-base` first; use `--build-arg BASE_IMAGE=<registry>/budget-base:<tag>` to build from a registry copy.
+- `docker/base.Dockerfile` is the common image (`budget-base`, two stages): a builder installs every backend dependency from `uv.lock` into one venv; the final image is Python 3.12 slim plus that venv and `bt`. No `uv` at runtime. It also runs the one-shot `db-init` job (`python -m bt.db.init`).
+- Each `services/<name>/Dockerfile` builds on it (`ARG BASE_IMAGE=budget-base`), copies that service's source, sets `PYTHONPATH` and runs as a non-root user with a health check (`python -m bt_<name>.main`). No per-service install, so all services share the same layers on disk. Push `budget-base` first; use `--build-arg BASE_IMAGE=<registry>/budget-base:<tag>` for a registry copy.
 - `apps/web/Dockerfile` is self-contained (Node 24, Next.js standalone build, context `apps/web`).
 - `docker-compose.yml` is the only compose file: `db` → `db-init` → services → `gateway` → `proxy`, plus `web`. `docker compose up --build` starts it all. On the host: `proxy` (`PUBLIC_PORT`, default 8088) and the gateway on `127.0.0.1` only (`GATEWAY_PORT`, default 3010, used by `scripts/e2e.py`). Images are `${REGISTRY}budget-<name>:${IMAGE_TAG}`, so `docker compose build && docker compose push` publishes them all.
 - The `test` profile adds `test-db`: throwaway Postgres on `127.0.0.1:5544` (`docker compose --profile test up -d test-db`).

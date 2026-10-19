@@ -2,8 +2,8 @@
 ARG BASE_IMAGE=budget-base
 FROM ${BASE_IMAGE}
 COPY services/telegram ./services/telegram
-RUN uv sync --frozen --package bt-telegram
-ENV PORT=3007 SERVICE_NAME=telegram APP_ENV=production
+RUN python -m compileall -q services/telegram/src
+ENV PYTHONPATH=/app/packages/bt/src:/app/services/telegram/src PORT=3007 SERVICE_NAME=telegram APP_ENV=production
 USER app
 EXPOSE 3007
 HEALTHCHECK --interval=10s --timeout=3s --start-period=20s --retries=5 \
