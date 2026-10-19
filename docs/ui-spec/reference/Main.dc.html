@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Now</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}
+button,input{font-family:inherit}
+.mono{font-family:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes drawbar{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.rise{animation:rise .6s cubic-bezier(.2,.8,.2,1) both}
+.fade{animation:fade 1s ease both}
+.bar{transform-origin:bottom;animation:drawbar .7s cubic-bezier(.2,.8,.2,1) both}
+.navlink{transition:color .15s ease}
+.navlink:hover{color:#0E0E10 !important}
+.add{transition:background .15s ease}
+.add:hover{background:#00875A !important}
+.rib{transition:fill .15s ease}
+.rib:hover{fill:#C9CDDB}
+.rib-av:hover{fill:#B3E6CD}
+.lnk{transition:color .15s ease}
+.lnk:hover{color:#00875A}
+.grp{border:0;background:transparent;padding:0;font:inherit;color:inherit;cursor:default}
+.grp:hover .bar,.grp:focus-visible .bar{filter:brightness(1.45)}
+.tip{position:absolute;left:50%;top:-8px;transform:translate(-50%,-100%);opacity:0;pointer-events:none;background:#0E0E10;color:#fff;padding:8px 12px;white-space:nowrap;font-size:var(--fs-s);line-height:1.6;z-index:5;transition:opacity .12s ease}
+.grp:hover .tip,.grp:focus-visible .tip{opacity:1}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #00875A;outline-offset:3px}
+@media (prefers-reduced-motion:reduce){.rise,.fade,.bar{animation:none}.navlink,.add,.rib,.rib-av,.lnk,.tip{transition:none}}
+.scroller{scrollbar-width:thin;scrollbar-color:#CFCFD6 transparent}
+html,body{height:100%}
+@media (max-height:800px){.opt{display:none !important}}
+@media (max-height:700px){.opt2{display:none !important}}
+:root{--fs-label:11px;--fs-s:13px;--fs-body:14px;--fs-title:16px;--fs-h2:18px;--fs-brand:21px;--fs-fig-md:clamp(18px,3vh,24px);--fs-fig-lg:clamp(22px,3.8vh,32px);--fs-lead:clamp(17px,1.4vw,22px);--fs-display:clamp(52px,min(8.6vw,13vh),150px);--fs-numeral:clamp(44px,8vh,76px);--fs-page-title:clamp(26px,4vh,34px);--row-pad:clamp(6px,1.3vh,12px);--bar-s:4px;--bar-l:clamp(10px,1.7vh,14px);--track:#EDEDF1}
+.acct{transition:background .12s ease,border-color .12s ease}
+.acct:hover{background:#F6F6F8 !important}
+.mi{transition:background .12s ease}
+.mi:hover{background:#F6F6F8}
+@keyframes menuin{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.menuin{animation:menuin .18s cubic-bezier(.2,.8,.2,1) both}
+@media (prefers-reduced-motion:reduce){.menuin{animation:none}.acct,.mi{transition:none}}
+</style>
+</helmet>
+<div style="background:#fff;color:#0E0E10;font-family:Geist,system-ui,-apple-system,'Segoe UI',sans-serif;font-size:var(--fs-body);height:100vh;overflow:hidden;display:flex;flex-direction:column">
+
+<header style="flex:none;padding:0 clamp(20px,3.5vw,64px);position:relative;z-index:20" onKeyDown="{{onKey}}">
+<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0 32px;border-bottom:1px solid #0E0E10">
+<nav aria-label="Main" style="display:flex;flex-wrap:wrap;gap:0 28px">
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="6">
+<a class="navlink" href="{{n.href}}" aria-current="{{n.current}}" style="{{n.style}}"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="{{n.iconStyle}}"><path d="{{n.icon}}"/></svg>{{n.label}}<sc-if value="{{n.badge}}" hint-placeholder-val="{{ false }}"><span class="mono" style="margin-left:6px;font-size:var(--fs-label);color:#fff;background:#00875A;padding:1px 5px">{{n.badge}}</span></sc-if></a>
+</sc-for>
+</nav>
+<div style="display:flex;align-items:center;gap:12px">
+<a class="add" href="Credit.dc.html" aria-current="{{addCurrent}}" style="{{addStyle}}">+ Add credit</a>
+<div style="position:relative">
+<button class="acct" type="button" aria-haspopup="menu" aria-expanded="{{menuExpanded}}" onClick="{{toggleMenu}}" style="{{acctStyle}}"><span aria-hidden="true" class="mono" style="{{avatarStyle}}">A</span>Account<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{{chevStyle}}"><path d="M6 9l6 6 6-6"/></svg></button>
+<sc-if value="{{menuOpen}}" hint-placeholder-val="{{ false }}">
+<button type="button" aria-label="Close menu" onClick="{{closeMenu}}" style="position:fixed;inset:0;border:0;padding:0;background:transparent;cursor:default;z-index:30"></button>
+<div role="menu" aria-label="Account" class="menuin" style="position:absolute;right:0;top:calc(100% + 8px);z-index:31;width:300px;max-width:calc(100vw - 40px);background:#fff;border:1px solid #0E0E10">
+<div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid #E6E6EA">
+<span aria-hidden="true" class="mono" style="width:36px;height:36px;flex:none;display:inline-flex;align-items:center;justify-content:center;background:#0E0E10;color:#fff;font-size:var(--fs-s);font-weight:500">A</span>
+<span style="min-width:0"><span style="display:block;font-size:var(--fs-body);font-weight:500">Aayush</span><span class="mono" style="display:block;font-size:var(--fs-label);color:#6B6B73;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">you@example.com</span></span>
+</div>
+<sc-for list="{{menuItems}}" as="m" hint-placeholder-count="5">
+<a role="menuitem" class="mi" href="{{m.href}}" style="{{m.style}}"><span>{{m.label}}</span><span class="mono" style="font-size:var(--fs-label);color:#6B6B73;font-weight:400">{{m.hint}}</span></a>
+</sc-for>
+<a role="menuitem" class="mi" href="SignIn.dc.html" style="display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:44px;padding:10px 16px 10px 16px;box-sizing:border-box;font-size:var(--fs-body);font-weight:500;border-top:1px solid #0E0E10">Sign out<span class="mono" style="font-size:var(--fs-label);color:#6B6B73;font-weight:400">this browser</span></a>
+<div class="mono" style="padding:10px 16px;border-top:1px solid #E6E6EA;font-size:var(--fs-label);color:#6B6B73;line-height:1.5">signed in today · 6:42 pm<br>renews while you use it</div>
+</div>
+</sc-if>
+</div>
+</div>
+</div>
+<div style="display:flex;align-items:flex-end;gap:20px;padding:clamp(6px,1.2vh,12px) 0 clamp(20px,3vh,28px)">
+<div class="mono" style="font-size:var(--fs-label);color:#6B6B73;width:92px;flex:none;line-height:1.3">day 18 of 31</div>
+<div style="flex:1;display:flex;gap:4px;align-items:flex-end;height:18px">
+<sc-for list="{{ruler}}" as="t" hint-placeholder-count="31">
+<span style="{{t.style}}"><sc-if value="{{t.showLabel}}" hint-placeholder-val="{{ false }}"><span class="mono" style="{{t.labelStyle}}">{{t.day}}</span></sc-if></span>
+</sc-for>
+</div>
+</div>
+</header>
+
+<div class="scroller" style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-wrap:wrap;gap:24px clamp(32px,4vw,72px);padding:clamp(6px,1.4vh,12px) clamp(20px,3.5vw,64px) clamp(16px,3vh,32px)">
+
+<aside class="scroller" style="flex:0 0 clamp(208px,16vw,264px);max-width:100%;min-height:0;overflow-y:auto">
+<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width=".7" stroke-linecap="round" stroke-linejoin="round" style="display:block;width:var(--fs-numeral);height:var(--fs-numeral);margin-bottom:calc(var(--fs-numeral) * -0.1);color:#C9EEDD"><path d="M20 12a8 8 0 1 0-16 0a8 8 0 1 0 16 0Z M11 12a1 1 0 1 0 2 0a1 1 0 1 0-2 0Z"/></svg>
+<h1 style="margin:clamp(6px,1.4vh,14px) 0 0;font-size:var(--fs-page-title);font-weight:500;letter-spacing:-0.035em;line-height:1">Now</h1>
+<p class="opt" style="margin:10px 0 0;color:#6B6B73;line-height:1.5;font-size:var(--fs-s)">Where you stand today, and where October's money went.</p>
+
+<div class="mono" style="margin-top:28px;font-size:var(--fs-s)">
+<div style="display:flex;justify-content:space-between;padding:5px 0"><span style="color:#6B6B73">carried over</span><span style="color:#00875A">27,300</span></div>
+<div style="display:flex;justify-content:space-between;padding:5px 0"><span style="color:#6B6B73">+ income</span><span style="color:#00875A">50,000</span></div>
+<div style="display:flex;justify-content:space-between;padding:5px 0"><span style="color:#6B6B73">− spent</span><span>39,709</span></div>
+<div style="display:flex;justify-content:space-between;padding:8px 0 0;margin-top:5px;border-top:1px solid #0E0E10;font-weight:500"><span>= available</span><span>37,591</span></div>
+</div>
+
+<div class="mono opt2" style="margin-top:24px;font-size:var(--fs-s)">
+<div style="display:flex;justify-content:space-between;padding:5px 0"><span style="color:#6B6B73">plan left</span><span>5,791</span></div>
+<div style="display:flex;justify-content:space-between;padding:5px 0"><span style="color:#6B6B73">÷ days left</span><span>13</span></div>
+<div style="display:flex;justify-content:space-between;padding:8px 0 0;margin-top:5px;border-top:1px solid #0E0E10;font-weight:500"><span>= per day</span><span style="color:#00875A">445</span></div>
+</div>
+</aside>
+
+<main style="flex:1 1 640px;min-width:0;min-height:0;display:flex;flex-direction:column">
+
+<div class="rise">
+<div class="mono" style="font-size:var(--fs-label);color:#6B6B73;letter-spacing:.06em">AVAILABLE TO YOU</div>
+<div style="font-size:var(--fs-display);font-weight:300;letter-spacing:-0.065em;line-height:1;margin-top:6px;color:#0E0E10"><span style="font-size:.38em;letter-spacing:0;vertical-align:.95em;margin-right:6px;color:#6B6B73">₹</span>37,591</div>
+<p style="margin:12px 0 0;font-size:var(--fs-lead);line-height:1.45;color:#3B3B42;letter-spacing:-0.01em;max-width:900px">is yours to spend. At <span style="color:#0E0E10;text-decoration:underline;text-decoration-color:#00875A;text-decoration-thickness:2px;text-underline-offset:4px">₹445 a day</span> you finish October on plan, and the rest carries into November.</p>
+</div>
+
+<div style="display:flex;flex-wrap:wrap;gap:0 32px;margin-top:20px;border-top:1px solid #E6E6EA">
+<a class="lnk" href="Budgets.dc.html" style="display:flex;align-items:center;gap:10px;padding:12px 0;min-height:44px;box-sizing:border-box"><span class="mono" style="font-size:var(--fs-label);color:#6B6B73;letter-spacing:.06em">WATCH</span><span aria-hidden="true" style="width:7px;height:7px;background:#E9A800;display:inline-block"></span><span style="font-weight:500;font-size:var(--fs-body)">Fun is at 82% of its limit</span><span aria-hidden="true">→</span></a>
+<a class="lnk" href="Transactions.dc.html" style="display:flex;align-items:center;gap:10px;padding:12px 0;min-height:44px;box-sizing:border-box"><span class="mono" style="font-size:var(--fs-label);color:#6B6B73;letter-spacing:.06em">TAG</span><span style="font-weight:500;font-size:var(--fs-body)">1 payment needs a tag</span><span aria-hidden="true">→</span></a>
+<a class="lnk" href="NeedsLook.dc.html" style="display:flex;align-items:center;gap:10px;padding:12px 0;min-height:44px;box-sizing:border-box"><span class="mono" style="font-size:var(--fs-label);color:#6B6B73;letter-spacing:.06em">LOOK</span><span style="font-weight:500;font-size:var(--fs-body)">2 messages could not be read</span><span aria-hidden="true">→</span></a>
+<a class="lnk" href="Recurring.dc.html" style="display:flex;align-items:center;gap:10px;padding:12px 0;min-height:44px;box-sizing:border-box"><span class="mono" style="font-size:var(--fs-label);color:#6B6B73;letter-spacing:.06em">NEXT</span><span style="font-weight:500;font-size:var(--fs-body)">Rent ₹20,000 on Nov 1</span><span aria-hidden="true">→</span></a>
+</div>
+
+<section style="margin-top:20px;border-top:1px solid #0E0E10;padding-top:14px;flex:1;display:flex;flex-direction:column;min-height:0">
+<div style="display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center;justify-content:space-between">
+<h2 style="margin:0;font-size:var(--fs-h2);font-weight:500;letter-spacing:-0.02em">{{panelTitle}}</h2>
+<div role="group" aria-label="View" style="display:flex;border:1px solid #0E0E10">
+<sc-for list="{{views}}" as="v" hint-placeholder-count="2"><button type="button" onClick="{{v.pick}}" style="{{v.style}}">{{v.label}}</button></sc-for>
+</div>
+</div>
+
+<sc-if value="{{isFlow}}" hint-placeholder-val="{{ true }}">
+<div style="overflow-x:auto;margin-top:14px;flex:1;display:flex;min-height:220px">
+<div class="fade" style="min-width:640px;width:100%;display:flex;min-height:220px">
+<div style="width:clamp(110px,10vw,160px);flex:none;position:relative">
+<div style="{{leftLabel1}}"><div style="font-weight:500;font-size:var(--fs-body)">Carried over</div><div class="mono" style="font-size:var(--fs-label);color:#00875A;margin-top:1px">27,300</div></div>
+<div style="{{leftLabel2}}"><div style="font-weight:500;font-size:var(--fs-body)">Income</div><div class="mono" style="font-size:var(--fs-label);color:#00875A;margin-top:1px">50,000</div></div>
+</div>
+<div style="width:12px;flex:none;display:flex;flex-direction:column">
+<div style="{{leftNode1}}"></div>
+<div style="{{leftNode2}}"></div>
+</div>
+<div style="flex:1;min-width:0;position:relative">
+<svg viewBox="0 0 100 330" preserveAspectRatio="none" style="position:absolute;left:0;top:0;width:100%;height:100%;display:block" role="img" aria-label="Flow of 77,300 rupees from carried-over money and income into spending categories and the 37,591 still available">
+<sc-for list="{{ribbons}}" as="r" hint-placeholder-count="7">
+<path class="{{r.cls}}" d="{{r.d}}" fill="{{r.fill}}"><title>{{r.title}}</title></path>
+</sc-for>
+</svg>
+</div>
+<div style="width:12px;flex:none;position:relative">
+<sc-for list="{{nodes}}" as="r" hint-placeholder-count="7"><div style="{{r.nodeStyle}}"></div></sc-for>
+</div>
+<div style="width:clamp(180px,16vw,260px);flex:none;position:relative">
+<sc-for list="{{nodes}}" as="r" hint-placeholder-count="7">
+<div style="{{r.labelStyle}}"><span style="{{r.nameStyle}}">{{r.name}}</span><span class="mono" style="font-size:var(--fs-label);color:#6B6B73">{{r.amount}}</span></div>
+</sc-for>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isDays}}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;margin:44px 0 32px 40px;flex:1;min-height:170px">
+<div style="position:absolute;left:0;right:0;top:0;border-top:1px solid #E6E6EA"><span class="mono" style="position:absolute;left:-40px;top:-8px;font-size:var(--fs-label);color:#6B6B73">1,000</span></div>
+<div style="position:absolute;left:0;right:0;top:50%;border-top:1px solid #E6E6EA"><span class="mono" style="position:absolute;left:-40px;top:-8px;font-size:var(--fs-label);color:#6B6B73">500</span></div>
+<div style="position:absolute;left:0;right:0;top:100%;border-top:1px solid #0E0E10"><span class="mono" style="position:absolute;left:-40px;top:-8px;font-size:var(--fs-label);color:#6B6B73">0</span></div>
+<div style="position:absolute;left:0;right:0;top:46.1%;border-top:2px solid #8E8E98;z-index:2;pointer-events:none"></div>
+<div style="position:absolute;inset:0;display:flex;gap:4px">
+<sc-for list="{{days}}" as="d" hint-placeholder-count="31">
+<button class="grp" type="button" style="flex:1;min-width:0;position:relative;height:100%;display:flex;align-items:flex-end;justify-content:center">
+<span class="bar" style="{{d.barStyle}}"></span>
+<span class="mono" style="position:absolute;top:100%;margin-top:8px;font-size:var(--fs-label);color:#6B6B73">{{d.axis}}</span>
+<sc-if value="{{d.hasValue}}" hint-placeholder-val="{{ false }}"><span class="tip mono">{{d.title}} · {{d.value}}</span></sc-if>
+</button>
+</sc-for>
+</div>
+</div>
+<div class="mono" style="display:flex;align-items:center;gap:10px;font-size:var(--fs-label);color:#6B6B73;margin:0 0 0 40px"><span style="width:20px;border-top:2px solid #8E8E98;display:inline-block"></span>average ₹539 a day · rent and SIP left out</div>
+</sc-if>
+</section>
+
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { view: 'flow' };
+}
+
+rulerFor(today) {
+const out = [];
+const marks = { 1: true, 10: true, 20: true, 31: true };
+for (let d = 1; d <= 31; d++) {
+const isToday = d === today;
+const past = d < today;
+out.push({
+day: d,
+showLabel: !!marks[d] || isToday,
+style: 'flex:1;position:relative;display:block;width:auto;height:' + (isToday ? 18 : past ? 10 : 6) + 'px;background:' + (isToday ? '#00875A' : past ? '#0E0E10' : '#D9D9DF') + ';',
+labelStyle: 'position:absolute;top:100%;margin-top:5px;left:50%;transform:translateX(-50%);font-size:var(--fs-label);color:' + (isToday ? '#00875A' : '#6B6B73') + ';font-weight:' + (isToday ? 500 : 400) + ';'
+});
+}
+return out;
+}
+
+shellVals() {
+const KEY = 'Main.dc.html';
+const HOME = 'Main.dc.html';
+const P = {
+now: 'M20 12a8 8 0 1 0-16 0a8 8 0 1 0 16 0Z M11 12a1 1 0 1 0 2 0a1 1 0 1 0-2 0Z',
+ledger: 'M5 7h14 M5 12h14 M5 17h9',
+plan: 'M4 4h7v7H4Z M13 4h7v7h-7Z M4 13h7v7H4Z M13 13h7v7h-7Z',
+limits: 'M4 10h16v4H4Z M15 5v14',
+repeats: 'M19 12a7 7 0 1 1-2.1-5 M19 4v4h-4',
+trends: 'M4 20h16 M5 16l4.5-5 3.5 3L19 7'
+};
+const items = [
+['Now', 'Main.dc.html', P.now],
+['Ledger', 'Transactions.dc.html', P.ledger, '1'],
+['Plan', 'Plan.dc.html', P.plan],
+['Limits', 'Budgets.dc.html', P.limits],
+['Repeats', 'Recurring.dc.html', P.repeats],
+['Trends', 'Reports.dc.html', P.trends]
+];
+const nav = items.map((it) => {
+const on = it[1] === HOME;
+return {
+label: it[0], href: it[1], icon: it[2], badge: it[3],
+current: on ? 'page' : undefined,
+iconStyle: 'flex:none;margin-right:8px;color:' + (on ? '#00875A' : '#8E8E98') + ';',
+style: 'display:inline-flex;align-items:center;padding:16px 0 14px;font-size:var(--fs-body);font-weight:500;border-bottom:2px solid ' + (on ? '#00875A' : 'transparent') + ';margin-bottom:-1px;color:' + (on ? '#0E0E10' : '#6B6B73') + ';'
+};
+});
+const open = !!this.state.menu;
+const acctOn = HOME === 'acct';
+const menuDefs = [
+['Profile and preferences', 'Account.dc.html', 'name, alerts, data'],
+['Security', 'SecuritySettings.dc.html', 'two-step, passkeys'],
+['Devices and Telegram', 'Devices.dc.html', 'iPhone, bot'],
+['Setup guide', 'Setup.dc.html', 'about 15 min'],
+['Needs a look', 'NeedsLook.dc.html', '2 messages']
+];
+const menuItems = menuDefs.map((m) => ({
+label: m[0], href: m[1], hint: m[2],
+style: 'display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:44px;padding:10px 16px 10px 13px;box-sizing:border-box;font-size:var(--fs-body);font-weight:500;border-left:3px solid ' + (m[1] === KEY ? '#00875A' : 'transparent') + ';'
+}));
+const addOn = HOME === 'Credit.dc.html';
+return {
+nav,
+ruler: this.rulerFor(18),
+menuOpen: open,
+menuExpanded: open ? 'true' : 'false',
+toggleMenu: () => this.setState({ menu: !this.state.menu }),
+closeMenu: () => this.setState({ menu: false }),
+onKey: (e) => { if (e.key === 'Escape' && this.state.menu) this.setState({ menu: false }); },
+menuItems,
+addCurrent: addOn ? 'page' : undefined,
+addStyle: 'display:inline-flex;align-items:center;height:36px;padding:0 16px;color:#fff;font-size:var(--fs-s);font-weight:500;box-sizing:border-box;background:' + (addOn ? '#00875A' : '#0E0E10') + ';',
+acctStyle: 'display:inline-flex;align-items:center;gap:10px;height:36px;padding:0 12px 0 3px;background:#fff;border:1px solid ' + (open || acctOn ? '#0E0E10' : '#CFCFD6') + ';font-size:var(--fs-s);font-weight:500;color:#0E0E10;cursor:pointer;box-sizing:border-box;',
+avatarStyle: 'width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:var(--fs-label);font-weight:500;background:' + (acctOn ? '#00875A' : '#0E0E10') + ';',
+chevStyle: 'flex:none;color:#6B6B73;transition:transform .15s ease;transform:rotate(' + (open ? 180 : 0) + 'deg);'
+};
+}
+
+renderVals() {
+return Object.assign({}, this.pageVals(), this.shellVals());
+}
+
+pageVals() {
+const view = this.state.view;
+const H = 330, GAP = 22;
+const cats = [
+{ name: 'Rent', v: 20000 },
+{ name: 'SIP', v: 10000 },
+{ name: 'Food', v: 5420 },
+{ name: 'Fun', v: 1640 },
+{ name: 'Travel', v: 1350 },
+{ name: 'Bills', v: 1299 },
+{ name: 'Still available', v: 37591, av: true }
+];
+const total = cats.reduce((a, c) => a + c.v, 0);
+const S = H - GAP * (cats.length - 1);
+let ly = 0, ry = 0;
+const nodes = [];
+const ribbons = [];
+const fmt = (n) => n.toLocaleString('en-IN');
+const pc = (y) => ((y / H) * 100).toFixed(3);
+cats.forEach((c) => {
+const lh = (c.v / total) * H;
+const rh = (c.v / total) * S;
+const ly1 = ly + lh;
+const ry1 = ry + rh;
+ribbons.push({
+d: 'M0 ' + ly.toFixed(2) + ' C50 ' + ly.toFixed(2) + ' 50 ' + ry.toFixed(2) + ' 100 ' + ry.toFixed(2) + ' L100 ' + ry1.toFixed(2) + ' C50 ' + ry1.toFixed(2) + ' 50 ' + ly1.toFixed(2) + ' 0 ' + ly1.toFixed(2) + ' Z',
+cls: c.av ? 'rib-av' : 'rib',
+fill: c.av ? '#D8F3E7' : '#EDEDF1',
+title: c.name + ' · ₹' + fmt(c.v)
+});
+nodes.push({
+name: c.name,
+amount: fmt(c.v),
+nodeStyle: 'position:absolute;left:0;width:12px;top:' + pc(ry) + '%;height:max(2px,' + pc(rh) + '%);background:' + (c.av ? '#00875A' : '#0E0E10') + ';',
+labelStyle: 'position:absolute;left:18px;right:0;top:calc(' + pc(ry + rh / 2) + '% - 10px);height:20px;display:flex;align-items:center;justify-content:space-between;gap:12px;',
+nameStyle: c.av ? 'font-weight:600;font-size:var(--fs-body);color:#00875A;' : 'font-weight:500;font-size:var(--fs-body);'
+});
+ly = ly1;
+ry = ry1 + GAP;
+});
+const carriedPct = (27300 / total) * 100;
+const incomePct = 100 - carriedPct;
+
+const vals = [240, 370, 340, 530, 420, 350, 850, 380, 910, 620, 970, 440, 730, 480, 570, 740, 380, 389];
+const days = [];
+for (let i = 1; i <= 31; i++) {
+const v = vals[i - 1];
+const has = v !== undefined;
+const isToday = i === 18;
+days.push({
+axis: [1, 5, 10, 15, 18, 20, 25, 31].indexOf(i) >= 0 ? String(i) : '',
+title: 'Oct ' + i,
+hasValue: has,
+value: has ? '₹' + fmt(v) : '',
+barStyle: has
+? 'width:100%;max-width:24px;height:' + (v / 10).toFixed(2) + '%;background:linear-gradient(0deg,#0E0E10,#4A4A52);animation-delay:' + (i * 0.02) + 's;'
+: 'width:100%;max-width:24px;height:2px;background:#E6E6EA;'
+});
+}
+
+const viewDefs = [['flow', 'Flow'], ['days', 'Day by day']];
+const views = viewDefs.map((d) => ({
+label: d[1],
+pick: () => this.setState({ view: d[0] }),
+style: 'height:32px;padding:0 16px;border:0;font-size:var(--fs-s);font-weight:500;cursor:pointer;' + (view === d[0] ? 'background:#0E0E10;color:#fff;' : 'background:#fff;color:#0E0E10;')
+}));
+
+return {
+ruler: this.rulerFor(18),
+views,
+isFlow: view === 'flow',
+isDays: view === 'days',
+panelTitle: view === 'flow' ? 'Where it went' : 'Day by day',
+ribbons,
+nodes,
+days,
+leftNode1: 'flex:27300 1 0;background:#9A9AA6;',
+leftNode2: 'flex:50000 1 0;background:#0E0E10;border-top:2px solid #fff;box-sizing:border-box;',
+leftLabel1: 'position:absolute;right:16px;top:' + (carriedPct / 2).toFixed(2) + '%;transform:translateY(-50%);text-align:right;',
+leftLabel2: 'position:absolute;right:16px;top:' + (carriedPct + incomePct / 2).toFixed(2) + '%;transform:translateY(-50%);text-align:right;'
+};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+# Python images only need packages/ and services/; the web image has its own context (apps/web).
+apps
+docs
+README.md
+.git
+.env
+.env.*
+.venv
+**/node_modules
+**/__pycache__
+**/.pytest_cache
+.ruff_cache

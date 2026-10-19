@@ -1,0 +1,31 @@
+# Reverse proxy: one public origin. TLS is automatic when PUBLIC_HOST is a real domain.
+{
+	auto_https disable_redirects
+}
+
+:80 {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		-Server
+	}
+
+	# iPhone Shortcut and Telegram talk to the gateway directly (no cookie session).
+	handle /ingest/* {
+		reverse_proxy gateway:3000
+	}
+	handle /telegram/webhook/* {
+		reverse_proxy gateway:3000
+	}
+
+	# The web app calls the API under /api (same origin, so SameSite=Strict cookies work).
+	handle_path /api/* {
+		reverse_proxy gateway:3000
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+}

@@ -1,0 +1,9 @@
+.panel { margin-top: 12px; }
+.row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 20px; }
+.input { display: block; width: 200px; height: 38px; border: 0; border-bottom: 1px solid var(--disabled); border-radius: 0; background: transparent; padding: 0; font-size: var(--fs-h2); font-weight: 300; }
+.input:focus { border-bottom-color: var(--ink); }
+.caption { margin-top: 8px; }
+.result { margin-top: 12px; }
+.gap { display: flex; gap: 10px; align-items: flex-start; font-size: var(--fs-s); line-height: 1.5; }
+.sq { width: 9px; height: 9px; flex: none; margin-top: 5px; background: var(--warn); }
+.choices { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; margin-top: 10px; }

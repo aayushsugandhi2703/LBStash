@@ -1,0 +1,20 @@
+.stats { margin-top: 24px; border-top: 1px solid var(--ink); }
+.stat { padding: clamp(6px, 1.4vh, 13px) 0; border-bottom: 1px solid var(--rule); }
+.statFig { font-size: var(--fs-fig-lg); font-weight: 300; letter-spacing: -0.04em; margin-top: 4px; }
+.statNote { font-size: var(--fs-label); color: var(--muted); margin-top: 2px; }
+
+.headline { margin: 0 0 14px; max-width: 900px; line-height: 1.45; color: var(--text-2); }
+
+.panel { flex: 1; min-height: 260px; display: flex; flex-direction: column; border-top: 1px solid var(--ink); padding-top: 14px; }
+.panelHead { display: flex; flex-wrap: wrap; gap: 6px 24px; align-items: center; justify-content: space-between; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: var(--fs-label); color: var(--text-2); }
+.legend span { display: flex; align-items: center; gap: 7px; }
+.legend i { display: inline-block; width: 11px; height: 11px; }
+
+.list { flex: none; }
+.listHead { padding-bottom: 7px; border-bottom: 1px solid var(--ink); }
+.urow { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 20px; padding: var(--row-pad) 0; border-bottom: 1px solid var(--rule); }
+.urow .nm { width: 80px; flex: none; }
+.urow .usually { flex: 1 1 150px; font-size: var(--fs-s); color: var(--muted); }
+.urow .heading { flex: 1 1 170px; font-size: var(--fs-s); }
+.urow .change { flex: 1 1 170px; text-align: right; font-size: var(--fs-s); font-weight: 500; }

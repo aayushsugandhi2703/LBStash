@@ -1,0 +1,2 @@
+/* The emphasised word in an auth sentence: ink with a 2px accent underline (ui-spec 12, 13, 15). */
+.em { color: var(--ink); font-weight: 400; text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 4px; }

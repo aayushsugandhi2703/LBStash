@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reset password</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+html,body{height:100%}
+a{color:inherit;text-decoration:none}
+button,input{font-family:inherit}
+.mono{font-family:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.rise{animation:rise .6s cubic-bezier(.2,.8,.2,1) both}
+.add{transition:background .15s ease,opacity .15s ease}
+.add:hover:not(:disabled){background:#00875A !important}
+.add:disabled{opacity:.3;cursor:default}
+.lnk{transition:color .15s ease}
+.lnk:hover{color:#00875A}
+.field::placeholder{color:#CFCFD6}
+.scroller{scrollbar-width:thin;scrollbar-color:#CFCFD6 transparent}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #00875A;outline-offset:3px}
+@media (max-height:800px){.opt{display:none !important}}
+@media (max-height:700px){.opt2{display:none !important}}
+@media (prefers-reduced-motion:reduce){.rise{animation:none}.add,.lnk{transition:none}}
+:root{--fs-label:11px;--fs-s:13px;--fs-body:14px;--fs-title:16px;--fs-h2:18px;--fs-brand:21px;--fs-fig-md:clamp(18px,3vh,24px);--fs-fig-lg:clamp(22px,3.8vh,32px);--fs-lead:clamp(17px,1.4vw,22px);--fs-display:clamp(52px,min(8.6vw,13vh),150px);--fs-numeral:clamp(44px,8vh,76px);--fs-page-title:clamp(26px,4vh,34px);--row-pad:clamp(6px,1.3vh,12px);--bar-s:4px;--bar-l:clamp(10px,1.7vh,14px);--track:#EDEDF1}
+</style>
+</helmet>
+<div style="background:#fff;color:#0E0E10;font-family:Geist,system-ui,-apple-system,'Segoe UI',sans-serif;font-size:var(--fs-body);height:100vh;overflow:hidden;display:flex;flex-direction:column">
+
+<header style="flex:none;padding:0 clamp(20px,3.5vw,64px)">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:0 32px;border-bottom:1px solid #0E0E10">
+<a href="SignIn.dc.html" style="display:flex;align-items:baseline;gap:10px;padding:14px 0"><span style="font-size:var(--fs-brand);font-weight:600;letter-spacing:-0.04em">ledger</span></a>
+<a class="lnk mono" href="SignIn.dc.html" style="font-size:var(--fs-label);color:#6B6B73;padding:12px 0">back to sign in</a>
+</div>
+<div style="height:clamp(20px,3vh,28px)"></div>
+</header>
+
+<div class="scroller" style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-wrap:wrap;gap:24px clamp(32px,4vw,72px);padding:clamp(6px,1.4vh,12px) clamp(20px,3.5vw,64px) clamp(16px,3vh,32px)">
+
+<aside class="scroller" style="flex:0 0 clamp(208px,16vw,264px);max-width:100%;min-height:0;overflow-y:auto">
+<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width=".7" stroke-linecap="round" stroke-linejoin="round" style="display:block;width:var(--fs-numeral);height:var(--fs-numeral);margin-bottom:calc(var(--fs-numeral) * -0.1);color:#C9EEDD"><path d="M5 12a7 7 0 1 1 2.1 5 M5 20v-4h4"/></svg>
+<h1 style="margin:clamp(6px,1.4vh,14px) 0 0;font-size:var(--fs-page-title);font-weight:500;letter-spacing:-0.035em;line-height:1">Reset your password</h1>
+<p class="opt" style="margin:10px 0 0;color:#6B6B73;line-height:1.5;font-size:var(--fs-s)">There is no "email me a link" here, on purpose. A recovery code proves it is you, and nobody else can intercept it.</p>
+
+<div class="mono opt2" style="margin-top:clamp(12px,2.6vh,28px);font-size:var(--fs-s)">
+<div style="display:flex;justify-content:space-between;padding:5px 0"><span style="color:#6B6B73">you need</span><span>1 recovery code</span></div>
+<div style="display:flex;justify-content:space-between;padding:5px 0"><span style="color:#6B6B73">other sessions</span><span>signed out</span></div>
+<div style="display:flex;justify-content:space-between;padding:8px 0 0;margin-top:5px;border-top:1px solid #0E0E10;font-weight:500"><span>= code used up</span><span style="color:#00875A">once</span></div>
+</div>
+</aside>
+
+<main style="flex:1 1 640px;min-width:0;min-height:0;display:flex;flex-direction:column">
+
+<sc-if value="{{isCode}}" hint-placeholder-val="{{ true }}">
+<div class="rise" style="max-width:560px;display:flex;flex-direction:column;gap:clamp(14px,2.6vh,26px)">
+<div class="mono" style="font-size:var(--fs-label);color:#6B6B73;letter-spacing:.06em">STEP 1 OF 2 · PROVE IT IS YOU</div>
+<div>
+<label for="email" class="mono" style="font-size:var(--fs-label);color:#6B6B73;letter-spacing:.06em">EMAIL</label>
+<input id="email" class="field" type="email" autocomplete="username" placeholder="you@example.com" value="{{email}}" onChange="{{onEmail}}" style="display:block;width:100%;height:clamp(34px,5vh,42px);border:0;border-bottom:1px solid #CFCFD6;background:transparent;padding:0;font-size:var(--fs-h2);font-weight:300;color:#0E0E10;box-sizing:border-box">
+</div>
+<div>
+<label for="rc" class="mono" style="font-size:var(--fs-label);color:#6B6B73;letter-spacing:.06em">ONE OF YOUR 8 RECOVERY CODES</label>
+<input id="rc" class="field" type="text" autocomplete="off" placeholder="xxxx-xxxx" value="{{rcode}}" onChange="{{onCode}}" style="display:block;width:100%;height:clamp(34px,5vh,42px);border:0;border-bottom:1px solid #CFCFD6;background:transparent;padding:0;font-family:'Geist Mono',ui-monospace,monospace;font-size:var(--fs-h2);font-weight:300;color:#0E0E10;box-sizing:border-box">
+</div>
+<sc-if value="{{hasError}}" hint-placeholder-val="{{ false }}"><div role="alert" style="display:flex;align-items:center;gap:10px;font-size:var(--fs-s);color:#C93030"><span aria-hidden="true" style="width:9px;height:9px;background:#C93030;display:inline-block"></span>{{error}}</div></sc-if>
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px">
+<button class="add" type="button" onClick="{{toPassword}}" style="height:44px;padding:0 28px;border:0;background:#0E0E10;color:#fff;font-size:var(--fs-body);font-weight:500;cursor:pointer">Continue</button>
+<span class="mono opt" style="font-size:var(--fs-label);color:#6B6B73">lost the codes too? you will need to restore from a backup</span>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isPassword}}" hint-placeholder-val="{{ false }}">
+<div class="rise" style="max-width:560px;display:flex;flex-direction:column;gap:clamp(12px,2.2vh,22px)">
+<div class="mono" style="font-size:var(--fs-label);color:#6B6B73;letter-spacing:.06em">STEP 2 OF 2 · NEW PASSWORD</div>
+<div>
+<div style="display:flex;justify-content:space-between;align-items:baseline">
+<label for="pw" class="mono" style="font-size:var(--fs-label);color:#6B6B73;letter-spacing:.06em">NEW PASSWORD</label>
+<button class="lnk mono" type="button" onClick="{{toggleShow}}" style="min-height:32px;padding:0;border:0;background:transparent;font-size:var(--fs-s);color:#0E0E10;cursor:pointer;text-decoration:underline;text-decoration-color:#00875A;text-underline-offset:5px">{{showLabel}}</button>
+</div>
+<input id="pw" class="field" type="{{pwType}}" autocomplete="new-password" placeholder="at least 12 characters" value="{{password}}" onChange="{{onPassword}}" style="display:block;width:100%;height:clamp(34px,5vh,42px);border:0;border-bottom:1px solid #CFCFD6;background:transparent;padding:0;font-size:var(--fs-h2);font-weight:300;color:#0E0E10;box-sizing:border-box">
+</div>
+<div>
+<label for="pw2" class="mono" style="font-size:var(--fs-label);color:#6B6B73;letter-spacing:.06em">CONFIRM</label>
+<input id="pw2" class="field" type="{{pwType}}" autocomplete="new-password" placeholder="type it once more" value="{{confirm}}" onChange="{{onConfirm}}" style="display:block;width:100%;height:clamp(34px,5vh,42px);border:0;border-bottom:1px solid #CFCFD6;background:transparent;padding:0;font-size:var(--fs-h2);font-weight:300;color:#0E0E10;box-sizing:border-box">
+</div>
+<div style="display:flex;flex-direction:column">
+<sc-for list="{{rules}}" as="r" hint-placeholder-count="3">
+<div style="display:flex;align-items:center;gap:12px;padding:5px 0;font-size:var(--fs-s);color:#3B3B42"><span aria-hidden="true" style="{{r.dot}}"></span><span>{{r.text}}</span></div>
+</sc-for>
+</div>
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px">
+<button class="add" type="button" disabled="{{cantSave}}" onClick="{{save}}" style="height:44px;padding:0 28px;border:0;background:#0E0E10;color:#fff;font-size:var(--fs-body);font-weight:500;cursor:pointer">Set new password</button>
+<button class="lnk" type="button" onClick="{{toCode}}" style="min-height:44px;padding:0;border:0;background:transparent;font-size:var(--fs-body);color:#6B6B73;cursor:pointer">Back</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isDone}}" hint-placeholder-val="{{ false }}">
+<div class="rise" style="max-width:640px;display:flex;flex-direction:column;gap:clamp(12px,2.4vh,22px)">
+<div aria-hidden="true" style="width:44px;height:44px;background:#00875A;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+<div class="mono" style="font-size:var(--fs-label);color:#6B6B73;letter-spacing:.06em">PASSWORD CHANGED</div>
+<div style="font-size:var(--fs-lead);line-height:1.45;color:#3B3B42;letter-spacing:-0.01em">All other sessions were signed out. The recovery code you used is <span style="color:#0E0E10;text-decoration:underline;text-decoration-color:#00875A;text-decoration-thickness:2px;text-underline-offset:4px">used up</span>, so make a fresh set of codes now.</div>
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px">
+<a class="add" href="SignIn.dc.html" style="display:inline-flex;align-items:center;height:44px;padding:0 28px;background:#0E0E10;color:#fff;font-size:var(--fs-body);font-weight:500">Sign in</a>
+<a class="lnk" href="Secure.dc.html" style="display:inline-flex;align-items:center;min-height:44px;font-size:var(--fs-body);color:#6B6B73">Get new recovery codes</a>
+</div>
+</div>
+</sc-if>
+
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { step: 'code', email: '', rcode: '', password: '', confirm: '', showPw: false, error: '' };
+this.common = ['password1234', '123456789012', 'qwertyuiop12', 'iloveyou1234', 'passwordpassword'];
+}
+
+renderVals() {
+const s = this.state;
+const pw = s.password.toLowerCase();
+const ok = {
+len: s.password.length >= 12,
+common: s.password.length > 0 && this.common.indexOf(pw) < 0,
+match: s.confirm.length > 0 && s.confirm === s.password
+};
+const dot = (v) => 'width:10px;height:10px;display:inline-block;flex:none;box-sizing:border-box;' + (v ? 'background:#00875A;' : 'background:#fff;border:1px solid #CFCFD6;');
+const rules = [
+{ text: 'At least 12 characters', dot: dot(ok.len) },
+{ text: 'Not a commonly used password', dot: dot(ok.common) },
+{ text: 'Both passwords match', dot: dot(ok.match) }
+];
+return {
+isCode: s.step === 'code',
+isPassword: s.step === 'password',
+isDone: s.step === 'done',
+email: s.email,
+rcode: s.rcode,
+password: s.password,
+confirm: s.confirm,
+pwType: s.showPw ? 'text' : 'password',
+showLabel: s.showPw ? 'hide' : 'show',
+hasError: !!s.error,
+error: s.error,
+rules,
+cantSave: !(ok.len && ok.common && ok.match),
+onEmail: (e) => this.setState({ email: e.target.value, error: '' }),
+onCode: (e) => this.setState({ rcode: e.target.value, error: '' }),
+onPassword: (e) => this.setState({ password: e.target.value }),
+onConfirm: (e) => this.setState({ confirm: e.target.value }),
+toggleShow: () => this.setState((st) => ({ showPw: !st.showPw })),
+toPassword: () => {
+const st = this.state;
+if (!/^\S+@\S+\.\S+$/.test(st.email) || st.rcode.length < 9) {
+this.setState({ error: "That email or recovery code isn't valid." });
+return;
+}
+this.setState({ step: 'password', error: '' });
+},
+toCode: () => this.setState({ step: 'code' }),
+save: () => this.setState({ step: 'done' })
+};
+}
+}
+</script>
+</body>
+</html>

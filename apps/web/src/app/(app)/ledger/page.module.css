@@ -1,0 +1,40 @@
+.strip { margin-top: 0; border-top: 0; }
+.top { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid var(--ink); margin-top: 12px; }
+.count { font-size: var(--fs-s); color: var(--muted); }
+.tableWrap { overflow-x: auto; flex: 1; display: flex; flex-direction: column; min-height: 200px; }
+.table { min-width: 640px; flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.thead { display: flex; gap: 20px; padding: 10px 12px 10px 0; border-bottom: 1px solid var(--rule); }
+.panel { flex: 1; min-height: 150px; overflow-y: auto; border-bottom: 1px solid var(--rule); }
+.stale { opacity: .5; }
+.cDate { width: 58px; flex: none; }
+.cWhat { flex: 1; min-width: 0; }
+.cTag { width: 120px; flex: none; }
+.cSource { width: 104px; flex: none; }
+.cAmount { width: 108px; flex: none; text-align: right; }
+.rowWrap { border-bottom: 1px solid var(--rule); }
+.rowWrap > :global(.row) { gap: 20px; padding-right: 12px; border-bottom: 0; }
+.date { font-size: var(--fs-label); color: var(--muted); }
+.name { font-size: var(--fs-title); font-weight: 500; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.name[data-reversed="true"] { color: var(--disabled); text-decoration: line-through; }
+.mark { display: inline-block; width: 7px; height: 7px; margin-right: 8px; vertical-align: 1px; background: var(--warn); }
+.note { margin-top: 2px; }
+.tag { display: flex; align-items: center; gap: 14px; }
+.tagText { font-size: var(--fs-s); }
+.act { min-height: 32px; font-size: var(--fs-s); }
+.act.hot { color: var(--accent); font-weight: 500; text-decoration-color: currentColor; text-underline-offset: 4px; }
+.act.quiet { text-decoration-color: var(--disabled); text-underline-offset: 4px; }
+.source { font-size: var(--fs-label); color: var(--muted); letter-spacing: .04em; }
+.amount { font-size: var(--fs-body); font-weight: 500; }
+.well { margin: 0 12px var(--row-pad) 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.tagRow { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 20px; }
+.tagField { width: 220px; }
+.tail { padding: 14px 0; text-align: center; }
+.tail :global(.link) { min-height: 44px; padding: 0 12px; }
+.endNote { padding: 18px 0; text-align: center; font-size: var(--fs-s); color: var(--muted); }
+.foot { padding-top: 10px; }
+.splitRow { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 24px; margin-top: 8px; }
+.splitPart { width: 140px; }
+.splitInput { display: block; width: 100%; height: 38px; border: 0; border-bottom: 1px solid var(--disabled); border-radius: 0; background: transparent; padding: 0; font-size: var(--fs-title); }
+.splitInput:focus { border-bottom-color: var(--ink); }
+.goesTo { margin-top: 6px; }
