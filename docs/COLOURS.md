@@ -17,6 +17,8 @@ Every colour the web app uses. The shared ones are CSS variables at the top of `
 | `#B3E6CD` | `--accent-ribbon-hover` | flow-chart ribbon on hover |
 | `rgba(0, 135, 90, 0.10)` | `--accent-wash` | soft green background (the main green at 10%) |
 
+The logo mark follows `--accent` in the app (`apps/web/src/brand/logo.tsx`); the standalone files in `apps/web/public/brand` use `#00875A`.
+
 An alternative blue-green theme (`<html data-theme="caribbean">`, not switched on) swaps these seven for `#007F95 #0098B2 #00596A #BDEAF2 #D2F0F6 #B2E5EF rgba(0,127,149,.10)`.
 
 ## Neutrals

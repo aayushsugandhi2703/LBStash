@@ -55,13 +55,13 @@ flowchart LR
 |---|---|
 | proxy (Caddy) | The only public entry. Routes `/` to the web app and `/api`, `/ingest`, `/telegram/webhook` to the gateway |
 | gateway | The only door to the backend: checks login, CSRF and rate limits, adds security headers, forwards by path |
-| auth | Users, sessions, 2FA, passkeys, recovery codes, audit log, data export, account deletion |
+| auth | Users, sessions, 2FA, passkeys, recovery codes, optional allowed addresses, audit log, data export, account deletion |
 | ingest | Optional bank-message route: device tokens, the OTP guard and the message reader |
 | ledger | Transactions, categories, tag rules, credits, balance checks |
 | planning | Monthly plans, limits, alerts |
 | recurring | Repeating payments and the cron that posts them |
 | reports | Dashboard and trend views, built on read from other services (stores nothing) |
-| telegram | The bot, `/350` and `+1500` logging, tagging prompts, the Google Pay button, daily digest, the encrypted bot token |
+| telegram | The bot, `/350` and `+1500` logging, tagging prompts, the Google Pay button, daily digest, the encrypted bot token, who may link (one Telegram account) |
 
 ### How services work together
 
@@ -71,7 +71,7 @@ flowchart LR
 - **Events used:** `transaction.changed` (planning re-checks limits, Telegram updates prompts), `credit.added`, `alert.created`, `unparsed.created`, `account.deleted` (every service purges that user), `audit.record`.
 - **Derived, not stored:** balance, spend per category, pace and trends are calculated when read, so there are no cached totals to drift out of date.
 - **Money:** whole paise as integers, never floats. Months and "today" use your time zone.
-- **Shared code:** `packages/bt` holds what every service needs (money, crypto, contracts, DB access, queue, HTTP clients). Details: [ARCHITECTURE](docs/ARCHITECTURE.md). Colours: [COLOURS](docs/COLOURS.md).
+- **Shared code:** `packages/bt` holds what every service needs (money, crypto, contracts, DB access, queue, HTTP clients). Details: [ARCHITECTURE](docs/ARCHITECTURE.md). Colours: [COLOURS](docs/COLOURS.md). Logo, icons and the name live in `apps/web/src/brand` (SVG files in `apps/web/public/brand`).
 - **Deploy:** one Docker image per service on a shared base image. A one-shot `db-init` job creates roles and schemas, then services start, then the gateway, then the proxy.
 
 ### What happens to one logged payment
@@ -88,7 +88,7 @@ sequenceDiagram
   Telegram->>Bot: webhook (secret header, your id, signed-in session)
   Bot->>Ledger: save manual transaction with tag "food"
   Ledger->>Q: transaction.changed (same DB transaction)
-  Bot->>Telegram: delete your message, reply "Tagged Food" + Open Google Pay
+  Bot->>Telegram: delete your message, reply "Money out · ₹350 · Food ✓" + Open Google Pay
   Q->>Planning: re-check limits, raise alert once if crossed
   Note over You,Telegram: With no tag ("/350") the bot sends category buttons and tagging is one tap
   You->>Telegram: tap Open Google Pay
@@ -105,6 +105,7 @@ Built for one person's money data, so correctness and privacy come before scale:
 |---|---|
 | **Sign-in** | • 12+ character password, common ones rejected<br>• Hashed with Argon2id<br>• Authenticator app is mandatory<br>• Passkeys and 10 recovery codes (hashed) |
 | **Sessions** | • Access token lasts 15 min, refresh token rotates<br>• A reused refresh token means it was copied, so the session is revoked<br>• Ends after 12 h idle or 30 days |
+| **Allowed addresses (optional)** | • Account > Security: list the IPs or ranges that may use the web app<br>• Sign-in, token refresh and every page refuse other addresses<br>• Needs a fresh authenticator code; a list without your own address is refused<br>• Does not apply to the Telegram bot (Telegram never reveals your address; the bot is locked to your Telegram account instead) |
 | **Cookies and CSRF** | • `HttpOnly`, `Secure`, `SameSite=Strict`<br>• CSRF token on every change |
 | **Brute force** | • 5 wrong passwords lock 30 s, doubling to 15 min<br>• Per-IP rate limits on login, reset, phone and webhook<br>• Generic errors, so emails cannot be guessed |
 | **Idempotency (safe to repeat)** | • Each Telegram update is processed once, even if Telegram retries<br>• Optional bank-message route: one-time `nonce`, 5-min window, unique dedupe key<br>• Queue jobs can run twice with the same result: alerts fire once, credits count once<br>• Telegram taps and sign-in codes work once |
@@ -113,7 +114,7 @@ Built for one person's money data, so correctness and privacy come before scale:
 | **Between services** | • Not exposed to the internet<br>• Signed 60-second token on every call<br>• Internal routes refuse outside requests |
 | **Edge** | • HSTS, `nosniff`, `no-referrer`, strict CSP, Permissions-Policy<br>• Strict input validation, parameterised queries<br>• Constant-time secret checks |
 | **Bank-message token (optional)** | • Per-device token: ingest-only, shown once, revocable<br>• OTP-like text dropped unread (`202`), nothing stored<br>• Parsed messages are not kept |
-| **Telegram** | • Only your Telegram id, private chat<br>• `/signin` with an authenticator code before any `/350` is accepted<br>• Your typed amount is deleted from the chat; replies carry no amount, payee or balance<br>• Webhook secret header, stored hashed |
+| **Telegram** | • Setup asks for your Telegram username or id first; only that account can link, anyone else sending a valid code is ignored<br>• After linking, only your Telegram id, private chat<br>• `/signin` with an authenticator code before any `/350` is accepted<br>• Your typed message is deleted; its confirmation repeats the amount you typed<br>• Bank-message prompts carry no amount, payee or balance unless you tap Reveal<br>• Webhook secret header, stored hashed |
 | **Never collected** | • Bank logins, UPI PINs, card numbers, OTPs<br>• The app never moves money |
 | **Logs and audit** | • Logs hold ids and outcome codes only<br>• Append-only audit log |
 | **Your data** | • Export any time<br>• Delete account (7-day grace)<br>• Old rows cleaned nightly |
@@ -129,7 +130,7 @@ docker compose up --build        # db, services, gateway, web and proxy
 
 Open http://localhost:8088 and create your account. Back up `FIELD_KEY` from `.env`; encrypted data cannot be read without it. Registration allows one account unless you set `REGISTRATION=open`.
 
-Then follow the in-app **Setup guide** (Account menu) to connect your Telegram bot. For the Open Google Pay button, set `PUBLIC_URL` to an address your phone can reach.
+Then follow the in-app **Setup guide** (Account menu): create your bot in @BotFather, paste its token, enter your Telegram username, and send the code to your bot (or tap the link under the code). For the Open Google Pay button, set `PUBLIC_URL` to an address your phone can reach.
 
 ### Put it on a domain (https)
 
@@ -147,9 +148,9 @@ Stop with `docker compose down` (add `-v` to wipe the database).
 ```bash
 uv sync                                      # Python environment
 docker compose --profile test up -d test-db  # throwaway Postgres for tests
-uv run pytest                                # backend tests
+TEST_DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres uv run pytest services/auth/tests   # backend tests: one service at a time
 cd apps/web && npm install && npm test       # web tests
 uv run python scripts/e2e.py                     # end-to-end check against the running stack
 ```
 
-`scripts/e2e.py` needs `PUBLIC_URL` set and `REGISTRATION=open`; see the header of the script.
+Backend tests need a throwaway Postgres superuser in `TEST_DATABASE_URL` (the `test-db` service above, or any scratch Postgres) and run per service, since each has its own `conftest.py`; `ledger` has no tests yet. `scripts/e2e.py` needs `PUBLIC_URL` set and `REGISTRATION=open`; see the header of the script.

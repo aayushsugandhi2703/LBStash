@@ -14,10 +14,17 @@
 - Setup guide cut to 3 steps; README, ARCHITECTURE and SYSTEM_DESIGN updated. The optional `/ingest/message` route and Devices token page remain.
 - Not run on a phone or live bot: the `/pay` Google Pay hand-off and the typed-amount commands. Web typecheck and tests were not run (no Node here); `setup.test.ts` was edited to match.
 
-**Known broken (not touched, tests were out of scope)**
-- Backend pytest: `test_db.py` imports removed `camel_all`; `test_kit.py` imports removed `Paging`; nested `conftest.py` files define `pytest_plugins` (pytest 8+ needs it at the rootdir); `bt.common` exports trimmed in this cleanup (`password_score`, `password_label`, `round_to`, `encode_cursor`, ...) may need test imports updated. `test_contracts.py` still describes a Zod corpus.
-- Dockerfiles, compose and the registry-push flow are untested here (no Docker available).
+**Done (security, brand, guide)**
+- Telegram: only the chosen account (username or id, set on Setup) can link; the typed-payment confirmation repeats the amount; same-token re-save no longer deletes the webhook; deep link `t.me/<bot>?start=<code>`.
+- Web: optional allowed-address list (`users.allowed_ips`) checked at sign-in, refresh and the gateway session check.
+- `apps/web/src/brand` + `public/brand`: logo mark, wordmark, icons, BRAND constants; shown in the header, auth pages and tab icon.
+- Setup guide and page descriptions shortened; placeholders added to inputs; unused `SectionHead` and `public/.gitkeep` removed.
+
+**Known broken**
+- Backend pytest passes per service (auth, gateway, ingest, planning, recurring, reports, telegram, packages `bt`), except: `test_common.py` (`EnvError`), `test_db.py` (`camel_all`), `test_kit.py` (`Paging`) cannot import, `test_queue.py::test_jobs_go_to_their_queue_and_drain_runs_them` (`InMemoryBus.jobs_of`) fails, and `ledger` has no tests. Running all services in one pytest call fails (`pytest_plugins` in nested conftests).
+- Web: 224 tests pass in Docker. Not run on a real phone or live bot: the `/pay` hand-off, typed commands and the deep link.
 
 **Next**
-- Fix and rerun the backend tests, then add tests for the new `BaseEnv` fields.
+- Fix the broken backend tests above and add ledger tests.
+- Unused exported contract types in `apps/web/src/contracts` (e.g. `UserDto`, `PlanDto`, `AlertDto`) and a few unused CSS-module classes are dead by the conventions; remove them.
 - Menu hint text wraps on "Profile and preferences" at 300px (spec width); the "signed in today" footer line needs a session start time from `/me`.

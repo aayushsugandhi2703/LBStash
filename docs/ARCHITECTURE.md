@@ -31,7 +31,7 @@ Shared backend code is one installable library, `packages/bt` (import `bt.*`), a
 | `bt.clients` | one typed client per service (`deps.clients.ledger.tag(...)`), signing, timeouts, retries, error mapping |
 | `bt.kit` | `run_service` (boot), `create_app`, request dependencies (`user_ctx`, `service_claims`), `MemoryRateLimiter`, test fixtures, a software WebAuthn authenticator |
 
-The web app keeps its own browser-side copy of what it needs: `apps/web/src/common` (money formatting, month maths, tag and password rules, so what a page promises is what the server enforces) and `apps/web/src/contracts` (the response types). They mirror `bt.common` / `bt.contracts`; the Python models are the source of truth and `scripts/e2e.py` keeps the two honest.
+Logo, name and icons are in `apps/web/src/brand` (import from `@/brand`; SVG files in `apps/web/public/brand`). The web app keeps its own browser-side copy of what it needs: `apps/web/src/common` (money formatting, month maths, tag and password rules, so what a page promises is what the server enforces) and `apps/web/src/contracts` (the response types). They mirror `bt.common` / `bt.contracts`; the Python models are the source of truth and `scripts/e2e.py` keeps the two honest.
 
 ## Rules of the road
 
@@ -69,7 +69,7 @@ Typed in `bt.clients`; payloads in `bt.contracts`. Paths are the contract.
 | planning → ledger | `POST /internal/categories/resolve` | a limit or plan line created from a new tag |
 | ledger → planning | `POST /internal/plans/:month/credit` | add a hand-added credit to the plan total (idempotent per transaction) |
 | ingest/telegram → auth | `POST /internal/totp/verify` | a fresh authenticator code (once per time step) |
-| gateway → auth | `POST /internal/sessions/check` | is this browser session still alive |
+| gateway → auth | `POST /internal/sessions/check` (`sid`, `ip`) | is this browser session alive, and is the caller's address allowed |
 | auth → ledger, planning, recurring, ingest, telegram | `GET /internal/export` | each service's rows for the user (no secrets); auth composes the data export |
 | gateway → ledger/planning/telegram | `GET\|PATCH /internal/settings` | composed `GET\|PATCH /settings` |
 | gateway/reports → * | `GET /me`-style reads: `auth /internal/me`, `ingest /internal/unparsed/count`, `planning /alerts`, `recurring /recurring`, `planning /budgets`, `planning /plans/:month` | composition |

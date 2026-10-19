@@ -124,8 +124,8 @@ REST over HTTPS. Browser calls live under `/api`.
 | Plan and limits | `PUT /plans/:month`, `GET/POST /budgets`, `GET /alerts` |
 | Repeats | `GET/POST/PATCH/DELETE /recurring` |
 | Reports | `GET /dashboard`, `GET /reports/*` |
-| Account | `/auth/*`, `/sessions`, `/devices`, `/audit`, `/account/export` |
-| Telegram | `POST /telegram/webhook/<secret>` and `/telegram/*` setup routes |
+| Account | `/auth/*` (incl. `GET\|PUT /auth/allowed-ips`), `/sessions`, `/devices`, `/audit`, `/account/export` |
+| Telegram | `POST /telegram/webhook/<secret>` and `/telegram/*` setup routes (`bot-token`, `owner`, `pairing`, `link`) |
 
 ### Data schema
 
@@ -133,12 +133,12 @@ Each service has its own **schema** (a namespace in Postgres) and its own login,
 
 | Schema | Main tables |
 |---|---|
-| auth | users, sessions, refresh_tokens, auth_factors, login_throttle, audit_log |
+| auth | users (incl. `allowed_ips`), sessions, refresh_tokens, auth_factors, login_throttle, audit_log |
 | ledger | transactions, categories, tag_rules, balance_checks |
 | ingest | devices, ingest_events (nonces), unparsed_messages |
 | planning | plans, plan_lines, budgets, alerts |
 | recurring | recurring_rules |
-| telegram | telegram_bots, telegram_links, telegram_sessions, telegram_prompts |
+| telegram | telegram_bots (incl. `owner_tg`), telegram_links, telegram_sessions, telegram_prompts |
 
 Key choices: money is stored as whole **paise** (integers, never floats); every user table has `user_id` plus **row-level security (RLS)**; transactions have a unique `(user_id, dedupe_key)`; balance and totals are **computed on read**, not cached.
 
@@ -167,9 +167,11 @@ Without a tag (`/350`) the row is saved untagged and the queue sends the categor
 
 ### 3.1 Logging a payment
 
-The Telegram service accepts `/<amount>` (money out) and `+<amount>` (money in), with up to two decimals and an optional tag after it. Checks run in order, and anyone who fails gets no reply: webhook secrets, private chat, your Telegram id, an active `/signin` session. Then the amount is read, the tag is validated, and the ledger saves one manual row (with the tag, so it is confirmed at once; without one it stays pending and gets the category buttons). Your typed message is deleted, and the reply carries no amount. Money out also gets an **Open Google Pay** button. Telegram buttons can only open web links, so it opens `/pay` on the web app, which hands the phone to Google Pay.
+The Telegram service accepts `/<amount>` (money out) and `+<amount>` (money in), with up to two decimals and an optional tag after it. Checks run in order, and anyone who fails gets no reply: webhook secrets, private chat, your Telegram id, an active `/signin` session. Then the amount is read, the tag is validated, and the ledger saves one manual row (with the tag, so it is confirmed at once; without one it stays pending and gets the category buttons). Your typed message is deleted and the reply repeats the amount you typed (`Money out · ₹350 · Food ✓`). Money out also gets an **Open Google Pay** button. Telegram buttons can only open web links, so it opens `/pay` on the web app, which hands the phone to Google Pay.
 
 Each Telegram update is processed once (its update id is stored), so a retry cannot log a payment twice.
+
+**Linking.** Setup first asks for your Telegram username (or numeric id), stored on the bot row (`owner_tg`). A pairing code is made only after that. `/start <code>` links only if the sender is that account; anyone else is ignored and the code stays unused. The Setup page also offers `https://t.me/<bot>?start=<code>`, which opens the bot with the command ready. The link status shows `@name`, or only the last four digits of an id.
 
 ### 3.1b Optional bank-message route
 
@@ -223,11 +225,13 @@ You enter your bank balance. `gap = bank - ledger`. If there is a gap, wait a **
 
 ### 3.6 Telegram privacy
 
-Telegram stores what it is sent, so messages carry no amount, payee, balance or account number: only "Money out, 6:42 pm" and category buttons. An optional **Reveal** button shows details for 30 seconds.
+Telegram stores what it is sent, so prompts for detected payments carry no amount, payee, balance or account number: only "Money out, 6:42 pm" and category buttons. An optional **Reveal** button shows details for 30 seconds. The one exception is a payment you type yourself: its confirmation repeats the amount you typed.
 
 ### 3.7 Auth, sessions and rate limiting
 
 Short-lived access token (15 min) plus rotating refresh token with reuse detection; progressive lockout; per-IP limits on login, second step, reset, ingest and webhook. Details: [README](../README.md#security).
+
+**Allowed addresses (optional).** A user can limit the web app to a list of IPs or CIDR ranges (`users.allowed_ips`, empty = anywhere). The gateway sends the caller's address with every session check; auth refuses it when a list exists and the address is not on it (also at sign-in and token refresh), and the gateway caches "alive" per session **and** address, so a copied cookie is re-checked from a new address. Saving the list needs a fresh authenticator code and must include the caller's own address. The address comes from nginx (`CF-Connecting-IP`, trusted only from private proxy ranges). It cannot cover the Telegram bot, because Telegram never shows our server your address; the bot is locked to one Telegram account instead.
 
 ### 3.8 Consistency choices
 
