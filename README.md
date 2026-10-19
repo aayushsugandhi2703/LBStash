@@ -71,7 +71,7 @@ flowchart LR
 - **Events used:** `transaction.changed` (planning re-checks limits, Telegram updates prompts), `credit.added`, `alert.created`, `unparsed.created`, `account.deleted` (every service purges that user), `audit.record`.
 - **Derived, not stored:** balance, spend per category, pace and trends are calculated when read, so there are no cached totals to drift out of date.
 - **Money:** whole paise as integers, never floats. Months and "today" use your time zone.
-- **Shared code:** `packages/bt` holds what every service needs (money, crypto, contracts, DB access, queue, HTTP clients). Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+- **Shared code:** `packages/bt` holds what every service needs (money, crypto, contracts, DB access, queue, HTTP clients). Details: [ARCHITECTURE](docs/ARCHITECTURE.md).
 - **Deploy:** one Docker image per service on a shared base image. A one-shot `db-init` job creates roles and schemas, then services start, then the gateway, then the proxy.
 
 ### What happens to one bank message
@@ -99,26 +99,26 @@ sequenceDiagram
 
 ## System design
 
-Built for one person's money data, so correctness and privacy come before scale: one Postgres database, small services that own their data, safe retries, and a balance check that catches anything lost. Full design (requirements, estimates, API, data, failure handling, scaling): [docs/SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md).
+Built for one person's money data, so correctness and privacy come before scale: one Postgres database, small services that own their data, safe retries, and a balance check that catches anything lost. Details: [SYSTEM_DESIGN](docs/SYSTEM_DESIGN.md).
 
 ## Security
 
 | Area | What we do |
 |---|---|
-| **Sign-in** | Passwords of 12+ characters, common ones rejected, hashed with Argon2id. Authenticator-app second step is mandatory. Passkeys and 10 hashed recovery codes. |
-| **Sessions** | 15-minute access token plus a rotating refresh token. A reused refresh token means it was copied, so the whole session is revoked. Ends after 12 h idle or 30 days. |
-| **Cookies and CSRF** | `HttpOnly`, `Secure`, `SameSite=Strict`, plus a CSRF token on every change. |
-| **Brute force** | Progressive lockout (5 bad passwords locks 30 s, doubling up to 15 min). Per-IP rate limits on login, second step, reset, phone ingest and the Telegram webhook. Generic errors, so emails cannot be guessed. |
-| **Idempotency** | Safe to repeat. Each phone request has a one-time `nonce` and a 5-minute time window. Payments have a unique dedupe key, so the same SMS saves once. Queue jobs may run twice, so each is built to give the same result: alerts fire once, credits count once, deletes can repeat. Telegram buttons and sign-in codes work once. |
-| **Encryption** | AES-256-GCM for authenticator secrets, the bot token and unreadable messages. Device and refresh tokens are stored only as hashes. Key comes from the environment. |
-| **Data isolation** | One Postgres login and schema per service. Row-level security on every user table, so a bug cannot show another user's rows. |
-| **Between services** | Not exposed to the internet. Calls carry a signed 60-second token. Internal-only routes refuse outside requests. |
-| **Edge** | HSTS, `nosniff`, `no-referrer`, a locked-down CSP on API responses, Permissions-Policy. Strict input validation, parameterised queries, constant-time secret checks. |
-| **Phone capture** | Per-device token, ingest-only, shown once, revocable. OTP-looking text is dropped unread (`202`) and nothing is stored. Parsed messages are not kept. |
-| **Telegram** | Only your Telegram id, private chat, after `/signin` with an authenticator code. Messages carry no amount, payee or balance. Webhook uses a secret header (stored hashed). |
-| **Never collected** | Bank logins, UPI PINs, card numbers, OTPs. The app never moves money. |
-| **Logs and audit** | Logs hold ids and outcome codes only. Append-only audit log for sign-ins, device changes, exports and deletions. |
-| **Your data** | Export any time. Delete your account (7-day grace). Old rows are cleaned nightly. |
+| **Sign-in** | • 12+ character password, common ones rejected<br>• Hashed with Argon2id<br>• Authenticator app is mandatory<br>• Passkeys and 10 recovery codes (hashed) |
+| **Sessions** | • Access token lasts 15 min, refresh token rotates<br>• A reused refresh token means it was copied, so the session is revoked<br>• Ends after 12 h idle or 30 days |
+| **Cookies and CSRF** | • `HttpOnly`, `Secure`, `SameSite=Strict`<br>• CSRF token on every change |
+| **Brute force** | • 5 wrong passwords lock 30 s, doubling to 15 min<br>• Per-IP rate limits on login, reset, phone and webhook<br>• Generic errors, so emails cannot be guessed |
+| **Idempotency (safe to repeat)** | • Phone request has a one-time `nonce` and a 5-min time window<br>• Unique dedupe key, so one SMS saves once<br>• Queue jobs can run twice with the same result: alerts fire once, credits count once<br>• Telegram taps and sign-in codes work once |
+| **Encryption** | • AES-256-GCM for 2FA secrets, bot token, unreadable messages<br>• Tokens stored only as hashes<br>• Key comes from the environment |
+| **Data isolation** | • One Postgres login and schema per service<br>• Row-level security on every user table |
+| **Between services** | • Not exposed to the internet<br>• Signed 60-second token on every call<br>• Internal routes refuse outside requests |
+| **Edge** | • HSTS, `nosniff`, `no-referrer`, strict CSP, Permissions-Policy<br>• Strict input validation, parameterised queries<br>• Constant-time secret checks |
+| **Phone capture** | • Per-device token: ingest-only, shown once, revocable<br>• OTP-like text dropped unread (`202`), nothing stored<br>• Parsed messages are not kept |
+| **Telegram** | • Only your Telegram id, private chat<br>• `/signin` with an authenticator code<br>• No amount, payee or balance in messages<br>• Webhook secret header, stored hashed |
+| **Never collected** | • Bank logins, UPI PINs, card numbers, OTPs<br>• The app never moves money |
+| **Logs and audit** | • Logs hold ids and outcome codes only<br>• Append-only audit log |
+| **Your data** | • Export any time<br>• Delete account (7-day grace)<br>• Old rows cleaned nightly |
 
 ## Run it
 

@@ -35,7 +35,7 @@ A private budget tracker. Bank debit and credit SMS flow in by themselves, you t
 | **Consistency** | Strong for money, eventual (seconds) for alerts and Telegram prompts | Balance must be exact, notifications can lag |
 | **Availability** | Best effort; late is fine | iOS may run the Shortcut late |
 | **Latency** | Payment visible in under 30 s when the phone is unlocked | Feels instant |
-| **Security and privacy** | Highest priority | See [Security](../README.md#security) |
+| **Security and privacy** | Highest priority | Details: [README](../README.md#security) |
 | **Simplicity** | Few moving parts to run | One person runs it |
 
 ### Assumptions and back-of-the-envelope estimation
@@ -217,7 +217,7 @@ Telegram stores what it is sent, so messages carry no amount, payee, balance or 
 
 ### 3.7 Auth, sessions and rate limiting
 
-Short-lived access token (15 min) plus rotating refresh token with reuse detection; progressive lockout; per-IP limits on login, second step, reset, ingest and webhook. Full list: [Security](../README.md#security).
+Short-lived access token (15 min) plus rotating refresh token with reuse detection; progressive lockout; per-IP limits on login, second step, reset, ingest and webhook. Details: [README](../README.md#security).
 
 ### 3.8 Consistency choices
 
