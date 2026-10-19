@@ -20,7 +20,7 @@ export default function ConfirmEmailPage() {
     if (sent.current) return; // a link works once: strict mode's second run must not use it up
     sent.current = true;
     const token = new URLSearchParams(window.location.search).get('token');
-    if (!token) { setState({ kind: 'failed', message: 'This link is incomplete. Open it again from the email, or ask for a new one on your Profile.' }); return; }
+    if (!token) { setState({ kind: 'failed', message: 'Link incomplete. Open it again from the email, or request a new one on Profile.' }); return; }
     api.post<z.infer<typeof ConfirmEmailRes>>('/me/email/confirm', { token })
       .then((res) => { setState({ kind: 'done', email: res.user.email }); void mutateMe(); })
       .catch((e) => setState({ kind: 'failed', message: errorText(e, 'Could not confirm the new email. Nothing was changed.') }));
@@ -29,9 +29,9 @@ export default function ConfirmEmailPage() {
   return (
     <AccountShell
       page="profile" glyph="account" title="Account"
-      description="Who you are to the app. Sign-in methods are under Security; phones and the bot are under Devices."
+      description="Your profile and data. Sign-in is under Security."
       label="PROFILE" heading="Confirm your new email"
-      lead="You asked to change the email you sign in with. Opening the link in the message is what makes the change."
+      lead="Open the link in the email to confirm your new sign-in address."
     >
       {state.kind === 'working' && <LineStatus kind="wait"><span className="mono">confirming…</span></LineStatus>}
       {state.kind === 'done' && (

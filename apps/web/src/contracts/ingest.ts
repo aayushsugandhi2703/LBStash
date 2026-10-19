@@ -9,7 +9,7 @@ export const DeviceDto = z.object({
   tokenHint: z.string(),
   /** When the token was last replaced (null = never rotated). */
   rotatedAt: isoDateTime.nullable(),
-  /** Seconds between the time written in the last message and the moment the Shortcut ran (null when unknown). */
+  /** Seconds between the time written in the last message and the moment the sender ran (null when unknown). */
   lastDelaySeconds: z.number().int().nullable(),
   /** Empty list = every sender is accepted. */
   allowedSenders: z.array(z.string()),

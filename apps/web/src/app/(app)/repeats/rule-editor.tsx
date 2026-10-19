@@ -61,9 +61,9 @@ export function RuleEditor<B>({ initial, build, submit, submitLabel, onCancel, t
   return (
     <form className="well" onSubmit={(e) => { e.preventDefault(); void send(); }} noValidate>
       <div className={s.formGrid}>
-        <Field label="Name" maxLength={80} autoComplete="off" value={f.name} error={errors.name} onChange={(e) => set('name')(e.target.value)} />
+        <Field label="Name" maxLength={80} autoComplete="off" placeholder="Rent" value={f.name} error={errors.name} onChange={(e) => set('name')(e.target.value)} />
         <Field label="Tag" placeholder="#tag" list={listId} autoComplete="off" value={f.tag} error={errors.tag} onChange={(e) => set('tag')(e.target.value)} />
-        <Field label="Amount · ₹" inputMode="decimal" autoComplete="off" value={f.amount} error={errors.amount} onChange={(e) => set('amount')(e.target.value)} />
+        <Field label="Amount · ₹" inputMode="decimal" autoComplete="off" placeholder="15000" value={f.amount} error={errors.amount} onChange={(e) => set('amount')(e.target.value)} />
         <SelectField label="Repeats" value={f.kind} onChange={(v) => set('kind')(v as RuleForm['kind'])}>
           <option value="monthly">Every month</option>
           <option value="weekly">Every week</option>
@@ -80,12 +80,12 @@ export function RuleEditor<B>({ initial, build, submit, submitLabel, onCancel, t
           </SelectField>
         )}
         {f.kind !== 'weekly' && (
-          <Field label="Day of the month" type="number" min={1} max={31} inputMode="numeric" value={f.day} error={errors.day} hint={longDay ? 'In shorter months it is paid on the last day.' : undefined} onChange={(e) => set('day')(e.target.value)} />
+          <Field label="Day of the month" type="number" min={1} max={31} inputMode="numeric" placeholder="1" value={f.day} error={errors.day} hint={longDay ? 'In shorter months it is paid on the last day.' : undefined} onChange={(e) => set('day')(e.target.value)} />
         )}
         {startsOn && <Field label="First payment on · optional" type="date" min={startsOn.min} value={f.startsOn} error={errors.startsOn} hint="Empty starts with the next one due." onChange={(e) => set('startsOn')(e.target.value)} />}
         <Field label="Last payment on · optional" type="date" value={f.endsOn} error={errors.endsOn} onChange={(e) => set('endsOn')(e.target.value)} />
-        <Field label="Note · optional" maxLength={120} autoComplete="off" value={f.note} error={errors.note} onChange={(e) => set('note')(e.target.value)} />
-        <Field label="Phone message words · optional" maxLength={100} autoComplete="off" value={f.hint} error={errors.hint} hint="A payee or word that links a message your phone already caught." onChange={(e) => set('hint')(e.target.value)} />
+        <Field label="Note · optional" maxLength={120} autoComplete="off" placeholder="Optional" value={f.note} error={errors.note} onChange={(e) => set('note')(e.target.value)} />
+        <Field label="Payment words · optional" maxLength={100} autoComplete="off" placeholder="landlord, rent" value={f.hint} error={errors.hint} hint="A payee or tag word that links a payment you already logged." onChange={(e) => set('hint')(e.target.value)} />
       </div>
       <datalist id={listId}>{tags.map((t) => <option key={t} value={t} />)}</datalist>
       <div className={s.formActions}>

@@ -43,7 +43,7 @@ export const CreditRes = z.object({
   categoryCreated: z.boolean(),
   /** Balance after the credit. */
   balanceMinor: paise,
-  /** The month's plan total after adding it; null when not added or planning could not be reached (the credit.added event catches up). */
+  /** The month's plan total after adding; null if not added or planning was unreachable (`credit.added` catches up). */
   planTotalMinor: paise.nullable(),
 });
 export const CreditsRes = z.object({ items: z.array(TransactionDto), balanceMinor: paise });

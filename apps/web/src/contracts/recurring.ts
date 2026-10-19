@@ -29,7 +29,7 @@ const RuleNote = z.string().trim().max(120).nullable();
 const RuleHint = z.string().trim().min(1).max(100).nullable();
 const eitherTagOrId = (v: { categoryId?: string; tag?: string }) => !(v.categoryId && v.tag);
 
-/** `POST /recurring`. Give `categoryId`, or a `tag` (a new tag becomes a category, same rules as everywhere). `startsOn` defaults to today and may not be in the past. */
+/** `POST /recurring`. Give `categoryId` or a new `tag`. `startsOn` defaults to today, never in the past. */
 export const CreateRecurringReq = z.object({
   name: RuleName,
   categoryId: uuid.optional(),

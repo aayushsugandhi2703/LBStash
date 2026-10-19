@@ -170,7 +170,7 @@ async def verify_second_step(svc: Svc, two_factor_token: str, proof: SecondStep,
     method = proof.kind
     issued: Issued | None = None
     error: AppError | None = None
-    # errors are values here: the failure counters must commit before the request answers 401/423
+    # errors are values here: failure counters must commit before the 401/423 answer
     async with svc.deps.as_system() as tx:
         ch = await _find_login_challenge(tx, two_factor_token)
         if ch is None:

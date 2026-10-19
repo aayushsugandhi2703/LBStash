@@ -8,6 +8,7 @@ from bt.contracts import (
     BotTokenRes,
     ExportPart,
     Ok,
+    OwnerReq,
     PairingRes,
     TelegramLinkStatus,
     TelegramSettings,
@@ -26,6 +27,7 @@ from .link import (
     patch_settings,
     read_settings,
     save_bot_token,
+    set_owner,
     unlink,
 )
 from .runtime import RuntimeOptions, shared_runtime
@@ -82,6 +84,11 @@ def make_register(opts: RuntimeOptions | None = None) -> Callable[[FastAPI, Deps
         @r.post('/telegram/bot-token', response_model=BotTokenRes)
         async def post_bot_token(body: BotTokenReq, ctx: UserCtx) -> BotTokenRes:
             return await save_bot_token(rt, ctx, body.token)
+
+        @r.put('/telegram/owner', response_model=Ok)
+        async def put_owner(body: OwnerReq, ctx: UserCtx) -> Ok:
+            await set_owner(rt, ctx, body.telegram)
+            return Ok(ok=True)
 
         @r.get('/internal/settings', response_model=TelegramSettings)
         async def get_settings(ctx: UserCtx) -> TelegramSettings:

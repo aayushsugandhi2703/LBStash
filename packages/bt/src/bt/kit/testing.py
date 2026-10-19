@@ -86,7 +86,7 @@ async def build_test_app(
     edge: bool = False,
     body_limit: int = DEFAULT_BODY_LIMIT,
 ) -> AppHarness:
-    """Build a service app for tests: real routes, injected pool, in-memory bus. `clients` maps name -> fake (the rest stay real) or is a full clients object; `env` is a dict or an env instance."""
+    """Build a service app for tests: real routes, injected pool, in-memory bus. `clients` maps name -> fake (the rest stay real) or is a full clients object; `env` is a dict or env instance."""
     the_env = env if isinstance(env, BaseEnv) else _env(env_model, test_env_values(service, **(env or {})))
     bus = InMemoryBus()
     if clients is None or isinstance(clients, Mapping):

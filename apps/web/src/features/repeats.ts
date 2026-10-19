@@ -94,7 +94,7 @@ export function ticks(today: string): { day: number; leftPct: number; label: str
   }));
 }
 
-/** Aside sum: lower-cased names, `+` on all but the first; a rule that is not running is struck through and left out of the total. */
+/** Aside sum: lower-cased names joined with `+`; a rule not running is struck through and left out of the total. */
 export function committedRows(rules: RecurringRuleDto[]): { id: string; label: string; amountMinor: number; off: boolean }[] {
   return rules.map((r, i) => ({ id: r.id, label: `${i === 0 ? '' : '+ '}${r.name.toLowerCase()}`, amountMinor: r.amountMinor, off: !isOn(r) }));
 }
@@ -179,14 +179,14 @@ export function patchBody(f: RuleForm): { ok: true; body: PatchRecurringReq } | 
   return r.ok ? { ok: true, body: r.v } : r;
 }
 
-/** The due day after the next one (what "skip next" lands on), or null when that was the last payment before its end date. */
+/** The due day after the next (what "skip next" lands on), or null if that was the last payment before the end date. */
 export function dayAfterNext(r: RecurringRuleDto): string | null {
   const d = after(r.schedule, r.nextDue);
   return r.endsOn && d > r.endsOn ? null : d;
 }
 export const isEnded = (r: RecurringRuleDto): boolean => r.endsOn !== null && r.nextDue > r.endsOn;
 
-/** The server's `{ field: message }` answer on a form, under the fields it names (request names → form names). */
+/** The server's `{ field: message }` answer shown under the fields it names (request names → form names). */
 export function formErrorsFrom(fields: Record<string, string>): FormErrors {
   const names: Record<string, keyof RuleForm> = {
     name: 'name', tag: 'tag', categoryId: 'tag', amountMinor: 'amount', schedule: 'day', startsOn: 'startsOn', endsOn: 'endsOn', note: 'note', matchHint: 'hint',

@@ -31,8 +31,8 @@ export function ingestState(devices: Device[]): Ingest {
 }
 export const delayText = (s: number | null): string => (s === null ? '' : s < 120 ? ` · arrived ${s} s after it was sent` : ` · arrived ${Math.round(s / 60)} min after it was sent`);
 export function receiveLead(i: Ingest, now: Date = new Date()): string {
-  if (i.kind === 'none') return 'no token yet, make one in the Setup guide';
-  if (i.kind === 'gone') return 'the token was cancelled, so the phone cannot send';
+  if (i.kind === 'none') return 'no token yet, make one below';
+  if (i.kind === 'gone') return 'the token was cancelled, so nothing can send';
   const d = i.device;
   return d.lastSeenAt ? `last message ${usedText(d.lastSeenAt, now)}${delayText(d.lastDelaySeconds)}` : 'no message yet · send a test message to check the line';
 }
@@ -51,10 +51,10 @@ export const tgState = (l: LinkStatus | undefined): Tg => (!l || !l.linked ? { k
 export const tgShort = (t: Tg): string => (t.kind === 'unlinked' ? 'unlinked' : t.kind === 'in' ? 'signed in' : 'signed out');
 export function tgMeta(l: LinkStatus): string {
   if (!l.linked) return 'the bot will not send or accept anything';
-  return `id ${l.telegramIdHint ?? '••••'} · linked ${l.linkedAt ? shortDate(l.linkedAt) : 'recently'} · only this id can use the bot`;
+  return `id ${l.telegramIdHint ?? '••••'} · linked ${l.linkedAt ? shortDate(l.linkedAt) : 'recently'}`;
 }
 export function sessionLead(l: LinkStatus, now: Date = new Date()): string {
-  if (l.sessionActive) return `Since ${l.sessionSince ? usedText(l.sessionSince, now) : 'now'}. Prompts arrive as they happen.`;
+  if (l.sessionActive) return `Since ${l.sessionSince ? usedText(l.sessionSince, now) : 'now'}.`;
   if (l.signInPausedUntil && new Date(l.signInPausedUntil) > now) return 'Sign-in is paused after three wrong codes. Try again in a few minutes.';
   return `Prompts wait here and are released when you send /signin.${l.heldCount > 0 ? ` ${l.heldCount} waiting.` : ''}`;
 }

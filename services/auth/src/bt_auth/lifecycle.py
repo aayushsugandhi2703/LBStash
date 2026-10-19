@@ -9,8 +9,7 @@ from .limits import SESSION_IDLE_HOURS
 
 
 async def delete_due_accounts(deps: Deps[Env], limit: int = 100) -> int:
-    """Hard-delete accounts past their grace period. `account.deleted` is emitted in the same transaction as the delete,
-    so it exists exactly when the rows are gone. One transaction per user: one failure never blocks the rest."""
+    """Hard-delete accounts past their grace period. `account.deleted` is emitted in the same transaction. One transaction per user, so one failure never blocks the rest."""
     async with deps.as_system() as tx:
         due = await tx.many(
             'SELECT id FROM users WHERE delete_after IS NOT NULL AND delete_after <= now() ORDER BY delete_after LIMIT $1', [limit]

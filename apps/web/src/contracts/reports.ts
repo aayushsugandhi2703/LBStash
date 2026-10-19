@@ -33,7 +33,7 @@ export const DashboardRes = z.object({
   needsLookCount: z.number().int(),
   /** Unread limit alerts (nav badge). */
   alertBadgeCount: z.number().int(),
-  /** Optional parts that could not be read this time (e.g. 'ingest'); the figures that depend on them are zero/empty. */
+  /** Optional parts that could not be read (e.g. 'ingest'); figures that depend on them are zero/empty. */
   degraded: z.array(z.string()),
 });
 export type DashboardRes = z.infer<typeof DashboardRes>;
@@ -41,7 +41,7 @@ export const ReportDailyRes = z.object({
   month: monthKey,
   dayOfMonth: z.number().int(),
   daysInMonth: z.number().int(),
-  /** One entry per calendar day (future days are 0). Fixed payments (categories of your recurring rules) are left out. */
+  /** One entry per calendar day (future days 0). Fixed payments (categories of your recurring rules) are left out. */
   items: z.array(z.object({ day: dateKey, spentMinor: paise })),
   totalMinor: paise,
   /** total ÷ days elapsed (today included), rounded to a paisa. */
@@ -116,7 +116,7 @@ export const ReportMatrixRes = z.object({
   fullMonths: z.number().int(),
   dayOfMonth: z.number().int(),
   daysInMonth: z.number().int(),
-  /** Flexible categories only (categories of your recurring rules that stay the same are left out), most above usual first. */
+  /** Flexible categories only (steady recurring ones left out), most above usual first. */
   items: z.array(ReportMatrixItem),
 });
 export type ReportMatrixRes = z.infer<typeof ReportMatrixRes>;

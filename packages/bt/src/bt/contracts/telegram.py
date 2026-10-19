@@ -29,6 +29,8 @@ class TelegramLinkStatus(Model):
 
     bot_saved: Bool
     bot_username: str | None
+    # The Telegram account allowed to link this bot ("@name" or a numeric id); pairing codes are only made once it is set.
+    owner_telegram: str | None
     linked: Bool
     # "..4821": the last four digits of the Telegram id, never the whole id.
     telegram_id_hint: str | None
@@ -64,6 +66,12 @@ class BotTokenReq(Model):
     """`POST /telegram/bot-token`: saved encrypted, never echoed back."""
 
     token: _BotToken
+
+
+class OwnerReq(Model):
+    """`PUT /telegram/owner`: your Telegram @username (5-32 letters, digits, underscore) or numeric id. Only that account can link."""
+
+    telegram: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=64)]
 
 
 class BotTokenRes(Model):

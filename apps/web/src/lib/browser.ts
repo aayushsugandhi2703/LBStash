@@ -1,9 +1,14 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-/** Copy a value to the clipboard; false when the browser refuses. */
+/** Copy to the clipboard; false if refused. Falls back to the old way on plain http (LAN address), where `navigator.clipboard` is missing. */
 export async function copyToClipboard(text: string): Promise<boolean> {
-  try { await navigator.clipboard.writeText(text); return true; } catch { return false; }
+  try { await navigator.clipboard.writeText(text); return true; } catch { /* try the fallback */ }
+  const box = document.createElement('textarea');
+  box.value = text; box.style.position = 'fixed'; box.style.opacity = '0';
+  document.body.appendChild(box);
+  box.select();
+  try { return document.execCommand('copy'); } catch { return false; } finally { box.remove(); }
 }
 
 /** Save text as a file in the browser (no server round trip). */

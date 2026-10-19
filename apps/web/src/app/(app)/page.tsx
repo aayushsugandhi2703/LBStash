@@ -108,7 +108,7 @@ function FlowView({ d, loading }: { d?: DashboardRes; loading: boolean }) {
   if (!d) return loading ? <Loading /> : null;
   const rows = flowRows(d.flow);
   const g = flowGeometry(rows);
-  if (g.total === 0) return <Empty>Where your money went appears here once payments arrive from your phone.</Empty>;
+  if (g.total === 0) return <Empty>Where your money went appears here once you log payments in Telegram.</Empty>;
   const left = leftStack(d.balance.carriedOver, d.balance.income);
   return (
     <div className={s.flowWrap}>

@@ -54,6 +54,8 @@ class SessionCheckReq(Model):
     """Internal: the gateway asks auth whether a browser session is still alive, since the access token stays valid up to 15 minutes after "sign out everywhere else"."""
 
     sid: Uuid
+    # The caller's address, so auth can apply the user's address list. Missing = unknown (refused when a list exists).
+    ip: Opt[str] = None
 
 
 class SessionCheckRes(Model):
@@ -223,6 +225,19 @@ class PasswordChangeReq(Model):
 class PasswordChangeRes(Model):
     ok: Literal[True]
     signed_out_others: Int
+
+
+class AllowedIpsReq(Model):
+    """`PUT /auth/allowed-ips`: the whole new list (empty = any address), confirmed with a fresh authenticator code."""
+
+    ips: Annotated[list[Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=64)]], Field(max_length=20)]
+    code: TotpCode
+
+
+class AllowedIpsRes(Model):
+    ips: list[str]
+    # The address this request came from, to offer "add my address" and to refuse a list that would lock the user out.
+    your_ip: str | None
 
 
 class PasskeyRegisterOptionsRes(Model):

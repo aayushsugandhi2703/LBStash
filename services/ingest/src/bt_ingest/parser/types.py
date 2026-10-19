@@ -11,9 +11,9 @@ UnreadableReason = Literal['no_amount', 'direction_unclear', 'unreadable']
 class ParseInput:
     # The SMS text exactly as the phone sent it.
     text: str
-    # When the Shortcut ran (aware). Fallback payment time, and the reference for year-less dates.
+    # When the message was received (aware). Fallback payment time and reference for year-less dates.
     received_at: datetime
-    # The device owner's IANA zone: times written in a bank message are local (IST).
+    # The device owner's IANA zone: times in a bank message are local (IST).
     tz: str
 
 

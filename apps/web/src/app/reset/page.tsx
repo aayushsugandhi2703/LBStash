@@ -65,7 +65,7 @@ export default function ResetPage() {
       right={<Link href="/sign-in" className="mono lbl signin-header-link">back to sign in</Link>}
       glyph="reset"
       title="Reset your password"
-      description={'There is no "email me a link" here, on purpose. A recovery code proves it is you, and nobody else can intercept it.'}
+      description={'No email links, on purpose. A recovery code proves it is you.'}
       aside={
         <div className="math mono signin-math">
           <div className="r"><span className="k">you need</span><span>1 recovery code</span></div>
@@ -80,7 +80,7 @@ export default function ResetPage() {
           <Field
             label="Email"
             type="email"
-            autoComplete="username"
+            autoComplete="username" placeholder="you@example.com"
             value={email}
             onChange={(event) => { setEmail(event.target.value); setError(''); }}
             required

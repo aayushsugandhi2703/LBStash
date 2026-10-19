@@ -108,7 +108,7 @@ class PlanCreditRes(Model):
     total_minor: Paise
 
 
-# ── additive: request shapes for the public routes ──────────────────────────────────────────────
+# additive: request shapes for the public routes
 class PlanLineInput(Model):
     """One plan line in `PUT /plans/:month`: the category by id, or by a (possibly new) tag. Exactly one of the two."""
 
@@ -135,8 +135,7 @@ class BudgetsQuery(Model):
 
 
 class BudgetCreateReq(Model):
-    """`POST /budgets`: category by id or tag; the limit is given, or `use_month_allocation` takes it from the plan line
-    of `month` (default: the current month). `warn_pct` overrides the user's alert level for this limit only."""
+    """`POST /budgets`: category by id or tag. Give the limit, or `use_month_allocation` to take it from `month`'s plan line (default: this month). `warn_pct` overrides the alert level for this limit."""
 
     category_id: Opt[Uuid] = None
     tag: Opt[_Tag] = None

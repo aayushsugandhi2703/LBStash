@@ -1,6 +1,6 @@
-"""pytest fixtures for service tests. Enable with `pytest_plugins = ['bt.kit.pytest_plugin']` in `tests/conftest.py` and define `bt_service` and `bt_migrations`.
+"""pytest fixtures for service tests. Enable with `pytest_plugins = ['bt.kit.pytest_plugin']` and define `bt_service` and `bt_migrations`.
 
-Tests then get `db` (one throwaway database per module), `app_factory` (builds `AppHarness` apps) and `test_db_factory`.
+Tests get `db` (a throwaway database per module), `app_factory` and `test_db_factory`.
 """
 
 from collections.abc import AsyncIterator, Awaitable, Callable

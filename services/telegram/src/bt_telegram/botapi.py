@@ -1,4 +1,4 @@
-"""The only code that talks to the Telegram Bot API; the rest uses the `BotApi` protocol so tests can inject a fake. The token is in the URL, so errors and logs never include it."""
+"""The only code that calls the Telegram Bot API; others use the `BotApi` protocol (tests inject a fake). The token is in the URL, so errors and logs never include it."""
 
 import asyncio
 import re

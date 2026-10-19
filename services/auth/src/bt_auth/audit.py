@@ -9,8 +9,7 @@ from bt.db import Tx, jsonb
 async def record_audit(
     tx: Tx, user_id: str, action: str, *, ip: str | None = None, device_id: str | None = None, meta: dict[str, Any] | None = None
 ) -> None:
-    """Append an entry in the caller's transaction. `meta` holds ids, counts and outcome codes only: no amounts,
-    payees, message text, e-mail addresses or tokens."""
+    """Append an entry in the caller's transaction. `meta`: ids, counts and outcome codes only; no amounts, payees, message text, e-mails or tokens."""
     await tx.execute(
         'INSERT INTO audit_log (user_id, device_id, action, ip, meta) VALUES ($1, $2, $3, $4, $5)',
         [user_id, device_id, action, ip, jsonb(meta) if meta is not None else None],

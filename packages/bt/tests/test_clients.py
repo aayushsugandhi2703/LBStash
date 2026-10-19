@@ -179,10 +179,12 @@ async def test_check_session_carries_no_user() -> None:
     clients, rec = make({'valid': True, 'limited': False})
     out = await clients.auth.check_session(U1)
     assert out.valid is True and out.limited is False
-    assert rec.last.method == 'POST' and rec.last.url.path == '/internal/sessions/check' and body(rec.last) == {'sid': U1}
+    assert rec.last.method == 'POST' and rec.last.url.path == '/internal/sessions/check' and body(rec.last) == {'sid': U1, 'ip': None}
     claims = verify_internal_token(SECRET, rec.last.headers['x-internal-token'])
     assert claims.svc == 'planning' and claims.user_id is None and claims.tz is None and claims.request_id is None
     assert 'x-request-id' not in rec.last.headers
+    await clients.auth.check_session(U1, '203.0.113.7')
+    assert body(rec.last) == {'sid': U1, 'ip': '203.0.113.7'}
 
 
 # token and headers

@@ -1,6 +1,6 @@
-"""Events and jobs. Written in the producer's transaction (outbox) and delivered through the Postgres queue, so the row and its jobs exist together or not at all.
+"""Events and jobs, written in the producer's transaction (outbox) and delivered through the Postgres queue.
 
-`EVENTS` fan out to every subscriber; `JOBS` are one named queue with one consumer.
+`EVENTS` fan out to every subscriber; `JOBS` have one queue and one consumer.
 """
 
 from typing import Annotated, Any, Final, Literal

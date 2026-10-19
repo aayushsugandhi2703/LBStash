@@ -49,8 +49,9 @@ The web app keeps its own browser-side copy of what it needs: `apps/web/src/comm
 
 ```
 Browser ──/api/*──► proxy ──► gateway ──(cookie → JWT → session check)──► service
-iPhone Shortcut ──/ingest/message──► proxy ──► gateway ──► ingest ──► ledger ──(outbox)──► transaction.changed
-Telegram ──/telegram/webhook/<secret>──► proxy ──► gateway ──► telegram ──► ledger (tag)
+Telegram ──/telegram/webhook/<secret>──► proxy ──► gateway ──► telegram ──► ledger (save tagged payment, tag) ──(outbox)──► transaction.changed
+Telegram button ──/pay──► proxy ──► web (hands the phone to Google Pay)
+Optional sender ──/ingest/message──► proxy ──► gateway ──► ingest ──► ledger
 ```
 
 ## Internal API (service → service)
@@ -61,6 +62,7 @@ Typed in `bt.clients`; payloads in `bt.contracts`. Paths are the contract.
 |---|---|---|
 | ingest → ledger | `POST /internal/transactions/ingest` | save a parsed message (dedupe, classify, link, merge, reverse) |
 | ingest → ledger | `POST /internal/transactions/manual` | resolve a "Needs a look" message into a transaction |
+| telegram → ledger | `POST /internal/transactions/manual` | `/350 food` or `+1500 salary`: save a payment, with the tag when one is given |
 | recurring → ledger | `POST /internal/transactions/recurring` | post a due rule or link a captured debit |
 | telegram → ledger | `GET /internal/transactions/:id`, `POST /internal/transactions/:id/tag`, `GET /internal/transactions/pending`, `GET /internal/categories`, `POST /internal/categories/resolve` | Reveal, tag, held prompts, buttons |
 | planning/reports → ledger | `GET /internal/spend/by-category`, `/internal/aggregates/{summary,months,category-months,daily}` | spend, balance, trends |

@@ -3,7 +3,7 @@
   1. OTP / promo guard -> `Ignored`
   2. generic fallback (README 4.7): amount, direction, reference, payee, account, time, balance
   3. a matching template refines payee / reference / account / balance
-  4. amount and direction are required, else `Unreadable`
+  4. amount and direction required, else `Unreadable`
 """
 
 import re

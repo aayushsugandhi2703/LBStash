@@ -15,7 +15,7 @@ class Env(BaseEnv):
     RATE_LIMIT_PER_MINUTE: int = Field(default=300, gt=0)
     # Per IP, per 15 minutes, on each of /auth/login, /auth/2fa/verify, /auth/reset/*.
     RATE_LIMIT_AUTH_PER_15_MIN: int = Field(default=10, gt=0)
-    # Per IP, per minute, on /ingest/message (the device token has its own limit inside ingest).
+    # Per IP per minute on /ingest/message (the device token has its own limit in ingest).
     RATE_LIMIT_INGEST_PER_MINUTE: int = Field(default=60, gt=0)
     # Per IP, per minute, on /telegram/webhook/*.
     RATE_LIMIT_WEBHOOK_PER_MINUTE: int = Field(default=120, gt=0)

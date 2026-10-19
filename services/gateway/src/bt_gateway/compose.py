@@ -20,7 +20,7 @@ from bt.kit import Deps
 
 from .env import Env
 
-# The badge counts are nice to have: a slow or failing service must not take the header down.
+# Badge counts are optional: a slow or failing service must not take the header down.
 OPTIONAL_TIMEOUT_S = 2.5
 
 
@@ -52,7 +52,7 @@ async def me(deps: Deps[Env], ctx: Ctx) -> dict[str, Any]:
     )  # fmt: skip
 
 
-# The fields each owner takes, read from its own Patch model so a new setting needs no change here.
+# Fields each owner takes, read from its own Patch model, so a new setting needs no change here.
 _OWNED = {
     'ledger': frozenset(patch_keys(LedgerSettingsPatch)),
     'planning': frozenset(patch_keys(PlanningSettingsPatch)),
@@ -65,7 +65,7 @@ def _only(keys: frozenset[str], patch: dict[str, Any]) -> dict[str, Any]:
 
 
 async def settings(deps: Deps[Env], ctx: Ctx, patch: SettingsPatch | None = None) -> dict[str, Any]:
-    """`GET|PATCH /settings`: each owner reads or updates its own fields and the answers are merged. If one owner fails the request fails; re-sending the same PATCH is safe."""
+    """`GET|PATCH /settings`: each owner reads or updates its own fields; answers are merged. If one owner fails, the request fails; re-sending the PATCH is safe."""
     given = dump(patch) if patch is not None else {}
     ledger_patch, planning_patch, telegram_patch = (_only(_OWNED[n], given) for n in ('ledger', 'planning', 'telegram'))
     c = deps.clients

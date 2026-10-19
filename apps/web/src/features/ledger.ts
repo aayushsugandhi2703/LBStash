@@ -1,7 +1,7 @@
 import { displayTag, listAmount, MAX_TAG_LENGTH, monthDay, parseTag, plain, shortMonth, TZ } from '@/common';
 import type { BalanceCheckDto, LedgerPageDto, LedgerRowDto } from '@/contracts';
 
-/** Ledger page logic (docs/ui-spec/02-ledger). Pure: the page owns fetching and state, these decide what to show. Money is paise. */
+/** Ledger page logic (docs/ui-spec/02-ledger). Pure: the page owns fetching and state. Money is paise. */
 
 export type LedgerRow = LedgerRowDto;
 export type LedgerCounts = LedgerPageDto['counts'];
@@ -86,7 +86,7 @@ export function categoryIndex(counts: LedgerCounts, active: string): IndexItem[]
 const SPLIT_NOTE = 'Split from Unaccounted';
 export const isUnaccountedOpen = (r: Pick<LedgerRow, 'source' | 'status'>): boolean => r.source === 'unaccounted' && r.status === 'pending';
 
-/** Smallest entry that can still be split into two parts of at least 1 paisa each, shown as "more than ₹1" like the design. */
+/** Smallest entry that can be split into two parts of at least 1 paisa each; shown as "more than ₹1". */
 const MIN_SPLITTABLE: number = 100;
 
 type NameInput = Pick<LedgerRow, 'payee' | 'description' | 'source' | 'type' | 'categoryName'>;
@@ -148,7 +148,7 @@ export function rowView(r: LedgerRow, tz: string = TZ): RowView {
   };
 }
 
-/** Append a page of older rows. Rows that moved while the user was scrolling (already listed) are not shown twice. */
+/** Append a page of older rows; rows already listed (moved while scrolling) are skipped. */
 export function mergePage<T extends { id: string }>(current: readonly T[], incoming: readonly T[]): T[] {
   const seen = new Set(current.map((r) => r.id));
   return [...current, ...incoming.filter((r) => !seen.has(r.id))];
@@ -160,7 +160,7 @@ export function replaceRow<T extends { id: string }>(rows: readonly T[], next: P
 export const refreshSize = (shown: number): number => Math.min(PAGE_MAX, Math.max(PAGE_FIRST, shown));
 
 type EndMark = 'more' | 'end' | 'none';
-/** More to load, "that's everything for this view" (only once the list is longer than a first page) or nothing. */
+/** Load more, "that's everything" (only once past a first page), or nothing. */
 export function endMark(shown: number, nextCursor: string | null): EndMark {
   if (nextCursor) return 'more';
   return shown > PAGE_FIRST ? 'end' : 'none';
@@ -169,14 +169,14 @@ export function endMark(shown: number, nextCursor: string | null): EndMark {
 export interface TagChoice { name: string; categoryId?: string }
 export interface UsageCategory { id: string; name: string; archived: boolean }
 
-/** What the user typed → the tag to send, or a reason in plain words (empty input has no reason: nothing to say yet). */
+/** Typed text → the tag to send, or a plain-words reason (empty input has none). */
 export function parseTagDraft(raw: string): { ok: true; tag: string } | { ok: false; error: string } {
   if (!raw.replace(/#/g, '').trim()) return { ok: false, error: '' };
   const r = parseTag(raw);
   return r.ok ? r : { ok: false, error: `Use letters, numbers and simple punctuation, up to ${MAX_TAG_LENGTH} characters.` };
 }
 
-/** Chips under the tag-it box. Nothing typed: the user's own categories, most used first. Typing: matches, prefix first. */
+/** Chips under the tag box: your categories, most used first; while typing, matches with prefix first. */
 export function tagSuggestions(draft: string, categories: readonly UsageCategory[], limit = 6): TagChoice[] {
   const live = categories.filter((c) => !c.archived);
   const q = draft.replace(/#/g, '').trim().toLowerCase();
@@ -188,7 +188,7 @@ export function tagSuggestions(draft: string, categories: readonly UsageCategory
   return [...starts, ...inside].slice(0, limit).map((c) => ({ name: c.name, categoryId: c.id }));
 }
 
-/** Body for `PATCH /transactions/:id`: an existing category by id, anything typed as a tag (the server creates it). */
+/** `PATCH /transactions/:id` body: an existing category by id, else typed text as a tag (the server creates it). */
 export function tagBody(choice: TagChoice, recategorize = false): { categoryId?: string; tag?: string; recategorize?: boolean } {
   const base = choice.categoryId ? { categoryId: choice.categoryId } : { tag: choice.name };
   return recategorize ? { ...base, recategorize: true } : base;
@@ -208,7 +208,7 @@ export function validateSplit(leftMinor: number, partMinor: number): { ok: boole
 }
 export const splitCaption = (restMinor: number): string => `the rest, ₹${plain(restMinor)}, stays Unaccounted`;
 
-/** `POST /transactions/:id/split` body: the tagged part, then the untagged rest (so the sum is exact by construction). */
+/** `POST /transactions/:id/split` body: the tagged part, then the untagged rest (the sum is exact). */
 export function splitBody(leftMinor: number, partMinor: number, to: TagChoice): { parts: { amountMinor: number; tag?: string; categoryId?: string }[] } {
   const target = to.categoryId ? { categoryId: to.categoryId } : { tag: to.name };
   return { parts: [{ amountMinor: partMinor, ...target }, { amountMinor: leftMinor - partMinor }] };

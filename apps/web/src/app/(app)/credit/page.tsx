@@ -106,7 +106,7 @@ export default function CreditPage() {
   return (
     <AppShell
       home="credit" glyph="credit" title="Add credit" aside={aside}
-      description="Salary, refunds, gifts and cash. Credits in your bank’s messages add themselves; use this page for everything else."
+      description="Salary, refunds, gifts and cash. Bank credits add themselves."
     >
       {done ? (
         <div className={s.done} role="status">
@@ -165,7 +165,7 @@ export default function CreditPage() {
           </div>
 
           <div className={s.note}>
-            <Field label="Note · optional" autoComplete="off" maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />
+            <Field label="Note · optional" autoComplete="off" placeholder="e.g. cash from a friend" maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
 
           <div className={`${s.plan} opt`}>

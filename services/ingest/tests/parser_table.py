@@ -1,8 +1,6 @@
-"""The parser's test table (README 4.7): message in, fields out. Every bank rewording or new template adds a row
-here, so a pattern change cannot silently break another bank. Digits and names are hidden (XX1234, ramesh@okaxis).
+"""Parser test table (README 4.7): message in, fields out. Every bank rewording or new template adds a row, so one pattern change cannot silently break another bank. Digits and names are masked (XX1234, ramesh@okaxis).
 
-Amounts are paise. Unless a row says otherwise: payee, reference, account_last4 and balance_after_minor are None,
-reversal and weak_parse are False, and the payment time is `received_at`.
+Amounts are paise. Unless a row says otherwise: payee, reference, account_last4 and balance_after_minor are None, reversal and weak_parse are False, and the payment time is `received_at`.
 """
 
 from dataclasses import dataclass

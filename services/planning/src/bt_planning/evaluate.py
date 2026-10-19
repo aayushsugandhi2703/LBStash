@@ -14,7 +14,7 @@ from .settings import load_settings
 
 
 async def _zone_of(deps: Deps, user_id: str, saved: str | None) -> str:
-    """Zone for work no request started: saved from their last request, else auth, else the default."""
+    """Zone for work no request started: last saved from a request, else auth, else the default."""
     if saved:
         return saved
     try:
@@ -24,7 +24,7 @@ async def _zone_of(deps: Deps, user_id: str, saved: str | None) -> str:
 
 
 async def evaluate_budget(deps: Deps, p: BudgetEvaluateJob, now: Clock) -> Literal['fired', 'skipped']:
-    """Recompute one limit for one period; write the alert row once per (budget, period, level). Safe to rerun. Only the current period fires."""
+    """Recompute one limit for one period; write the alert row once per (budget, period, level). Safe to rerun; only the current period fires."""
     if not is_month_key(p.period_key):
         return 'skipped'
     async with deps.as_user(p.user_id) as tx:

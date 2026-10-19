@@ -47,3 +47,20 @@
 .formErr { margin-top: 12px; }
 .rowWell { width: 100%; }
 .rowWell .well { margin: 8px 0 0; }
+
+@media (max-width: 640px) {
+  .tableInner { min-width: 0; }
+  .tableWrap { overflow-x: visible; }
+  .thead { display: none; }
+  .timelineInner { min-width: 0; }
+  .label .n { font-size: var(--fs-s); }
+  .rrow .line { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "pay on" "amt tag" "rep next"; gap: 6px 12px; align-items: center; }
+  .cPay { grid-area: pay; width: auto; }
+  .cOn { grid-area: on; width: auto; align-self: start; }
+  .cAmt { grid-area: amt; width: auto; text-align: left; }
+  .cTag { grid-area: tag; width: auto; text-align: right; }
+  .cRep { grid-area: rep; width: auto; }
+  .cNext { grid-area: next; width: auto; text-align: right; }
+  .formGrid { grid-template-columns: 1fr; }
+  .acts button { min-height: 40px; }
+}

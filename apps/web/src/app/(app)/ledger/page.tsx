@@ -61,7 +61,7 @@ export default function LedgerPage() {
   );
 
   return (
-    <AppShell home="ledger" glyph="ledger" title="Ledger" description="Every debit your phone caught and every credit you added." aside={aside}>
+    <AppShell home="ledger" glyph="ledger" title="Ledger" description="Every payment you logged and every credit you added." aside={aside}>
       <div className={`strip ${s.strip}`}>
         <StripLink tag="LOOK" href="/ledger/unread">{lookText(me?.needsLookCount ?? 0)}</StripLink>
         <button type="button" aria-expanded={checkOpen} onClick={() => setCheckOpen((v) => !v)}>
@@ -113,7 +113,7 @@ export default function LedgerPage() {
                 )}
               </div>
             ))}
-            {view && view.rows.length === 0 && <Empty>{cat === CAT_ALL && src === 'all' ? 'Nothing yet. Bank messages from your phone land here.' : 'Nothing matches this view.'}</Empty>}
+            {view && view.rows.length === 0 && <Empty>{cat === CAT_ALL && src === 'all' ? 'Nothing yet. Payments you log in Telegram land here.' : 'Nothing matches this view.'}</Empty>}
             {view && error && <div style={{ padding: '12px 0' }}><ErrorLine>{error}</ErrorLine></div>}
             {end === 'more' && !loadingMore && <div className={s.tail}><TextLink mono onClick={() => void loadMore()}>load older entries ↓</TextLink></div>}
             {loadingMore && <div className={`mono pulse ${s.endNote}`} role="status">loading older entries…</div>}

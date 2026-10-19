@@ -13,7 +13,7 @@ _UNSAFE: Final = re.compile(
 
 
 def normalize_path(raw_url: str) -> str | None:
-    """The path the gateway works with: no query, no `/api` prefix, no trailing slash. None for anything that could escape the route table."""
+    """The path the gateway uses: no query, no `/api` prefix, no trailing slash. None if it could escape the route table."""
     path = raw_url.split('?', 1)[0]
     if path == API_PREFIX or path.startswith(f'{API_PREFIX}/'):
         path = path[len(API_PREFIX):] or '/'

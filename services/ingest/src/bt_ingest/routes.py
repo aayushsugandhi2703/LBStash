@@ -60,10 +60,14 @@ def register(app: FastAPI, deps: Deps) -> None:
             try:
                 data: Any = json.loads(raw) if raw.strip() else {}
             except ValueError:
+                deps.log.info('ingest body rejected', why='not valid JSON', bytes=len(raw), rid=rid)
                 raise Errors.bad_request('Body is not valid JSON') from None
             try:
                 return IngestBody.model_validate({} if data is None else data)
             except ValidationError as e:
+                # what is wrong, never what was sent: the rule messages, which keys arrived and how long the text is
+                shape = {f'{k}_chars': len(str(v)) for k, v in data.items()} if isinstance(data, dict) else type(data).__name__  # `_chars`: the logger would redact a key called text
+                deps.log.info('ingest body rejected', fields=validation_details(e), sent=shape, rid=rid)
                 raise Errors.validation(validation_details(e)) from None
 
         out = await ingest.handle(

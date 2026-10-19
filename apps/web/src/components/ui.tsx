@@ -159,6 +159,3 @@ export function Tip({ title, lines, style }: { title: ReactNode; lines?: ReactNo
   return <span className="tip mono" role="tooltip" style={style}><span className="t1" style={{ display: 'block' }}>{title}</span>{lines?.map((l, i) => <span key={i} className="t2" style={{ display: 'block' }}>{l}</span>)}</span>;
 }
 
-export function SectionHead({ title, right }: { title: ReactNode; right?: ReactNode }) {
-  return <div className="section-head"><h2 className="h2">{title}</h2>{right && <span className="lbl">{right}</span>}</div>;
-}

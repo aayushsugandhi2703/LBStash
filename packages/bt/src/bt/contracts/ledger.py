@@ -27,7 +27,7 @@ from .common import CategoryDto, TransactionDto
 Tag = Annotated[str, StringConstraints(min_length=1, max_length=64)]
 
 
-# ── internal: ingest ────────────────────────────────────────────────────────────────────────────
+# internal: ingest
 class IngestTransactionReq(Model):
     type: TxType
     amount_minor: PositivePaise
@@ -71,13 +71,15 @@ class ManualTransactionReq(Model):
     occurred_at: IsoDateTime
     payee: OptNull[Annotated[str, StringConstraints(max_length=200)]] = None
     description: OptNull[Annotated[str, StringConstraints(max_length=500)]] = None
+    # Tag the row at once (the Telegram `/350 misc` command); an unknown tag becomes a new category.
+    tag: Opt[Tag] = None
 
 
 class TransactionRes(Model):
     transaction: TransactionDto
 
 
-# ── internal: recurring ─────────────────────────────────────────────────────────────────────────
+# internal: recurring
 class RecurringPostReq(Model):
     rule_id: Uuid
     name: str
@@ -94,7 +96,7 @@ class RecurringPostRes(Model):
     transaction: TransactionDto
 
 
-# ── internal + public: tagging ──────────────────────────────────────────────────────────────────
+# internal + public: tagging
 class TagReq(Model):
     """Give `tag` (creates the category if new) or `category_id`. Same rules for web, Telegram and rules."""
 
@@ -124,7 +126,7 @@ class PendingRes(Model):
     items: list[TransactionDto]
 
 
-# ── categories ──────────────────────────────────────────────────────────────────────────────────
+# categories
 class CategoriesRes(Model):
     items: list[CategoryDto]
 
@@ -146,7 +148,7 @@ class CategoriesQuery(Model):
     include_archived: StringBool = False
 
 
-# ── aggregates (reports + planning read these; nothing is cached) ───────────────────────────────
+# aggregates (reports + planning read these; nothing is cached)
 class SpendByCategoryItem(Model):
     category_id: Uuid | None
     category_name: str | None
@@ -222,7 +224,7 @@ class DailyQuery(Model):
     exclude_category_ids: Opt[str] = None
 
 
-# ── settings (owned here, composed by the gateway's /settings) ──────────────────────────────────
+# settings (owned here, composed by the gateway's /settings)
 class LedgerSettings(Model):
     opening_balance_minor: Paise
     # Hours the balance check waits before booking an Unaccounted entry (default 6).
@@ -232,7 +234,7 @@ class LedgerSettings(Model):
 LedgerSettingsPatch = partial(LedgerSettings, 'LedgerSettingsPatch')
 
 
-# ── public: Ledger page (additive; README 11, ui-spec 02-ledger) ───────────────────────────────
+# public: Ledger page (additive; README 11, ui-spec 02-ledger)
 class LedgerRowDto(TransactionDto):
     """Row of the Ledger list: the transaction plus how it got its category ("matched rule: uber")."""
 
@@ -242,9 +244,9 @@ class LedgerRowDto(TransactionDto):
 
 
 class LedgerQuery(Model):
-    """`cat`: 'all' | 'needs-tag' (pending, Unaccounted included) | 'uncategorised' | a category id or name.
-        `src`: 'all' | captured | recurring | manual | 'unaccounted' | 'pending' (= needs a tag).
-        `month` (YYYY-MM, user's zone) limits the list and the counts; without it both cover all time.
+    """`cat`: 'all', 'needs-tag' (pending + Unaccounted), 'uncategorised', or a category id/name.
+    `src`: 'all', captured, recurring, manual, 'unaccounted', or 'pending' (needs a tag).
+    `month` (YYYY-MM, user's zone) limits list and counts; without it, all time.
     """
 
     cat: Opt[Annotated[str, StringConstraints(max_length=64)]] = None
@@ -334,7 +336,7 @@ class SplitRes(Model):
     figures: LedgerFigures
 
 
-# ── public: credits ─────────────────────────────────────────────────────────────────────────────
+# public: credits
 class CreditReq(Model):
     amount_minor: PositivePaise
     # Local day in the user's zone; not in the future.
@@ -362,7 +364,7 @@ class CreditsRes(Model):
     balance_minor: Paise
 
 
-# ── public: categories ──────────────────────────────────────────────────────────────────────────
+# public: categories
 class CategoryUsageDto(CategoryDto):
     count: Int
 
@@ -397,7 +399,7 @@ class DeleteCategoryRes(Model):
     reassigned: Int
 
 
-# ── public: balance check ───────────────────────────────────────────────────────────────────────
+# public: balance check
 BalanceCheckStatus = Literal['open', 'booked', 'resolved', 'ignored']
 
 

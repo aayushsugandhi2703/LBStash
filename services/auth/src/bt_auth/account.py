@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 import psycopg.errors
 from bt.common import Ctx, Errors, to_iso
 from bt.contracts import (
+    AllowedIpsRes,
     ChangeEmailRes,
     ConfirmEmailReq,
     ConfirmEmailRes,
@@ -23,6 +24,7 @@ from bt.contracts import (
 from bt.crypto import hash_password, new_hashed_token, sha256_hex, verify_password
 from bt.db import Row
 
+from .allowlist import allowed_ips, allows, normalize_entry
 from .audit import record_audit
 from .client_info import ClientInfo
 from .factors import consume_totp, find_recovery_code, require_fresh_code, second_step_key
@@ -90,8 +92,31 @@ async def change_password(
         return PasswordChangeRes(ok=True, signed_out_others=n)
 
 
+async def read_allowed_ips(svc: Svc, ctx: Ctx, ip: str | None) -> AllowedIpsRes:
+    async with svc.deps.as_user(ctx) as tx:
+        assert_setup_complete(await load_user(tx, ctx.user_id))
+        return AllowedIpsRes(ips=await allowed_ips(tx, ctx.user_id), your_ip=ip)
+
+
+async def set_allowed_ips(svc: Svc, ctx: Ctx, ips: list[str], code: str, ip: str | None) -> AllowedIpsRes:
+    """Replace the allowed-address list (empty = any). Refused if it would lock the caller out."""
+    async with svc.deps.as_user(ctx) as tx:
+        assert_setup_complete(await load_user(tx, ctx.user_id))
+    try:
+        entries = list(dict.fromkeys(normalize_entry(i) for i in ips))
+    except ValueError:
+        raise Errors.validation({'ips': 'Use addresses like 203.0.113.7, or ranges like 203.0.113.0/24'}) from None
+    if entries and not allows(entries, ip):
+        raise Errors.validation({'ips': f'Your current address ({ip or "unknown"}) must be on the list, or you would lock yourself out'})
+    await require_fresh_code(svc, ctx.user_id, code, ip)  # code last: a good code is spent
+    async with svc.deps.as_user(ctx) as tx:
+        await tx.execute('UPDATE users SET allowed_ips = $2 WHERE id = $1', [ctx.user_id, entries])
+        await record_audit(tx, ctx.user_id, 'allowlist.changed', ip=ip, meta={'count': len(entries)})
+    return AllowedIpsRes(ips=entries, your_ip=ip)
+
+
 async def reset_verify(svc: Svc, email: str, recovery_code: str, info: ClientInfo) -> ResetVerifyRes:
-    """Reset step 1: check e-mail + recovery code (not used up yet) and hand out a short-lived token."""
+    """Reset step 1: check e-mail + unused recovery code, hand out a short-lived token."""
     key_ip = throttle_key('reset', email, info.ip)
     key_email = throttle_key('reset-email', email)
     async with svc.deps.as_system() as tx:
@@ -120,7 +145,7 @@ async def reset_verify(svc: Svc, email: str, recovery_code: str, info: ClientInf
 
 
 async def reset_complete(svc: Svc, reset_token: str, new_password: str, info: ClientInfo) -> None:
-    """Reset step 2: set the password, use the recovery code up, sign every session out (does not sign in)."""
+    """Reset step 2: set the password, use up the recovery code, sign every session out."""
     expired = Errors.unprocessable('That reset expired. Start again with your recovery code.')
     async with svc.deps.as_system() as tx:
         ch = await tx.maybe_one(
@@ -162,7 +187,7 @@ async def request_email_change(svc: Svc, ctx: Ctx, new_email: str, code: str, ip
     if new_email == user.email:
         raise Errors.validation({'newEmail': 'That is already your email'})
     await require_fresh_code(svc, ctx.user_id, code, ip)
-    # an address owned by another account gets the same answer and no mail, so e-mails cannot be looked up
+    # same reply and no mail if another account owns the address (no e-mail lookup)
     async with svc.deps.as_system() as tx:
         taken = await find_user_by_email(tx, new_email)
     if taken:

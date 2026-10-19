@@ -3,7 +3,7 @@
 #   python3 scripts/gen-secrets.py   # once: writes .env with random secrets
 #   docker compose up --build        # everything: db, services, gateway, web, proxy
 #   docker compose --profile test up -d test-db   # throwaway Postgres for the backend tests (port 5544)
-# Published to the host: `proxy` (PUBLIC_PORT) and, on 127.0.0.1 only, the gateway (GATEWAY_PORT, for scripts/e2e.py).
+# Published to the host: `nginx` (ports 80 and 443), `proxy` (PUBLIC_PORT) and, on 127.0.0.1 only, the gateway (GATEWAY_PORT, for scripts/e2e.py).
 # Push to a registry: REGISTRY=registry.example.com/team/ IMAGE_TAG=1.0 docker compose build && docker compose push
 name: budget-tracker
 
@@ -160,7 +160,6 @@ services:
     image: ${REGISTRY:-}budget-web:${IMAGE_TAG:-latest}
     environment:
       NODE_ENV: production
-      PHONE_URL: ${PHONE_URL:-${PUBLIC_URL:-http://localhost:8088}}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/sign-in >/dev/null || exit 1"]
       interval: 10s
@@ -178,6 +177,51 @@ services:
     depends_on:
       gateway: { condition: service_healthy }
       web: { condition: service_healthy }
+
+  # https: nginx terminates TLS for DOMAIN and forwards to `proxy`; certbot gets and renews the Let's Encrypt certificate into ./nginx/certs.
+  # Until LETSENCRYPT_EMAIL is set in .env, nginx serves plain http and certbot waits. They switch to https by themselves once the certificate exists.
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    networks: [internal]
+    ports: ["${HTTP_PORT:-80}:80", "${HTTPS_PORT:-443}:443"]
+    environment:
+      DOMAIN: ${DOMAIN:-aegios.co.in}
+    command: ["/bin/sh", "/start.sh"]
+    volumes:
+      - ./nginx/start.sh:/start.sh:ro
+      - ./nginx/https.conf.template:/etc/nginx/templates-src/https.conf.template:ro
+      - ./nginx/http-only.conf.template:/etc/nginx/templates-src/http-only.conf.template:ro
+      - ./nginx/certs:/etc/letsencrypt:ro
+      - ./nginx/webroot:/var/www/certbot:ro
+    depends_on: [proxy]
+
+  certbot:
+    image: certbot/certbot:latest
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      DOMAIN: ${DOMAIN:-aegios.co.in}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-}
+      LETSENCRYPT_STAGING: ${LETSENCRYPT_STAGING:-0}
+    entrypoint: ["/bin/sh", "/certbot.sh"]
+    volumes:
+      - ./nginx/certbot.sh:/certbot.sh:ro
+      - ./nginx/certs:/etc/letsencrypt
+      - ./nginx/webroot:/var/www/certbot
+    depends_on: [nginx]
+
+  # Cloudflare Tunnel: serves https://DOMAIN from this machine with no open ports or public IP. Needs TUNNEL_TOKEN in .env and
+  # COMPOSE_PROFILES=tunnel (or `docker compose --profile tunnel up -d`). In the Cloudflare dashboard point the tunnel's public hostname at http://nginx:80.
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    networks: [internal]
+    profiles: [tunnel]
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
+    depends_on: [nginx]
 
   # opt-in (`--profile test`): throwaway Postgres for the backend tests, in memory, port 5544.
   # Tests read TEST_DATABASE_URL=postgres://<POSTGRES_USER>:<POSTGRES_PASSWORD>@127.0.0.1:5544/<POSTGRES_DB>

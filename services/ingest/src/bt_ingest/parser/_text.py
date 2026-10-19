@@ -1,4 +1,4 @@
-"""Regex flags and text preparation for the parser: patterns compile with `FLAGS` (ASCII) and text goes through `js_spaces` first, so word and space classes behave the same as in the web app."""
+"""Regex flags and text prep for the parser: patterns compile with `FLAGS` (ASCII) and text goes through `js_spaces` first, so word and space classes match the web app."""
 
 import re
 

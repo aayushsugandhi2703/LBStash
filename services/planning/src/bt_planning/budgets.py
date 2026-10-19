@@ -62,7 +62,7 @@ async def _view_one(deps: Deps, ctx: Ctx, r: Row, now: Clock) -> BudgetDto:
 
 
 async def _rearm(tx: Tx, before: Row, after: Row, alert_level: int, period: MonthKey, spent: int) -> None:
-    """A higher limit or warn pct puts levels the spend no longer reaches back in play: they can fire again this period."""
+    """A higher limit or warn pct re-arms levels the spend no longer reaches: they can fire again this period."""
     old_alert = effective_alert_pct(before['warn_pct'], alert_level)
     new_alert = effective_alert_pct(after['warn_pct'], alert_level)
     if after['limit_minor'] > before['limit_minor'] or new_alert > old_alert:
@@ -90,7 +90,7 @@ async def create_budget(deps: Deps, ctx: Ctx, body: BudgetCreateReq, now: Clock)
             )
     assert limit is not None  # the request model guarantees a limit or the allocation
     period = month_key(now(), ctx.tz)
-    # Reviving a deactivated limit re-arms its alerts like a PATCH. That needs the spend (a service call), so read it first.
+    # Reviving a limit re-arms its alerts like a PATCH; that needs the spend (service call), so read it first.
     async with deps.as_user(ctx) as tx:
         prior = await tx.maybe_one('SELECT active FROM budgets WHERE category_id = $1', [category_id])
     spent = (await month_spend(deps, ctx, period)).get(category_id, 0) if prior and not prior['active'] else None
@@ -134,7 +134,7 @@ async def patch_budget(deps: Deps, ctx: Ctx, id: str, body: BudgetPatchReq, now:
                 'There is no allocation for this category in that month', {'categoryId': current['category_id']}
             )
     warn_given = 'warn_pct' in body.present_keys()  # an explicit null clears the limit's own percentage
-    # the spend decides which alert levels get re-armed; read outside the transaction (service call)
+    # the spend decides which alert levels re-arm; read it outside the transaction (service call)
     touches_level = limit is not None or warn_given
     spent = (await month_spend(deps, ctx, period)).get(current['category_id'], 0) if touches_level else 0
 

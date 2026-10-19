@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { Glyph, type IconName } from './icons';
+import { Glyph, type IconName, Logo } from '@/brand';
 import s from './auth-frame.module.css';
 
 export function AuthFrame({
@@ -21,7 +21,7 @@ export function AuthFrame({
   return (
     <div className="signin">
       <header className="signin-header">
-        <Link href="/sign-in" className="wordmark">ledger</Link>
+        <Link href="/sign-in" aria-label="Ledger"><Logo /></Link>
         <div className="signin-header-right">{right}</div>
       </header>
       <div className="signin-body">

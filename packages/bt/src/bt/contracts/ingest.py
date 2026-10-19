@@ -23,7 +23,8 @@ from .ledger import IngestOutcome
 
 
 class IngestBody(Model):
-    text: Annotated[str, StringConstraints(min_length=1, max_length=2000)]
+    # Empty = the sender was run by hand (no message): the server records it as the device test and stores nothing.
+    text: Annotated[str, StringConstraints(max_length=2000)]
     received_at: IsoDateTime
     nonce: Annotated[str, StringConstraints(min_length=8, max_length=128)]
     # Optional sender id of the SMS (for example `AX-HDFCBK`). Only used when the device has a sender allow-list.
@@ -38,7 +39,7 @@ class IngestMessageTx(Model):
 
 
 class IngestMessageRes(Model):
-    """`POST /ingest/message`: 201 created or saved_as_credit; 200 anything else the ledger answers, or `test` (the Setup guide's test text, never stored); 202 `ignored` (OTP, promo, not a payment, sender not allowed)."""
+    """`POST /ingest/message`: 201 created or saved_as_credit; 200 any other ledger answer or `test` (never stored); 202 `ignored` (OTP, promo, not a payment, sender not allowed)."""
 
     outcome: Literal[(*get_args(IngestOutcome), 'ignored', 'test')]
     transaction: IngestMessageTx | None
@@ -63,7 +64,7 @@ class DeviceDto(Model):
     token_hint: str
     # When the token was last replaced (None = never rotated).
     rotated_at: IsoDateTime | None
-    # Seconds between the time written in the last message and the moment the Shortcut ran (None when unknown).
+    # Seconds between the time written in the last message and the moment the sender ran (None when unknown).
     last_delay_seconds: Int | None
     # Empty list = every sender is accepted.
     allowed_senders: list[str]

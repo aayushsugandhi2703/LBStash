@@ -1,7 +1,7 @@
 import { css3, dayScale, formatInr, inr, inSentence, joinPlain, monthDay, monthName, nextMonthName, type Paise, pct, shortMonth, wholeRupees } from '@/common';
 import type { AttentionItem, BalanceCheckDto, DashboardRes, ReportDailyRes } from '@/contracts';
 
-/** View-model for the Now page (docs/ui-spec/01-now): flow diagram, day bars, hero copy, action links, balance-check wording. */
+/** Now page view-model (docs/ui-spec/01-now): flow diagram, day bars, hero copy, action links, balance-check wording. */
 
 const FLOW_H = 330;
 const FLOW_GAP = 22;
@@ -74,7 +74,7 @@ interface DayChart {
   legend: string;
 }
 
-/** Axis labels under 1, 5, 10, 15, 20, 25 and the last day, plus today; a base label right next to today gives way to it. */
+/** Axis labels under days 1, 5, 10, 15, 20, 25 and the last, plus today; a label right next to today yields to it. */
 export function axisDays(daysInMonth: number, today: number): Set<number> {
   const base = [1, 5, 10, 15, 20, 25, daysInMonth].filter((d) => d <= daysInMonth && (today <= 0 || Math.abs(d - today) >= 2 || d === today));
   const out = new Set(base);
@@ -157,7 +157,7 @@ const DEGRADED: Record<string, string> = { budgets: 'limits', alerts: 'alerts', 
 /** "Could not read limits and the next payment just now." or null. */
 export function degradedNote(parts: string[]): string | null {
   if (parts.length === 0) return null;
-  return `Could not read ${joinPlain(parts.map((p) => DEGRADED[p] ?? p))} just now. Those figures are missing.`;
+  return `Could not read ${joinPlain(parts.map((p) => DEGRADED[p] ?? p))} just now.`;
 }
 
 /** "6 hours", "1 hour", "45 minutes": how long a gap waits before it is booked. */

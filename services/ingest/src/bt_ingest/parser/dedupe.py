@@ -25,7 +25,7 @@ def dedupe_key(
     time_from_message: bool,
     source: str | None = None,
 ) -> str:
-    """UPI ref if present, else a hash of amount, payee, time bucket and source, so a re-sent message never double counts. A reversal gets its own key. Do not change the hash input: stored keys must keep matching."""
+    """UPI ref if present, else a hash of amount, payee, time bucket and source, so a re-sent message never counts twice. A reversal gets its own key. Do not change the hash input: stored keys must keep matching."""
     if reference:
         return f'ref:{reference.lower()}{":rev" if reversal else ""}'
     bucket = _epoch_ms(occurred_at) // ((5 if time_from_message else 30) * _MIN_MS)

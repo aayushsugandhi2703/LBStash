@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { monthProgress, TZ } from '@/common';
 import { api } from '@/lib/api';
 import { useMe } from '@/lib/me';
-import { Glyph, type IconName, NavIcon } from './icons';
+import { Glyph, type IconName, LogoMark, NavIcon } from '@/brand';
 import { IndexList } from './ui';
 
 type Home = 'now' | 'ledger' | 'plan' | 'limits' | 'repeats' | 'trends' | 'credit' | 'acct' | null;
@@ -53,14 +53,17 @@ function Header({ home }: { home: Home }) {
   return (
     <header className="hdr">
       <div className="hdr-row">
-        <nav aria-label="Main" className="nav">
-          {NAV.map((n) => (
-            <Link key={n.key} href={n.href} className="navlink" aria-current={home === n.key ? 'page' : undefined}>
-              <NavIcon name={n.icon} />{n.label}
-              {n.key === 'ledger' && me && me.untaggedCount > 0 && <span className="badge mono">{me.untaggedCount}</span>}
-            </Link>
-          ))}
-        </nav>
+        <div className="hdr-left">
+          <Link href="/" className="brand-link" aria-label="Ledger home"><LogoMark size={22} /></Link>
+          <nav aria-label="Main" className="nav">
+            {NAV.map((n) => (
+              <Link key={n.key} href={n.href} className="navlink" aria-current={home === n.key ? 'page' : undefined}>
+                <NavIcon name={n.icon} />{n.label}
+                {n.key === 'ledger' && me && me.untaggedCount > 0 && <span className="badge mono">{me.untaggedCount}</span>}
+              </Link>
+            ))}
+          </nav>
+        </div>
         <div className="hdr-right">
           <Link href="/credit" className="add" aria-current={home === 'credit' ? 'page' : undefined}>+ Add credit</Link>
           <AccountMenu acctPage={home === 'acct'} />
@@ -83,7 +86,7 @@ function MonthRuler({ tz }: { tz: string }) {
       <div className="ruler" aria-hidden="true">
         {Array.from({ length: days }, (_, i) => {
           const d = i + 1;
-          const show = [1, 10, 20, days].includes(d) || d === today;
+          const show = d === today || ([1, 10, 20, days].includes(d) && Math.abs(d - today) > 2);
           return <span key={d} className="tick" data-past={d < today} data-today={d === today}>{show && <span className="tn mono">{d}</span>}</span>;
         })}
       </div>
@@ -94,8 +97,8 @@ function MonthRuler({ tz }: { tz: string }) {
 const MENU: { label: string; href: string; hint: string }[] = [
   { label: 'Profile and preferences', href: '/account', hint: 'name, alerts, data' },
   { label: 'Security', href: '/account/security', hint: 'two-step, passkeys' },
-  { label: 'Devices and Telegram', href: '/account/devices', hint: 'iPhone, bot' },
-  { label: 'Setup guide', href: '/setup', hint: 'about 15 min' },
+  { label: 'Devices and Telegram', href: '/account/devices', hint: 'bot, token' },
+  { label: 'Setup guide', href: '/setup', hint: '3 steps' },
   { label: 'Needs a look', href: '/ledger/unread', hint: '' },
 ];
 

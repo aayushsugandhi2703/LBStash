@@ -1,5 +1,4 @@
-"""Test harness for the planning service: the app over a real (RLS-enforced) database, the workers on an in-memory bus, and a
-fake ledger and auth. Named `planning_harness` (not `harness`) so a run of several services' tests never imports the wrong one."""
+"""Planning test harness: the app over a real (RLS-enforced) database, workers on an in-memory bus, fake ledger and auth. Named `planning_harness` so several services' tests never import the wrong one."""
 
 import uuid
 from datetime import UTC, datetime
@@ -125,8 +124,7 @@ class Harness:
         return await self.client.request(method, url, headers=self.as_(user_id, svc, proxied), json=payload)
 
     async def deliver_events(self, name: str) -> None:
-        """Hand the recorded events called `name` to their handlers without running the jobs they queue, so a test can
-        look at exactly what the event handler enqueued (`drain()` would run those jobs too)."""
+        """Hand recorded events called `name` to their handlers without running the jobs they queue, so a test sees exactly what the handler enqueued (`drain()` would run those jobs too)."""
         handlers = self.bus._event_handlers[name]
         events = [e for e in self.bus.events if e.event == name]
         self.bus.events[:] = [e for e in self.bus.events if e.event != name]

@@ -18,4 +18,6 @@ test/             vitest unit tests for features/ and common/ (alias @ -> src)
 - Scroll regions need a `min-height` floor, otherwise they collapse to zero in the narrow (wrapped) layout.
 - Dev: `GATEWAY_URL=http://127.0.0.1:3000 npm run dev` in `apps/web` (port 3100, rewrites `/api` to the gateway). `next/font/google` fetches fonts at build time (needs network once).
 - Docker: build context is `apps/web`; standalone server is `.next/standalone/server.js`.
+- Every colour is listed in `docs/COLOURS.md`; the shared ones are CSS variables at the top of `globals.css`.
+- Setup guide has 3 steps (Telegram, privacy, first month); the Telegram step ends with how to log a payment (`/350 food`, `+1500 salary`). `app/pay/route.ts` is the page the bot's Open Google Pay button opens (it hands the phone to the Google Pay app). There is no Shortcut file any more.
 - Spec drift fixed so far: panels fill height, Limits/Setup lists no longer clipped, Now has no CHECK link (CHECK lives on the Ledger), auth header height is fixed at 56px.

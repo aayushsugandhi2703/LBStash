@@ -1,8 +1,8 @@
-"""Session cookies, all SameSite=Strict, `Secure` only when PUBLIC_URL is https:
+"""Session cookies, all SameSite=Strict, `Secure` only on https:
 
 - access: HttpOnly, Path=/, 15 minutes
 - refresh: HttpOnly, Path=/api/auth
-- csrf: readable by JavaScript; echoed as x-csrf-token and compared by the gateway
+- csrf: readable by JS; sent back as x-csrf-token and compared by the gateway
 """
 
 from dataclasses import dataclass

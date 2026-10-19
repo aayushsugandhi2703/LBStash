@@ -28,7 +28,7 @@ class TransactionDto(Model):
     source: TxSource
     status: TxStatus
     recurring_id: Uuid | None
-    # When the Shortcut delivered it (captured rows only).
+    # When the sender delivered it (captured rows only).
     captured_at: IsoDateTime | None
     # Amount and direction were read but nothing else (README 4.7).
     weak_parse: Bool

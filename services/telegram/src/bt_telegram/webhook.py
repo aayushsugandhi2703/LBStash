@@ -1,9 +1,9 @@
-"""Webhook handling. Checks run in order: webhook secrets, private chat, linked Telegram id, active session.
-Anyone who fails gets no reply at all."""
+"""Webhook handling. Checks in order: webhook secrets, private chat, linked Telegram id, active session. Anyone who fails gets no reply."""
 
 import re
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
+from decimal import Decimal
 from typing import Any, Literal
 
 import psycopg
@@ -14,13 +14,14 @@ from bt.contracts.telegram import TgCallbackQuery, TgMessage, TgUser
 from bt.crypto import safe_equal, sha256_hex
 
 from .botapi import ForceReply, Keyboard
-from .link import pairing_hash, unlink
-from .messages import T, header_text, plan_keyboard, reveal_text, tag_keyboard
+from .link import is_owner, pairing_hash, unlink
+from .messages import T, header_text, pay_keyboard, plan_keyboard, reveal_text, tag_keyboard
 from .prompts import enqueue_sync, release_held, resend_oldest_pending, send_pending_summary, show_final
 from .runtime import Runtime, quietly
 from .store import (
     OPEN_STATUSES,
     BotRow,
+    Direction,
     LinkRow,
     PromptRow,
     end_sessions,
@@ -42,6 +43,8 @@ _DUMMY_HASH = sha256_hex('no-such-bot')
 
 _START = re.compile(r'/start(?:@\w+)?\s+(\d{6})')
 _COMMAND = re.compile(r'/([A-Za-z_]+)(?:@\w+)?(?:\s+(.*))?', re.DOTALL)
+# `/300` or `/300 chai` = money out, `+1500` or `+1500 salary` = money in
+_AMOUNT = re.compile(r'([/+])(\d{1,9}(?:\.\d{1,2})?)(?:@\w+)?(?:\s+(.+))?', re.DOTALL)
 
 
 async def authenticate_webhook(rt: Runtime, path_secret: str, header: str | None, ip: str) -> BotRow:
@@ -123,6 +126,8 @@ async def _try_pair(rt: Runtime, bot: BotRow, from_: TgUser, chat_id: int, messa
         return
     if not rt.pair_tries.allow(f'{bot.user_id}:{from_.id}'):
         return
+    if not is_owner(bot.owner_tg, from_.id, from_.username):
+        return  # only the Telegram account set on the Setup page may link, whatever code is sent: no reply, code stays unused
     now = rt.clock()
     token = rt.token(bot)
     outcome: Literal['invalid', 'taken', 'linked']
@@ -200,9 +205,35 @@ async def _handle_message(cx: Cx, msg: TgMessage) -> None:
         if (await rt.deps.clients.ledger.pending(cx.as_, 1)).count == 0:
             return await _say(cx, T.nothing_pending)
         return await send_pending_summary(rt, cx.user_id, cx.link)
+    amount = _AMOUNT.fullmatch(text)
+    if amount:
+        return await _record_amount(cx, msg.message_id, amount[1], amount[2], amount[3])
     if name is not None:
         return await _say(cx, T.help)
     await _handle_typed_tag(cx, msg.message_id, text)
+
+
+async def _record_amount(cx: Cx, message_id: int, sign: str, amount: str, tag_text: str | None) -> None:
+    """Log a payment typed in the chat. A tag after the amount files it at once, otherwise tag buttons follow. Money out also gets an Open Google Pay button."""
+    rt = cx.rt
+    minor = int(Decimal(amount) * 100)
+    if minor <= 0:
+        return await _say(cx, T.bad_amount)
+    try:
+        tag = normalize_tag(tag_text) if tag_text else None
+    except AppError:
+        return await _say(cx, T.bad_tag)
+    direction: Direction = 'debit' if sign == '/' else 'credit'
+    body = {'type': direction, 'amountMinor': minor, 'occurredAt': rt.clock().isoformat(), 'tag': tag}
+    try:
+        res = await rt.deps.clients.ledger.create_manual(cx.as_, body)
+    except Exception as e:  # noqa: BLE001  (the user gets a retry line, the log gets the code)
+        rt.deps.log.warning('typed amount failed', code=e.code if isinstance(e, AppError) else 'error')
+        return await _say(cx, T.failed)
+    await quietly(rt, lambda: rt.bot.delete_message(cx.token, cx.chat_id, message_id), 'delete-amount')  # amounts do not stay in the chat
+    saved = T.typed_saved(minor, direction, res.transaction.category_name)
+    keyboard = pay_keyboard(f'{rt.deps.env.PUBLIC_URL.rstrip("/")}/pay') if sign == '/' else None
+    await _say(cx, saved, keyboard)
 
 
 async def _start_signin(cx: Cx) -> None:

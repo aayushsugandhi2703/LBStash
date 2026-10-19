@@ -15,3 +15,8 @@
 .done { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; }
 .doneLinks { display: flex; gap: 20px; align-items: center; }
 .doneLinks :global(.link) { display: inline-flex; align-items: center; min-height: 32px; }
+
+@media (max-width: 640px) {
+  .amount { width: 100%; }
+  .doneLinks { flex-wrap: wrap; gap: 8px 20px; }
+}

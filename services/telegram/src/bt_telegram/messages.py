@@ -1,4 +1,4 @@
-"""Every message text. Only `reveal_text`, built after the user taps Reveal, may contain an amount, payee or balance. Dynamic text is HTML-escaped (parse_mode HTML)."""
+"""Every message text. Amounts, payees and balances appear only in `reveal_text` (after Reveal) and `typed_saved` (echoing what the user typed). Dynamic text is HTML-escaped (parse_mode HTML)."""
 
 from datetime import datetime
 from typing import Literal
@@ -29,7 +29,8 @@ class T:
     plan_question = "Add to this month's plan?"
     plan_yes = "Added to this month's plan."
     plan_no = 'OK, not added.'
-    help = 'Use the buttons on a prompt, or /pending, /signout, /unlink.'
+    help = 'Use the buttons on a prompt, or send /300 for money out and +1500 for money in. Add a tag after it to file it at once, like /300 food. Also /pending, /signout, /unlink.'
+    bad_amount = 'Send an amount like /300 or +1500 (up to 2 decimals).'
     nothing_pending = 'Nothing needs a tag.'
     last_one = 'That was the last one.'
     later = 'OK, it stays pending.'
@@ -66,6 +67,13 @@ class T:
     @staticmethod
     def saved(name: str) -> str:
         return f'Tagged {display_tag(name)}'
+
+    @staticmethod
+    def typed_saved(amount_minor: int, direction: Direction, tag: str | None) -> str:
+        """Confirmation of a payment the user typed: repeats the amount they gave."""
+        amount = escape_html(format_inr(amount_minor, symbol=True))
+        kind = dir_label(direction)
+        return f'{kind} · {amount} · {escape_html(display_tag(tag))} ✓' if tag else f'{kind} · {amount} saved. Tag it below.'
 
     @staticmethod
     def digest(n: int) -> str:
@@ -140,6 +148,10 @@ def start_keyboard(token: str) -> Keyboard:
 
 def plan_keyboard(token: str) -> Keyboard:
     return [[{'text': 'Yes', 'callback_data': cb(token, 'py')}, {'text': 'No', 'callback_data': cb(token, 'pn')}]]
+
+
+def pay_keyboard(url: str) -> Keyboard:
+    return [[{'text': 'Open Google Pay', 'url': url}]]
 
 
 def balance_keyboard(url: str) -> Keyboard:

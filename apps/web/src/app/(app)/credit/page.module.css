@@ -41,3 +41,10 @@
 .sentence b { color: var(--ink); font-weight: 500; }
 .doneActions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin-top: var(--cv-14-3-32); }
 .doneActions .link { min-height: 44px; }
+
+@media (max-width: 640px) {
+  .date { font-size: 16px; }
+  .newTag { max-width: 100%; }
+  .quick button { min-height: 44px; }
+  .plan { flex-wrap: wrap; }
+}

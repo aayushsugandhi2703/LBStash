@@ -1,9 +1,9 @@
 """How Python values travel to and from Postgres.
 
-Reading: uuid -> str, date -> 'YYYY-MM-DD', numeric -> int when integral else Decimal, timestamptz -> aware UTC datetime, jsonb -> objects.
-Writing: int and list parameters are sent untyped so the server infers the type; dict -> jsonb; `jsonb(value)` forces jsonb.
+Read: uuid -> str, date -> 'YYYY-MM-DD', numeric -> int if whole else Decimal, timestamptz -> aware UTC datetime, jsonb -> objects.
+Write: int and list params are sent untyped (the server infers); dict -> jsonb; `jsonb(value)` forces jsonb.
 
-SQL uses `$1, $2, ...`; `rewrite_placeholders` turns them into psycopg's named form.
+SQL uses `$1, $2, ...`; `rewrite_placeholders` converts to psycopg's named form.
 """
 
 import json

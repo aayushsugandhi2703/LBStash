@@ -1,6 +1,4 @@
-"""Hide account digits, long reference/phone numbers and the balance before an unreadable message is stored.
-The amount and the words stay, so the user can still tell what it was.
-"""
+"""Hide account digits, long reference/phone numbers and the balance before an unreadable message is stored. The amount and words stay so the user can tell what it was."""
 
 import re
 

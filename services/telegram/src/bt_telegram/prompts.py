@@ -137,7 +137,7 @@ async def _set_status(
 
 
 async def send_prompt(rt: Runtime, prompt_id: str) -> None:
-    """`telegram.send`: deliver this prompt after any older queued ones for the chat, so messages arrive oldest first."""
+    """`telegram.send`: deliver this prompt after any older queued ones for the chat, oldest first."""
     async with rt.deps.as_system() as tx:
         head = await tx.maybe_one('SELECT user_id, link_id, seq, status FROM telegram_prompts WHERE id = $1', [prompt_id])
     if not head or head['status'] != 'queued':
@@ -158,7 +158,7 @@ async def send_prompt(rt: Runtime, prompt_id: str) -> None:
 
 
 async def _deliver(rt: Runtime, user_id: str, prompt_id: str) -> None:
-    """Deliver one queued prompt. Sets its status in every outcome except a transient failure, which raises for a retry."""
+    """Deliver one queued prompt. Sets its status in every outcome except a transient failure, which raises so the job retries."""
     async with rt.deps.as_user(user_id) as tx:
         prompt = await get_prompt(tx, prompt_id)
         if not prompt or prompt.status != 'queued':

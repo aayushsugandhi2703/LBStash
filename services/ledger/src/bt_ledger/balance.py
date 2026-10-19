@@ -43,7 +43,7 @@ async def _book(deps: D, tx: Tx, c: Row, gap: int, ledger: int, tz: str | None =
 
 
 async def _evaluate(deps: D, tx: Tx, c: Row, now: datetime, *, force: bool = False, tz: str | None = None) -> Row:
-    """Re-measure an open check against the ledger at the bank balance's time. A late message that closes the gap resolves it; after the grace period (or when forced) the gap is booked."""
+    """Re-measure an open check at the bank balance's time. A late message that closes the gap resolves it; after the grace period (or when forced) the gap is booked."""
     if c['status'] != 'open':
         return c
     s = await get_settings(tx, c['user_id'])
@@ -90,7 +90,7 @@ async def claim_newest(tx: Tx, user_id: str, as_of: datetime) -> bool:
 async def create_check(
     deps: D, tx: Tx, ctx: Ctx, *, bank_minor: int, as_of: datetime, source: str, now: datetime
 ) -> tuple[Row | None, bool]:
-    """Compare a bank balance with the ledger. Under Rs 1 nothing happens. Otherwise a new open check replaces any older one, waits the grace period, then books one Unaccounted entry."""
+    """Compare a bank balance with the ledger. Under Rs 1: nothing. Otherwise a new open check replaces any older one, waits the grace period, then books one Unaccounted entry."""
     s = await get_settings(tx, ctx.user_id)
     ledger = await balance_at(tx, ctx.user_id, as_of)
     gap = bank_minor - ledger

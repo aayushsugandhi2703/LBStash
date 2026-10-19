@@ -21,7 +21,7 @@ class Progress:
 
 
 def progress_of(clock: Clock, tz: str, month: MonthKey | None = None) -> Progress:
-    """Where "today" sits in `month`, in the user's zone. In progress: the real day, `days_left` at least 1. Finished: its last day. Future: day 0."""
+    """Where "today" sits in `month`, in the user's zone: in progress = real day (`days_left` at least 1); finished = last day; future = day 0."""
     now = month_progress(clock(), tz)
     m = month or now.month
     days = days_in_month(m)

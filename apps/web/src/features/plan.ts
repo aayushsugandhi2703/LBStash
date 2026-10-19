@@ -54,7 +54,7 @@ export function segments(d: Draft): { widths: number[]; free: number } {
 }
 
 type AddResult = { ok: true; draft: Draft; added: boolean } | { ok: false; message: string };
-/** Typing a tag adds a line with 0 planned (the server creates the category on save). An existing name is a no-op. */
+/** Typing a tag adds a line with 0 planned (the server creates the category on save). An existing name does nothing. */
 export function addTag(d: Draft, raw: string): AddResult {
   if (!raw.replace(/#/g, '').trim()) return { ok: true, draft: d, added: false };
   const parsed = parseTag(raw);

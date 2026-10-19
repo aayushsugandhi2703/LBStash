@@ -1,6 +1,10 @@
 # Reverse proxy: one public origin. TLS is automatic when PUBLIC_HOST is a real domain.
 {
 	auto_https disable_redirects
+	# nginx (nginx/) sits in front and sends the visitor's address in X-Forwarded-For; trust it so rate limits see the real address
+	servers {
+		trusted_proxies static private_ranges
+	}
 }
 
 :80 {
@@ -12,7 +16,7 @@
 		-Server
 	}
 
-	# iPhone Shortcut and Telegram talk to the gateway directly (no cookie session).
+	# Telegram (and an optional bank-message sender) talk to the gateway directly (no cookie session).
 	handle /ingest/* {
 		reverse_proxy gateway:3000
 	}

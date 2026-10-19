@@ -30,3 +30,18 @@
 .totalRow { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; }
 .totalRow .ctl { display: flex; align-items: center; gap: 8px; }
 @keyframes pop { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+@media (max-width: 640px) {
+  .tableInner { min-width: 0; }
+  .tableWrap { overflow-x: visible; }
+  .thead { display: none; }
+  .body .prow { display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "cat cat" "planned planned" "spent left" "used used"; gap: 8px 16px; align-items: center; }
+  .cCat { grid-area: cat; width: auto; }
+  .cPlanned { grid-area: planned; width: auto; }
+  .cSpent { grid-area: spent; width: auto; text-align: left; }
+  .cLeft { grid-area: left; width: auto; text-align: right; }
+  .cUsed { grid-area: used; min-width: 0; }
+  .cSpent::before { content: 'Spent '; color: var(--muted); font-size: var(--fs-label); }
+  .cLeft::before { content: 'Left '; color: var(--muted); font-size: var(--fs-label); font-weight: 400; }
+  .addMain { flex-basis: 100%; max-width: none; }
+}

@@ -13,13 +13,13 @@ Written in the style of Alex Xu's *System Design Interview*: four steps, from th
 
 ### What are we building?
 
-A private budget tracker. Bank debit and credit SMS flow in by themselves, you tag each one with a tap, and you see balance, limits and trends.
+A private budget tracker. You log each payment in Telegram (`/350 food`, `+1500 salary`), tag it with a tap if needed, and you see balance, limits and trends.
 
 ### Functional requirements
 
 | # | Requirement |
 |---|---|
-| F1 | Capture every bank debit and credit message from an iPhone, with no typing |
+| F1 | Log a payment by sending the Telegram bot an amount and optional tag (`/350 food` out, `+1500 salary` in), and open Google Pay from the reply |
 | F2 | Tag each payment (one tap, payee remembered) in Telegram or the web app |
 | F3 | Show balance, plan, per-category limits, alerts, trends and repeating payments |
 | F4 | Add cash or other credits by hand |
@@ -31,10 +31,10 @@ A private budget tracker. Bank debit and credit SMS flow in by themselves, you t
 | Quality | Target | Why it matters |
 |---|---|---|
 | **Durability** | A captured payment is never lost | Money data |
-| **Correctness** | No double counting (**idempotency**) | The same SMS can be sent twice |
+| **Correctness** | No double counting (**idempotency**) | Telegram can deliver the same update twice |
 | **Consistency** | Strong for money, eventual (seconds) for alerts and Telegram prompts | Balance must be exact, notifications can lag |
-| **Availability** | Best effort; late is fine | iOS may run the Shortcut late |
-| **Latency** | Payment visible in under 30 s when the phone is unlocked | Feels instant |
+| **Availability** | Best effort; late is fine | Telegram retries delivery |
+| **Latency** | Payment visible in a few seconds | Feels instant |
 | **Security and privacy** | Highest priority | Details: [README](../README.md#security) |
 | **Simplicity** | Few moving parts to run | One person runs it |
 
@@ -45,9 +45,9 @@ Estimation = rough numbers to pick a sensible design. These are assumptions for 
 | Item | Estimate |
 |---|---|
 | Users | 1 per install (a household at most) |
-| Bank messages | 50 a day, about 1,500 a month |
+| Logged payments | 50 a day, about 1,500 a month |
 | Average **QPS** (queries per second) | 50 / 86,400 s, about 0.0006 |
-| Peak QPS | About 10 (several SMS landing together) |
+| Peak QPS | About 10 (several payments logged together) |
 | Web reads | About 100 page loads a day |
 | Row size | About 1 KB per transaction with indexes |
 | Storage | 1,500 x 12 x 1 KB, about 20 MB a year; 5 years about 100 MB |
@@ -56,13 +56,13 @@ Estimation = rough numbers to pick a sensible design. These are assumptions for 
 
 ### Out of scope
 
-Android app, Account Aggregator (bank APIs), statement import, email capture, push notifications. The design leaves room for them.
+Automatic capture of bank SMS, Android app, Account Aggregator (bank APIs), statement import, email capture, push notifications. The design leaves room for them.
 
 ### Constraints
 
-- iOS apps cannot read SMS, so the capture must use the **Shortcuts** app.
-- Shortcuts may run late while the phone is locked, so nothing may depend on speed.
-- The bank message rarely has the note you typed in GPay, so the "why" is added by you.
+- iOS apps cannot read SMS, and a downloaded Shortcut cannot create the Message automation for you (the Sender rule accepts only contacts). So payments are logged by you, in Telegram.
+- Google Pay can only prefill an amount when it knows the payee's UPI ID, so the reply button just opens the app.
+- The tag you type is the "why", so nothing has to be guessed from a bank message.
 
 ---
 
@@ -73,7 +73,7 @@ Android app, Account Aggregator (bank APIs), statement import, email capture, pu
 ```mermaid
 flowchart LR
   subgraph clients
-    Phone["iPhone Shortcut"]
+    Sender["Optional bank-message sender"]
     Browser
     TG["Telegram app"]
   end
@@ -91,7 +91,7 @@ flowchart LR
   end
   DB[("PostgreSQL")]
   Q[("Job queue (in Postgres)")]
-  Phone --> Proxy
+  Sender -.-> Proxy
   Browser --> Proxy
   TG --> Proxy
   Proxy --> Web
@@ -118,7 +118,8 @@ REST over HTTPS. Browser calls live under `/api`.
 
 | Area | Main endpoints |
 |---|---|
-| Capture | `POST /ingest/message` (device token + nonce) |
+| Log a payment | Telegram message `/350 food` or `+1500 salary` (webhook), which the telegram service saves with `POST /internal/transactions/manual` |
+| Bank message (optional) | `POST /ingest/message` (device token + nonce) |
 | Ledger | `GET /ledger`, `PATCH /transactions/:id` (tag), `POST /credits`, `POST /balance-check` |
 | Plan and limits | `PUT /plans/:month`, `GET/POST /budgets`, `GET /alerts` |
 | Repeats | `GET/POST/PATCH/DELETE /recurring` |
@@ -145,25 +146,34 @@ Key choices: money is stored as whole **paise** (integers, never floats); every 
 
 ```mermaid
 sequenceDiagram
-  participant Phone
-  participant Ingest
+  participant You
+  participant Telegram
+  participant Bot as Telegram service
   participant Ledger
   participant Queue
-  participant Telegram
-  Phone->>Ingest: POST /ingest/message
-  Ingest->>Ledger: save parsed payment
+  participant Planning
+  You->>Telegram: "/350 food"
+  Telegram->>Bot: webhook
+  Bot->>Ledger: save tagged payment
   Ledger->>Queue: transaction.changed (same DB transaction)
-  Queue->>Telegram: send tagging prompt
+  Bot->>Telegram: "Tagged Food" + Open Google Pay
   Queue->>Planning: re-check limits
 ```
+Without a tag (`/350`) the row is saved untagged and the queue sends the category buttons.
 
 ---
 
 ## Step 3: Design deep dive
 
-### 3.1 Ingestion pipeline (capture)
+### 3.1 Logging a payment
 
-Order of checks, cheapest first, so bad input costs little:
+The Telegram service accepts `/<amount>` (money out) and `+<amount>` (money in), with up to two decimals and an optional tag after it. Checks run in order, and anyone who fails gets no reply: webhook secrets, private chat, your Telegram id, an active `/signin` session. Then the amount is read, the tag is validated, and the ledger saves one manual row (with the tag, so it is confirmed at once; without one it stays pending and gets the category buttons). Your typed message is deleted, and the reply carries no amount. Money out also gets an **Open Google Pay** button. Telegram buttons can only open web links, so it opens `/pay` on the web app, which hands the phone to Google Pay.
+
+Each Telegram update is processed once (its update id is stored), so a retry cannot log a payment twice.
+
+### 3.1b Optional bank-message route
+
+For another tool that posts bank SMS text. Order of checks, cheapest first, so bad input costs little:
 
 ```mermaid
 flowchart LR
@@ -186,7 +196,7 @@ flowchart LR
 
 - **Idempotency:** the nonce stops replays; the unique dedupe key stops duplicates. Sending the same SMS ten times creates one payment.
 - **Parser:** a small library of bank templates plus a generic fallback. Unknown wording is never guessed.
-- **Payment time** comes from the message text. The Shortcut's run time is only a fallback.
+- **Payment time** comes from the message text. The time the message arrived is only a fallback.
 
 ### 3.2 Reliable events (outbox and queue)
 
@@ -246,8 +256,8 @@ Short-lived access token (15 min) plus rotating refresh token with reuse detecti
 
 | Failure | Result |
 |---|---|
-| Shortcut late or never | Booked at the message time; balance check finds the gap |
-| Duplicate SMS | One payment (nonce + dedupe key) |
+| Payment not logged | The balance check finds the gap and books it as Unaccounted |
+| Duplicate Telegram update or bank message | One payment (update id; nonce + dedupe key on the bank-message route) |
 | Service crash mid-way | Event still in the outbox; job retries |
 | Handler runs twice | Same result (idempotent) |
 | Telegram down | Payments saved; web app shows "Needs a tag" |
@@ -273,4 +283,4 @@ Short-lived access token (15 min) plus rotating refresh token with reuse detecti
 
 ### Future work
 
-Android capture, Account Aggregator, statement import, push and email alerts, parsing inside the Shortcut so only parsed fields leave the phone.
+Hands-free capture (Account Aggregator, bank alert emails, an Android app), saved payee UPI IDs so Google Pay opens with the amount filled in, statement import, push and email alerts.

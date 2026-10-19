@@ -38,3 +38,20 @@
 .splitInput { display: block; width: 100%; height: 38px; border: 0; border-bottom: 1px solid var(--disabled); border-radius: 0; background: transparent; padding: 0; font-size: var(--fs-title); }
 .splitInput:focus { border-bottom-color: var(--ink); }
 .goesTo { margin-top: 6px; }
+
+@media (max-width: 640px) {
+  .table { min-width: 0; }
+  .thead { display: none; }
+  .tableWrap { overflow-x: visible; }
+  .rowWrap > :global(.row) { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "what amount" "date source" "tag tag"; gap: 4px 12px; align-items: baseline; padding-right: 0; }
+  .cWhat { grid-area: what; width: auto; }
+  .cAmount { grid-area: amount; width: auto; }
+  .cDate { grid-area: date; width: auto; }
+  .cSource { grid-area: source; width: auto; text-align: right; }
+  .cTag { grid-area: tag; width: auto; }
+  .cTag:empty { display: none; }
+  .name { white-space: normal; overflow-wrap: anywhere; }
+  .well { margin-right: 0; }
+  .tagField, .splitPart { width: 100%; }
+  .act { min-height: 40px; }
+}

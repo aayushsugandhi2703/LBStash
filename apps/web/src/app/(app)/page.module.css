@@ -55,3 +55,17 @@
 
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .flow { animation: none; } .rib, .ribAv { transition: none; } }
+
+@media (max-width: 640px) {
+  .flowWrap { overflow-x: visible; }
+  .flow { min-width: 0; }
+  .lcol { width: 76px; }
+  .llabel { right: 8px; }
+  .lnodes, .rnodes { width: 10px; }
+  .rnode { width: 10px; }
+  .rlabels { width: 118px; }
+  .rlabel { left: 10px; gap: 6px; }
+  .rlabel .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-s); }
+  .llabel .name { font-size: var(--fs-s); }
+  .sentence { max-width: 100%; }
+}

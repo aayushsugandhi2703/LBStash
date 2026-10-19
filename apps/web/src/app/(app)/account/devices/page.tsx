@@ -33,16 +33,16 @@ export default function DevicesPage() {
   return (
     <AccountShell
       page="devices" glyph="devices" title="Devices and Telegram"
-      description="Where your bank messages come in from, and where your prompts go out."
+      description="Where bank messages come in and prompts go out."
       label="DEVICES" heading="Capture and the bot"
-      lead="Your phone sends bank messages in. Telegram only asks you to tag them, and never carries a bank detail unless you tap Reveal."
+      lead="Log payments in Telegram with /350 food. An optional token lets another tool send bank messages in."
       summary={<LedgerMath rows={[
-        { k: 'iphone', v: devices.data ? (live ? 'receiving' : ingest.kind === 'none' ? 'no token' : 'not receiving') : '—' },
+        { k: 'token', v: devices.data ? (live ? 'receiving' : ingest.kind === 'none' ? 'no token' : 'not receiving') : '—' },
         { k: 'telegram', v: link.data ? tgShort(tg) : '—' },
         { k: 'balance', v: checks.data ? bank.short : '—' },
       ]} total={{ k: '= capture', v: devices.data ? (live ? 'working' : 'stopped') : '—' }} />}
     >
-      <Section first>IPHONE CAPTURE</Section>
+      <Section first>BANK MESSAGE TOKEN (OPTIONAL)</Section>
       {devices.error && !devices.data && <LoadError retry={() => void devices.mutate()} />}
       {!devices.data && !devices.error && <Loading />}
       {devices.data && <IphoneBlock devices={devices.data.devices} refresh={() => void devices.mutate()} />}
@@ -63,7 +63,7 @@ export default function DevicesPage() {
         </span>
         <GhostLink href="/ledger?check=1">Check now</GhostLink>
       </div>
-      <SettingsRow title="Wait before booking a gap" sub="A missing message often turns up late. The app waits this long before it books the difference as an Unaccounted entry.">
+      <SettingsRow title="Wait before booking a gap" sub="Wait this long for a late message before booking the gap as Unaccounted.">
         <span className={`mono ${s.mono13}`}>{settings.data ? `${settings.data.reconcileGraceHours} ${settings.data.reconcileGraceHours === 1 ? 'hour' : 'hours'}` : '—'}</span>
       </SettingsRow>
     </AccountShell>
@@ -107,6 +107,13 @@ function IphoneBlock({ devices, refresh }: { devices: Device[]; refresh: () => v
       setNewToken(r.token); setAsk(''); setCode(''); refresh();
     } catch (e) { setError(codeError(e) ?? errorText(e)); setCode(''); } finally { setBusy(false); }
   }
+  async function create() {
+    setBusy(true); setError('');
+    try {
+      const r = await api.post<z.infer<typeof DeviceTokenRes>>('/devices', {});
+      setNewToken(r.token); refresh();
+    } catch (e) { setError(errorText(e)); } finally { setBusy(false); }
+  }
   async function cancel() {
     if (!dev) return;
     setBusy(true); setError('');
@@ -147,7 +154,7 @@ function IphoneBlock({ devices, refresh }: { devices: Device[]; refresh: () => v
       <div className={s.rowNote}>The token can only send messages in. It cannot read anything.</div>
       {ask === 'rotate' && (
         <Well>
-          <p>The old token stops working at once. Until you paste the new one into the Shortcut, no bank message will reach the ledger.</p>
+          <p>The old token stops at once. Give the new one to whatever sends your bank messages.</p>
           <div className="actions">
             <CodeInput value={code} onChange={(v) => { setCode(v); setError(''); }} />
             <Button disabled={!isCode(code) || busy} onClick={() => void rotate()}>Make a new token</Button>
@@ -159,12 +166,12 @@ function IphoneBlock({ devices, refresh }: { devices: Device[]; refresh: () => v
         <div role="status" className="well" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px 16px', marginTop: 'var(--row-pad)' }}>
           <span className={`mono ${s.token}`}>{newToken}</span>
           <TextLink mono onClick={() => void copyToClipboard(newToken).then((ok) => ok && flash('token'))}>{flags.token ? 'Copied' : 'Copy'}</TextLink>
-          <span className={`mono ${s.mono11}`} style={{ flexBasis: '100%' }}>shown once · paste it into the Shortcut&apos;s header action now</span>
+          <span className={`mono ${s.mono11}`} style={{ flexBasis: '100%' }}>shown once · copy it now</span>
         </div>
       )}
       {ask === 'cancel' && (
         <Well>
-          <p>Use this if the phone is lost. Capture stops until you make a new token in the Setup guide.</p>
+          <p>For a lost or leaked token. Bank messages stop until you make a new one.</p>
           <div className="actions">
             <CodeInput value={code} onChange={(v) => { setCode(v); setError(''); }} />
             <GhostButton bad disabled={!isCode(code) || busy} onClick={() => void cancel()}>Cancel the token</GhostButton>
@@ -174,14 +181,14 @@ function IphoneBlock({ devices, refresh }: { devices: Device[]; refresh: () => v
       )}
       {ing.kind === 'gone' && (
         <div role="status" className={`rise ${s.lineRow}`}>
-          <span className={s.lead}><Sq kind="stop" /><span className={s.red} style={{ fontSize: 'var(--fs-s)' }}>Token cancelled. The phone can no longer send messages.</span></span>
-          <Link href="/setup" className="btn">Open the Setup guide</Link>
+          <span className={s.lead}><Sq kind="stop" /><span className={s.red} style={{ fontSize: 'var(--fs-s)' }}>Token cancelled. Nothing can send bank messages with it any more.</span></span>
+          <Button disabled={busy} onClick={() => void create()}>Make a new token</Button>
         </div>
       )}
       {ing.kind === 'none' && (
         <div role="status" className={s.lineRow}>
-          <span className={s.lead}><Sq kind="stop" /><span style={{ fontSize: 'var(--fs-s)' }}>No token yet. The phone has nothing to send with.</span></span>
-          <Link href="/setup" className="btn">Open the Setup guide</Link>
+          <span className={s.lead}><Sq kind="stop" /><span style={{ fontSize: 'var(--fs-s)' }}>No token yet. Only needed if another tool will send bank messages in.</span></span>
+          <Button disabled={busy} onClick={() => void create()}>Make a token</Button>
         </div>
       )}
       <div className={s.line}><TextLink href="/setup" mono>Run the Setup guide again →</TextLink></div>
@@ -237,13 +244,13 @@ function TelegramBlock({ link, settings, refresh, saveSettings: save, settingsFa
           {!settings && !settingsFailed && <Loading />}
           {settings && (
             <>
-              <SettingsRow title="Show a Reveal button" sub="Tap it to see the amount and payee for 30 seconds. While visible, those details pass through Telegram. Off means Telegram never sees any bank detail.">
+              <SettingsRow title="Show a Reveal button" sub="Shows amount and payee for 30 seconds, through Telegram. Off: Telegram sees no bank detail.">
                 <Switch checked={settings.allowReveal} label="Show a Reveal button" onChange={(v) => void change({ allowReveal: v })} />
               </SettingsRow>
               <div className={s.segBlock}>
                 <div className="lbl">ALSO SIGN ME OUT OF THE BOT AFTER</div>
                 <Segmented label="Idle days" value={String(settings.sessionIdleDays)} options={IDLE_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))} onChange={(v) => void change({ sessionIdleDays: Number(v) })} />
-                <div className={`cap ${s.segNote}`}>You stay signed in until you send /signout. This is only a safety net for when you stop using the bot.</div>
+                <div className={`cap ${s.segNote}`}>Otherwise you stay signed in until /signout.</div>
               </div>
               <div className={s.segBlock}>
                 <div className="lbl">DAILY REMINDER OF UNTAGGED PAYMENTS</div>
@@ -257,7 +264,7 @@ function TelegramBlock({ link, settings, refresh, saveSettings: save, settingsFa
           )}
         </>
       )}
-      {tg.kind === 'unlinked' && <div className={`rise ${s.pausedNote}`}>Prompts are paused and nothing is sent to Telegram. Link the bot again from the Setup guide; it takes about a minute.</div>}
+      {tg.kind === 'unlinked' && <div className={`rise ${s.pausedNote}`}>Prompts are paused. Link the bot again from the Setup guide.</div>}
     </>
   );
 }

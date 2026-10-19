@@ -1,4 +1,4 @@
-"""The gateway: guard (session, CSRF, rate limits), its own composed routes, then everything else proxied by ROUTE_TABLE. One catch-all route, so a request is routed by the same normalised path the guard checked."""
+"""The gateway: guard (session, CSRF, rate limits), its own composed routes, then everything else proxied by ROUTE_TABLE. One catch-all route, so routing uses the same normalised path the guard checked."""
 
 import asyncio
 import json
@@ -39,7 +39,7 @@ def body_limit_for(method: str, path: str) -> int:
 
 
 async def read_body(request: Request, limit: int) -> bytes:
-    """The body as received, refused (413) as soon as it grows past `limit` instead of after buffering it all."""
+    """The body as received; refused (413) as soon as it passes `limit`, not after buffering it all."""
     too_large = AppError('bad_request', 'Request body is too large', status=413)
     declared = request.headers.get('content-length')
     if declared and declared.isdigit() and int(declared) > limit:
@@ -59,9 +59,7 @@ def _no_constant(name: str) -> Any:
 
 
 def parse_json_body(request: Request, raw: bytes) -> Any:
-    """JSON bodies are kept as received (forwarded byte for byte) and also parsed, so composed routes validate them and a
-    malformed body is refused here with the standard error shape. Other content types are forwarded as they are.
-    """
+    """JSON bodies are forwarded byte for byte and also parsed, so composed routes validate them and a malformed body gets the standard error here. Other content types pass through."""
     if not raw or request.headers.get('content-type', '').split(';', 1)[0].strip().lower() != 'application/json':
         return None
     try:
@@ -71,7 +69,7 @@ def parse_json_body(request: Request, raw: bytes) -> Any:
 
 
 class Hardening:
-    """Outermost middleware (so it covers 413 and 500 too): locks the browser down, never allows caching, no CORS. Also closes the shared proxy client on shutdown."""
+    """Outermost middleware (covers 413 and 500 too): locks the browser down, never allows caching, no CORS. Also closes the shared proxy client on shutdown."""
 
     def __init__(self, app: ASGIApp, *, on_shutdown: Callable[[], Any]) -> None:
         self.app = app
@@ -121,7 +119,7 @@ def make_register(*, transport: httpx.AsyncBaseTransport | None = None) -> Calla
     """`register(app, deps)` for the kit. `transport` lets tests put fake services behind the proxy client."""
 
     def register(app: FastAPI, deps: Deps[Any]) -> None:
-        # One client for all proxying (connection reuse). Timeouts are enforced per call in `forward`, over the whole answer.
+        # One client for all proxying (connection reuse). Timeouts are per call in `forward`, over the whole answer.
         client = httpx.AsyncClient(
             transport=transport, headers={'user-agent': 'bt-gateway', 'accept-encoding': 'identity'},
             limits=httpx.Limits(max_connections=200, max_keepalive_connections=50),

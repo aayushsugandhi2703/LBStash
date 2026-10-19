@@ -36,7 +36,7 @@ def second_step_key(user_id: str) -> str:
 
 
 async def consume_totp(svc: Svc, tx: Tx, user: UserRow, code: str) -> bool:
-    """Check a TOTP code and burn its time step in the same statement, so it (or any older one) cannot be reused."""
+    """Check a TOTP code and burn its step in one statement; it (or an older one) can't be reused."""
     if not user.totp_secret_enc:
         return False
     secret = svc.cipher.decrypt_string(user.totp_secret_enc, user.id)
@@ -73,8 +73,7 @@ class _Checked:
 
 
 async def require_fresh_code(svc: Svc, user_id: str, code: str | None, ip: str | None = None) -> None:
-    """The fresh-code check for sensitive actions. Missing code: two_factor_required; wrong, replayed or throttled:
-    two_factor_invalid / locked. Do the request's other validations first: a good code is spent even if the action fails."""
+    """Fresh-code check for sensitive actions. No code: two_factor_required. Wrong, replayed or throttled: two_factor_invalid / locked. Do other validations first: a good code is spent even if the action fails."""
     if not code:
         raise Errors.two_factor_required()
     async with svc.deps.as_user(user_id) as tx:
@@ -133,7 +132,7 @@ async def make_recovery_codes(tx: Tx, user: UserRow, ip: str | None) -> tuple[li
 
 
 async def regenerate_recovery_codes(svc: Svc, user_id: str, code: str | None, ip: str | None) -> RecoveryCodesRes:
-    """First-time setup needs no code (the authenticator was just proven); afterwards a fresh one."""
+    """First setup needs no code (the authenticator was just proven); later changes need a fresh one."""
     async with svc.deps.as_user(user_id) as tx:
         u = await load_user(tx, user_id)
         if not u.totp_enabled_at:

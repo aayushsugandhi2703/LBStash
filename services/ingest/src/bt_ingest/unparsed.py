@@ -55,9 +55,7 @@ async def list_unparsed(deps: Deps, ctx: Ctx) -> UnparsedRes:
 
 
 async def resolve_unparsed(deps: Deps, ctx: Ctx, id: str, body: ResolveUnparsedReq) -> ResolveUnparsedRes:
-    """Add the message to the ledger as the user described it, then delete it.
-    The row is claimed first (`open` -> `resolved`) so a double click cannot add it twice; a failed ledger call reopens it.
-    """
+    """Add the message to the ledger as the user described it, then delete it. The row is claimed first (`open` -> `resolved`) so a double click cannot add it twice; a failed ledger call reopens it."""
     async with deps.as_user(ctx) as tx:
         claimed = await tx.maybe_one(
             """WITH c AS (UPDATE unparsed_messages SET status = 'resolved' WHERE id = $1 AND status = 'open' AND expires_at > now() RETURNING *)

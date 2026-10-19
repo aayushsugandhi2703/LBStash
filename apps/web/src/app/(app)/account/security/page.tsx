@@ -2,11 +2,11 @@
 import { useState } from 'react';
 import type { z } from 'zod';
 import { type PublicKeyCredentialCreationOptionsJSON, startRegistration } from '@simplewebauthn/browser';
-import type { AuditRes, RecoveryCodesRes, SessionsRes, TwoFactorEnableStartRes } from '@/contracts';
+import type { AllowedIpsRes, AuditRes, RecoveryCodesRes, SessionsRes, TwoFactorEnableStartRes } from '@/contracts';
 import { AccountShell } from '@/components/shell';
 import { Button, CodeInput, ConfirmWell, Empty, ErrorLine, GhostButton, LedgerMath, Loading, SettingsRow, TextLink } from '@/components/ui';
 import { api, errorText, fieldErrors, useApi } from '@/lib/api';
-import { ago, auditLabel, auditPlace, auditWarn, auditWhen, canRemovePasskey, canSavePassword, codeError, type Factors, isCode, type Passkey, passkeyLabel, passkeyMeta, passwordCounter, type Session, sessionMeta, shortDate, signInStrong } from '@/features/account';
+import { ago, auditLabel, auditPlace, auditWarn, auditWhen, canRemovePasskey, canSavePassword, codeError, type Factors, isCode, type Passkey, passkeyLabel, passkeyMeta, parseIps, passwordCounter, type Session, sessionMeta, shortDate, signInStrong } from '@/features/account';
 import { copyToClipboard, downloadText, useFlash } from '@/lib/browser';
 import { LineStatus, LoadError, Section, Well } from '../parts';
 import s from '../account.module.css';
@@ -26,9 +26,9 @@ export default function SecurityPage() {
   return (
     <AccountShell
       page="security" glyph="security" title="Security"
-      description="How you sign in, where you are signed in, and what happened lately. Changes here ask for your code."
+      description="How you sign in, where, and recent activity. Changes ask for your code."
       label="SECURITY" heading="Sign-in and sessions"
-      lead="Two-step sign-in is always on and cannot be turned off. Passkeys are the quickest way in; the authenticator app and recovery codes are your backups."
+      lead="Two-step sign-in is always on. Passkeys are fastest; the app and recovery codes are backups."
       summary={<LedgerMath rows={[
         { k: 'two-step', v: 'on' },
         { k: 'passkeys', v: f ? String(f.passkeys.length) : '—' },
@@ -47,6 +47,9 @@ export default function SecurityPage() {
         </>
       )}
 
+      <Section>ALLOWED ADDRESSES</Section>
+      <AllowedIpsRow onDone={() => void refreshAll()} />
+
       <Section>WHERE YOU ARE SIGNED IN</Section>
       <SessionsBlock sessions={list} loading={!sessions.data && !sessions.error} failed={Boolean(sessions.error) && !sessions.data} retry={() => void sessions.mutate()} onChange={() => void refreshAll()} />
 
@@ -56,7 +59,7 @@ export default function SecurityPage() {
         {audit.error && !audit.data && <LoadError retry={() => void audit.mutate()} />}
         {audit.data?.entries.length === 0 && <Empty>Nothing yet. Account activity appears here.</Empty>}
         {audit.data?.entries.map((e) => (
-          <div key={e.id} role="row" className="row" style={{ alignItems: 'baseline' }}>
+          <div key={e.id} role="row" className="row" style={{ alignItems: 'baseline', flexWrap: 'wrap' }}>
             <span role="cell" className={`mono ${s.auditWhen}`}>{auditWhen(e.at)}</span>
             <span role="cell" className={`${s.auditWhat} ${auditWarn(e.action) ? s.warn : ''}`}>{auditLabel(e)}</span>
             <span role="cell" className={`mono ${s.auditWhere}`}>{auditPlace(e)}</span>
@@ -119,6 +122,60 @@ function PasswordRow({ changedAt, onDone }: { changedAt: string; onDone: () => v
 }
 
 
+/** Limit the web app to chosen addresses: others cannot sign in, refresh or load pages. The Telegram bot is separate and answers only your linked account. */
+function AllowedIpsRow({ onDone }: { onDone: () => void }) {
+  const ips = useApi<z.infer<typeof AllowedIpsRes>>('/auth/allowed-ips');
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [code, setCode] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  const current = ips.data?.ips ?? [];
+  const yourIp = ips.data?.yourIp ?? null;
+
+  const toggle = () => { setOpen(!open); setText(current.join('\n')); setCode(''); setError(''); setDone(false); };
+  const addMine = () => { if (yourIp && !parseIps(text).includes(yourIp)) setText((t) => `${t.trim()}${t.trim() ? '\n' : ''}${yourIp}`); };
+  async function save() {
+    setBusy(true); setError('');
+    try {
+      await api.put('/auth/allowed-ips', { ips: parseIps(text), code });
+      setOpen(false); setCode(''); setDone(true);
+      await ips.mutate();
+      onDone();
+    } catch (e) {
+      setError(codeError(e) ?? Object.values(fieldErrors(e))[0] ?? errorText(e));
+      setCode('');
+    } finally { setBusy(false); }
+  }
+  const sub = current.length
+    ? `On. Only ${current.length === 1 ? 'this address' : `these ${current.length} addresses`} can sign in or use the app${yourIp ? `. You are on ${yourIp}` : ''}.`
+    : `Off. Any address can sign in${yourIp ? ` (you: ${yourIp})` : ''}. The bot only answers your Telegram account.`;
+  return (
+    <>
+      <SettingsRow title="Allowed addresses" sub={sub}>
+        <GhostButton onClick={toggle} disabled={!ips.data}>{open ? 'Cancel' : current.length ? 'Edit list' : 'Set up'}</GhostButton>
+      </SettingsRow>
+      {ips.error && !ips.data && <LoadError retry={() => void ips.mutate()} />}
+      {open && (
+        <Well>
+          <label htmlFor="ips" className="lbl">ONE PER LINE · LIKE 203.0.113.7 OR A RANGE LIKE 203.0.113.0/24</label>
+          <textarea id="ips" className={`${s.input} mono ${error && !isCode(code) ? s.err : ''}`} rows={4} spellCheck={false} placeholder="203.0.113.7" value={text} onChange={(e) => { setText(e.target.value); setError(''); }} />
+          <div className="mono" style={{ marginTop: 6, fontSize: 'var(--fs-label)', color: 'var(--muted)' }}>
+            {yourIp ? <>your address is {yourIp} · <button type="button" className="link mono" onClick={addMine}>add it</button> · </> : null}empty = any address. Keep your own on the list; if it changes you are locked out.
+          </div>
+          <div className={`actions ${s.field}`}>
+            <CodeInput value={code} onChange={(v) => { setCode(v); setError(''); }} />
+            <Button disabled={!isCode(code) || busy} onClick={() => void save()}>{parseIps(text).length ? 'Save list' : 'Turn off'}</Button>
+            {error && <div className={s.full}><ErrorLine>{error}</ErrorLine></div>}
+          </div>
+        </Well>
+      )}
+      {done && <LineStatus>{current.length ? 'Saved. Other addresses can no longer sign in.' : 'Turned off. Any address can sign in.'}</LineStatus>}
+    </>
+  );
+}
+
 /** Replace the app: the current code starts it, a QR for the new secret, then a code from the new app confirms. */
 function AuthenticatorRow({ since, onDone }: { since: string | null; onDone: () => void }) {
   const [open, setOpen] = useState(false);
@@ -158,7 +215,7 @@ function AuthenticatorRow({ since, onDone }: { since: string | null; onDone: () 
         <GhostButton onClick={toggle}>{open ? 'Cancel' : 'Replace'}</GhostButton>
       </SettingsRow>
       {open && !scan && (
-        <ConfirmWell text="You will scan a new QR code, as when you first set up. The old app stops working the moment you confirm the new one. Enter a code from the current app to begin.">
+        <ConfirmWell text="Scan a new QR code. The old app stops working once you confirm. Enter a code from the current app to start.">
           <CodeInput value={code} onChange={(v) => { setCode(v); setError(''); }} />
           <Button disabled={!isCode(code) || busy} onClick={() => void start()}>Scan a new code</Button>
           {error && <div className={s.full}><ErrorLine>{error}</ErrorLine></div>}
@@ -180,7 +237,7 @@ function AuthenticatorRow({ since, onDone }: { since: string | null; onDone: () 
             <Button disabled={!isCode(confirm) || busy} onClick={() => void finish()}>Confirm the new app</Button>
             {error && <div className={s.full}><ErrorLine>{error}</ErrorLine></div>}
           </div>
-          <div className={s.note}>If the code is refused, wait for the next one to appear in the app and try again.</div>
+          <div className={s.note}>Refused? Wait for the next code and retry.</div>
         </Well>
       )}
       {done && <LineStatus>Authenticator replaced. The old app no longer works.</LineStatus>}
@@ -216,7 +273,7 @@ function PasskeysBlock({ passkeys, onChange }: { passkeys: Passkey[]; onChange: 
       <div className="settings-row" style={{ alignItems: 'flex-start' }}>
         <div style={{ minWidth: 0 }}>
           <div className="t">Passkeys</div>
-          <div className="s">Face ID, Touch ID or a security key. A passkey never leaves the device that made it.</div>
+          <div className="s">Face ID, Touch ID or a security key. It never leaves your device.</div>
         </div>
         <GhostButton disabled={busy} onClick={() => void add()}>{busy ? 'Waiting for passkey…' : 'Add a passkey'}</GhostButton>
       </div>
@@ -258,7 +315,7 @@ function RecoveryRow({ remaining, total, onDone }: { remaining: number; total: n
   }
   return (
     <>
-      <SettingsRow title="Recovery codes" sub={`${remaining} of ${total} unused. Each works once, if you lose your authenticator.`}>
+      <SettingsRow title="Recovery codes" sub={`${remaining} of ${total} unused. Each works once.`}>
         <GhostButton onClick={toggle}>{ask ? 'Cancel' : 'Make new codes'}</GhostButton>
       </SettingsRow>
       {ask && (

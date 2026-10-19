@@ -5,5 +5,5 @@
 .title { margin-top: 6px; line-height: 1.15; }
 .lead { max-width: 680px; margin-top: 8px; line-height: 1.55; }
 .list { flex: none; margin-top: var(--cv-10-2-18); border-top: 1px solid var(--ink); padding-top: var(--cv-10-2-18); }
-@media (min-width: 1024px) and (min-height: 640px) { .list { flex: 1 1 0; min-height: 150px; overflow-y: auto; } }
+@media (min-width: 1024px) and (min-height: 720px) { .list { flex: 1 1 0; min-height: 150px; overflow-y: auto; } }
 .foot { padding: var(--row-pad) 0; line-height: 1.6; text-transform: none; }

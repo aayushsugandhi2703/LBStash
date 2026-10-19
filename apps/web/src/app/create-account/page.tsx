@@ -58,7 +58,7 @@ export default function CreateAccountPage() {
       right={<Link href="/sign-in" className="mono lbl signin-header-link">already have the account? sign in</Link>}
       glyph="create"
       title="Create your account"
-      description="This app has one account: yours. Next you add a second step, then connect your phone."
+      description="One account: yours. Next: a second step, then Telegram."
       aside={
         <div className="signin-steps">
           <div className="lbl signin-steps-title">SETUP, IN ORDER</div>
@@ -72,7 +72,7 @@ export default function CreateAccountPage() {
         <div className="signin-form signin-success-state rise">
           <div className="signin-success" aria-hidden="true">✓</div>
           <div className="lbl">ACCOUNT CREATED</div>
-          <p className="lead">Your account <AuthEm>{email}</AuthEm> exists. You cannot sign in properly until a second step is set up, so that comes next.</p>
+          <p className="lead">Your account <AuthEm>{email}</AuthEm> is created. Add a second step next.</p>
           <Link href="/secure" className="btn lg">Secure your account</Link>
         </div>
       ) : (
@@ -80,7 +80,7 @@ export default function CreateAccountPage() {
           <Field
             label="Email"
             type="email"
-            autoComplete="username"
+            autoComplete="username" placeholder="you@example.com"
             value={email}
             onChange={(event) => { setEmail(event.target.value); setError(''); }}
             required

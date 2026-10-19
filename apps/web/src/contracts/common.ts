@@ -30,7 +30,7 @@ export const TransactionDto = z.object({
   source: TxSource,
   status: TxStatus,
   recurringId: uuid.nullable(),
-  /** When the Shortcut delivered it (captured rows only). */
+  /** When the sender delivered it (captured rows only). */
   capturedAt: isoDateTime.nullable(),
   /** Amount and direction were read but nothing else (README 4.7). */
   weakParse: z.boolean(),
@@ -45,7 +45,7 @@ export const CategoryDto = z.object({
 });
 export type CategoryDto = z.infer<typeof CategoryDto>;
 
-/** `GET /internal/export` on every data service: that service's rows for the token's user, secrets left out (no token hashes, no encrypted fields, no password hashes). */
+/** `GET /internal/export` on every data service: that service's rows for the token's user, secrets left out. */
 export const ExportPart = z.object({
   service: z.string(),
   tables: z.record(z.string(), z.array(z.record(z.string(), z.unknown()))),

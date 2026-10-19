@@ -1,0 +1,30 @@
+# Used until the certificate exists (or when LETSENCRYPT_EMAIL is not set): answers Let's Encrypt's challenge and serves the app over http.
+
+# Behind a Cloudflare Tunnel the connection comes from the tunnel container: take the visitor's address and scheme from Cloudflare's headers.
+set_real_ip_from 172.16.0.0/12;
+set_real_ip_from 10.0.0.0/8;
+set_real_ip_from 192.168.0.0/16;
+real_ip_header CF-Connecting-IP;
+map $http_x_forwarded_proto $fwd_proto {
+    default $http_x_forwarded_proto;
+    ""      $scheme;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${DOMAIN} www.${DOMAIN};
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        proxy_pass http://proxy:80;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Forwarded-For   $remote_addr;
+        proxy_set_header X-Forwarded-Proto $fwd_proto;
+        proxy_read_timeout 60s;
+    }
+}

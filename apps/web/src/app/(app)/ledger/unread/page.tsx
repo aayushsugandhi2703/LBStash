@@ -32,18 +32,18 @@ export default function UnreadPage() {
           total={{ k: '= still to look at', v: items ? t.left : '—' }}
         />
       </div>
-      <div className={`opt2 cap ${s.note}`}>Messages wait here encrypted and are deleted after 30 days. Anything that looks like a one-time code is never kept.</div>
+      <div className={`opt2 cap ${s.note}`}>Kept encrypted for 30 days, then deleted. One-time codes are never kept.</div>
       <div className={s.back}><TextLink href="/ledger" mono>← back to the ledger</TextLink></div>
     </>
   );
 
   return (
-    <AppShell home="ledger" glyph="look" title="Needs a look" description="Bank messages the app could not read. Tell it what they were, or throw them away." aside={aside}>
+    <AppShell home="ledger" glyph="look" title="Needs a look" description="Bank messages the app could not read. Classify or delete them." aside={aside}>
       <div className={`rise ${s.head}`}>
         <div className="lbl">Unread messages</div>
         <h2 className={`fig-lg ${s.title}`}>Messages we could not read</h2>
         <p className={`cap ${s.lead}`}>
-          The phone caught these, but the wording was new. Add one as a payment and it joins the ledger like any other; the next message in that style may then read on its own.
+          These bank messages reached the server, but the wording was new. Add one as a payment and it joins the ledger like any other; the next message in that style may then read on its own.
         </p>
       </div>
       <div className={s.list}>
@@ -61,7 +61,7 @@ export default function UnreadPage() {
           />
         ))}
         {allSorted && <Empty>All sorted. Messages the app cannot read will wait here.</Empty>}
-        <div className={`mono lbl ${s.foot}`}>A message is kept for 30 days, then deleted. Deleting one here removes it for good.</div>
+        <div className={`mono lbl ${s.foot}`}>Kept 30 days. Deleting here is permanent.</div>
       </div>
     </AppShell>
   );

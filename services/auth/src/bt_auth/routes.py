@@ -1,4 +1,4 @@
-"""Public routes (through the gateway) and `/internal/*` routes (other services only). Routes without a user dependency work without a user on the token."""
+"""Public routes (via the gateway) and `/internal/*` routes (services only). Routes without a user dependency need no user on the token."""
 
 from typing import Annotated, Any
 
@@ -146,6 +146,16 @@ def make_routes(mailer: Mailer | None = None):
                 client_info(request).ip,
             )  # fmt: skip
 
+        # addresses the web app accepts
+
+        @router.get('/auth/allowed-ips', response_model=C.AllowedIpsRes)
+        async def get_allowed_ips(request: Request, ctx: UserCtx) -> C.AllowedIpsRes:
+            return await account.read_allowed_ips(svc, ctx, client_info(request).ip)
+
+        @router.put('/auth/allowed-ips', response_model=C.AllowedIpsRes)
+        async def put_allowed_ips(body: C.AllowedIpsReq, request: Request, ctx: UserCtx) -> C.AllowedIpsRes:
+            return await account.set_allowed_ips(svc, ctx, body.ips, body.code, client_info(request).ip)
+
         # sessions and audit
 
         @router.get('/sessions', response_model=C.SessionsRes)
@@ -221,7 +231,7 @@ def make_routes(mailer: Mailer | None = None):
         @router.post('/internal/sessions/check', response_model=C.SessionCheckRes)
         async def sessions_check(body: C.SessionCheckReq, _claims: ServiceClaims, deps: DepsDep) -> C.SessionCheckRes:
             async with deps.as_system() as tx:
-                return await check_session(tx, body.sid)
+                return await check_session(tx, body.sid, body.ip)
 
         app.include_router(router)
 

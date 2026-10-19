@@ -32,9 +32,9 @@ class GatewayInfo:
     query: str
     # Reachable without a session (PUBLIC_PATHS).
     public: bool
-    # Verified `bt_access` claims, if the cookie held a valid token (the session itself is checked separately).
+    # Verified `bt_access` claims if the cookie held a valid token (the session is checked separately).
     access: AccessClaims | None
-    # The caller's address (leftmost `x-forwarded-for`, set by the reverse proxy; else the socket peer).
+    # Caller's address: leftmost `x-forwarded-for` (set by the proxy), else the socket peer.
     ip: str
 
 
@@ -70,7 +70,7 @@ def safe_equal(a: str | None, b: str | None) -> bool:
 
 
 def client_ip(request: Request) -> str:
-    """The caller's address: the reverse proxy puts it first in `x-forwarded-for` (and uvicorn does the same for the socket)."""
+    """Caller's address: the proxy puts it first in `x-forwarded-for` (uvicorn does the same for the socket)."""
     forwarded = request.headers.get('x-forwarded-for', '').split(',', 1)[0].strip()
     if forwarded:
         return forwarded[:64]
@@ -84,7 +84,7 @@ def cookie(request: Request, name: str) -> str | None:
 
 
 def raw_url(request: Request) -> str:
-    """The request target as the client wrote it (not the decoded `scope["path"]`), query included."""
+    """The request target as the client wrote it (not decoded `scope["path"]`), query included."""
     scope = request.scope
     path = scope.get('raw_path') or scope['path'].encode()
     query = scope.get('query_string') or b''
@@ -103,7 +103,7 @@ def _is_internal(secret: str, request: Request) -> bool:
 
 
 def build_guard(deps: Deps[Env]) -> Callable[[Request], Awaitable[None]]:
-    """The guard dependency, in order: path check, who is this (cookie -> JWT), rate limits, session alive (cached ~10 s), setup-limited sessions, CSRF. Anything outside PUBLIC_PATHS must pass all of it."""
+    """Gateway guard, in order: path check, who (cookie -> JWT), rate limits, session alive (cached ~10 s), setup-limited sessions, CSRF. Everything outside PUBLIC_PATHS must pass all of it."""
     env = deps.env
     sessions = SessionCache(10.0)
     general = Limiter(env.RATE_LIMIT_PER_MINUTE, _MINUTE)
@@ -138,27 +138,29 @@ def build_guard(deps: Deps[Env]) -> Callable[[Request], Awaitable[None]]:
         gw = GatewayInfo(path, query_of(url), public, access, ip)
         request.state.gw = gw
 
-        # Rate limits first, so a flood of bad cookies or bad logins is counted too. Signed in: per user; otherwise per IP.
+        # Rate limits first, so floods of bad cookies or logins are counted too. Signed in: per user; else per IP.
         enforce(general, f'u:{access.sub}' if access else f'ip:{ip}')
         bucket = bucket_of(path)
         if bucket:
             enforce(strict[bucket], f'ip:{ip}')
 
         if not public:
-            # `/health/deps` is also open to other services (a valid internal token), for operators and probes.
+            # `/health/deps` is also open to other services (valid internal token), for operators and probes.
             internal = path == '/health/deps' and access is None and _is_internal(env.INTERNAL_SECRET, request)
             if not internal:
                 if access is None:
                     raise Errors.unauthorized()
-                session = sessions.get(access.sid)
+                # keyed by session AND address: a cookie copied to another address is checked again (users may limit the web app to listed addresses)
+                alive_key = f'{access.sid}|{ip}'
+                session = sessions.get(alive_key)
                 if session is None:
                     # Not cached: ask auth. An outage is an error answer (never 401), so nobody is signed out by it.
-                    res = await deps.clients.auth.check_session(access.sid)
+                    res = await deps.clients.auth.check_session(access.sid, ip)
                     if not res.valid:
                         raise Errors.unauthorized()
                     # Setup can finish in this very session: recheck limited sessions so stale state never rejects the next request.
                     if not res.limited:
-                        sessions.remember(access.sid)
+                        sessions.remember(alive_key)
                     limited = res.limited
                 else:
                     limited = session.limited

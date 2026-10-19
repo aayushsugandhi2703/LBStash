@@ -8,9 +8,9 @@
 .title { margin-top: 6px; line-height: 1.15; }
 .lead { margin-top: 8px; max-width: 680px; line-height: 1.55; }
 .body { flex: none; margin-top: var(--cv-10-2-18); border-top: 1px solid var(--ink); }
-@media (min-width: 1024px) and (min-height: 640px) { .body { flex: 1 1 0; min-height: 200px; overflow-y: auto; } }
+@media (min-width: 1024px) and (min-height: 720px) { .body { flex: 1 1 0; min-height: 200px; overflow-y: auto; } }
 .foot { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; padding-top: var(--cv-8-1p6-14); border-top: 1px solid var(--rule); margin-top: var(--cv-6-1p2-10); }
-@media (max-width: 1023px), (max-height: 639px) { .foot { position: sticky; bottom: 0; z-index: 2; background: var(--surface); padding-bottom: 8px; } }
+@media (max-width: 1023px), (max-height: 719px) { .foot { position: sticky; bottom: 0; z-index: 2; background: var(--surface); padding-bottom: 8px; } }
 .quiet { display: inline-flex; align-items: center; min-height: 44px; padding: 0; border: 0; background: transparent; color: var(--muted); font-size: var(--fs-body); cursor: pointer; }
 .quiet:hover { color: var(--accent); }
 
@@ -21,26 +21,11 @@
 .stepText { margin-top: 2px; line-height: 1.55; }
 .stepText b { font-weight: 500; color: var(--ink); }
 .control { margin-top: 10px; }
-.check { width: 20px; height: 20px; flex: none; margin-top: 2px; padding: 0; border: 1px solid var(--ink); background: #fff; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
-.check[aria-checked="true"], .check[data-on="true"] { background: var(--ink); }
-.check svg { display: none; }
-.check[aria-checked="true"] svg, .check[data-on="true"] svg { display: block; }
-.check[data-static="true"] { cursor: default; }
 
 .box { background: var(--hover-index); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
 .path { background: var(--hover-index); padding: 10px 14px; }
 .caption { margin-top: 6px; }
 .copy { min-height: 32px; font-size: var(--fs-s); }
-.chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.kw { display: inline-flex; align-items: center; gap: 12px; height: 34px; padding: 0 14px; border: 1px solid var(--disabled); }
-.kwCopy { padding: 0; border: 0; background: transparent; font-size: var(--fs-label); color: var(--muted); cursor: pointer; }
-.kwCopy:hover { color: var(--accent); }
-.note { display: flex; align-items: flex-start; gap: 10px; margin-top: 10px; font-size: var(--fs-s); color: var(--text-2); line-height: 1.5; }
-.note > i { width: 9px; height: 9px; margin-top: 5px; flex: none; background: var(--warn); }
-.fields { margin-top: 10px; border-top: 1px solid var(--rule); }
-.field { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 0; border-bottom: 1px solid var(--rule); }
-.field[data-top="true"] { align-items: flex-start; }
-.k { width: 84px; flex: none; }
 .v { flex: 1; min-width: 0; font-size: var(--fs-s); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .v.wrap { white-space: normal; line-height: 1.6; overflow: visible; }
 .live { margin-top: 10px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -60,13 +45,11 @@
 @media (max-width: 560px) {
   .step { gap: 12px; }
   .num { width: 18px; }
-  .field { flex-wrap: wrap; align-items: flex-start; gap: 4px 12px; }
-  .k { width: 100%; }
   .v { white-space: normal; overflow-wrap: anywhere; }
   .sumRow { flex-wrap: wrap; }
 }
 
-/* step 3 */
+/* step 2 */
 .privacy { display: flex; flex-wrap: wrap; gap: var(--cv-16-3-28) clamp(28px, 4vw, 56px); padding-top: var(--row-pad); }
 .left { flex: 1 1 340px; min-width: 0; max-width: 520px; }
 .right { flex: 1 1 280px; min-width: 0; max-width: 380px; }
@@ -103,3 +86,9 @@
 .sumValue[data-ok="false"] { color: var(--muted); }
 .next { max-width: 620px; margin-top: var(--cv-14-2p6-24); color: var(--text-2); line-height: 1.45; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin-top: var(--cv-14-2p6-24); }
+
+@media (max-width: 640px) {
+  .foot { padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+  .tokenRow > :first-child { flex-basis: 100%; }
+  .buttons > span { height: 36px; }
+}

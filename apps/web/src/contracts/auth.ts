@@ -18,7 +18,7 @@ export type AuthMethod = z.infer<typeof AuthMethod>;
 export const SetupState = z.object({ totpEnabled: z.boolean(), recoveryCodes: z.boolean(), complete: z.boolean() });
 export type SetupState = z.infer<typeof SetupState>;
 
-/** Answer of every call that starts or renews a browser session (register, 2fa/verify, passkey login, refresh). */
+/** Answer of every call that starts or renews a session (register, 2fa/verify, passkey login, refresh). */
 export const AuthSessionRes = z.object({
   user: UserDto,
   setup: SetupState,
@@ -56,6 +56,9 @@ export const SessionDto = z.object({
 });
 export type SessionDto = z.infer<typeof SessionDto>;
 export const SessionsRes = z.object({ sessions: z.array(SessionDto) });
+/** Addresses the web app accepts (empty = any). `yourIp` is where this request came from. */
+export const AllowedIpsRes = z.object({ ips: z.array(z.string()), yourIp: z.string().nullable() });
+export type AllowedIpsRes = z.infer<typeof AllowedIpsRes>;
 export const AuditEntryDto = z.object({
   id: z.number().int(), at: z.string(), action: z.string(), ip: z.string().nullable(), deviceId: uuid.nullable(),
   meta: z.record(z.string(), z.unknown()).nullable(),

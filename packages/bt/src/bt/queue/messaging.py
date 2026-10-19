@@ -1,10 +1,10 @@
 """Transactional outbox plus a small Postgres job queue.
 
-Producing: `emit` / `enqueue` write to `<service>.outbox` in the caller's transaction. A relay (about every 500 ms, `FOR UPDATE SKIP LOCKED`) moves rows into `queue.job`, one job per subscriber queue `<service>.<event>`.
+Produce: `emit` / `enqueue` write to `<service>.outbox` in the caller's transaction. A relay (about every 500 ms, `FOR UPDATE SKIP LOCKED`) moves rows to `queue.job`, one job per subscriber queue `<service>.<event>`.
 
-Consuming: workers claim jobs with `SKIP LOCKED`. A failing handler is retried with exponential backoff (2 s up to 600 s, 5 retries), then marked `failed`. Delivery is at-least-once, so consumers must be idempotent.
+Consume: workers claim jobs with `SKIP LOCKED`. A failing handler retries with backoff (2 s up to 600 s, 5 tries), then is marked `failed`. Delivery is at-least-once, so consumers must be idempotent.
 
-Cron: one row per queue; whichever replica wins the `UPDATE ... WHERE next_run_at = <old>` fires the tick.
+Cron: one row per queue; the replica that wins `UPDATE ... WHERE next_run_at = <old>` fires the tick.
 """
 
 import asyncio

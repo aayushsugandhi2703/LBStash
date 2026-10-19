@@ -40,7 +40,7 @@ async def get_plan(deps: Deps, ctx: Ctx, month: MonthKey) -> PlanWithSpendDto:
 
 
 async def put_plan(deps: Deps, ctx: Ctx, month: MonthKey, body: PlanPutReq) -> PlanWithSpendDto:
-    """Replace the total and every line. Over-assigning is allowed: it shows up as a negative `unassigned_minor`."""
+    """Replace the total and every line. Over-assigning is allowed; it shows as a negative `unassigned_minor`."""
     names = await category_names(deps, ctx)
     seen: set[str] = set()
     lines: list[tuple[str, int]] = []

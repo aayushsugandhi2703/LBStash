@@ -87,7 +87,7 @@ class MessageTime(NamedTuple):
 
 
 def find_message_time(text: str, tz: str, received_at: datetime) -> MessageTime | None:
-    """The payment time written in the message as a real instant, or None. A date alone books noon of that day; a time in the future or over 45 days old is rejected as a misread."""
+    """The payment time written in the message, as an instant, or None. A date alone books noon of that day; a time in the future or over 45 days old is rejected as a misread."""
     hit = _find_date(text)
     if hit is None:
         return None

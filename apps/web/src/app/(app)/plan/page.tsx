@@ -114,7 +114,7 @@ export default function PlanPage() {
   );
 
   return (
-    <AppShell home="plan" glyph="plan" title="Plan" description={`Decide where every rupee of ${mName} goes. Tags you type become categories.`} aside={aside}>
+    <AppShell home="plan" glyph="plan" title="Plan" description={`Give every rupee of ${mName} a job. Tags you type become categories.`} aside={aside}>
       <div className={s.head}>
         <h2 className="h2">How {mName} is split</h2>
         <div className="lbl" style={{ textTransform: 'none' }}>green is money not yet given a job</div>

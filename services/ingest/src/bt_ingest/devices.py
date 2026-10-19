@@ -79,9 +79,7 @@ def safe_tz(tz: str | None) -> str:
 
 
 async def authenticate(deps: Deps, bearer: str | None) -> DeviceRow | None:
-    """Token -> device, looked up by hash on every request (no cache) so revoking or rotating takes effect at once.
-    Runs in system scope: the caller has no user yet.
-    """
+    """Token -> device by hash on every request (no cache), so revoking or rotating takes effect at once. Runs in system scope: no user yet."""
     if not bearer or not _TOKEN_RE.fullmatch(bearer):
         return None
     async with deps.as_system() as tx:
@@ -113,9 +111,7 @@ async def _require_code(deps: Deps, ctx: Ctx, code: str | None) -> None:
 
 
 async def create_or_rotate(deps: Deps, ctx: Ctx, body: CreateDeviceReq, ip: str | None) -> tuple[DeviceDto, str, bool]:
-    """Create the first token or rotate the active one (rotating needs an authenticator code).
-    The token is returned only here; only its sha256 is stored. Returns `(device, token, rotated)`.
-    """
+    """Create the first token or rotate the active one (needs an authenticator code). The token is returned only here; only its sha256 is stored. Returns `(device, token, rotated)`."""
     async with deps.as_user(ctx) as tx:
         existing = await _active_device(tx, body.device_id)
     if body.device_id and not existing:

@@ -122,6 +122,52 @@ class TestWhoMayTalkToTheBot:
         assert (await w.web(b.user_id, 'GET', '/telegram/link')).body['linked'] is False
 
 
+class TestOnlyTheChosenAccountCanLink:
+    async def test_no_code_until_an_owner_is_chosen_and_the_status_never_shows_a_whole_telegram_id(self, w: World) -> None:
+        u = await w.user_with_bot(pin=False)
+        assert (await w.web(u.user_id, 'POST', '/telegram/pairing')).status == 409
+        assert (await w.web(u.user_id, 'GET', '/telegram/link')).body['ownerTelegram'] is None
+
+        for bad in ['', 'ab', 'has space', 'bad-name!', '12']:
+            assert (await w.web(u.user_id, 'PUT', '/telegram/owner', {'telegram': bad})).status == 400, bad
+        assert (await w.web(str(uuid.uuid4()), 'PUT', '/telegram/owner', {'telegram': 'someone'})).status == 409  # no bot yet
+
+        assert (await w.web(u.user_id, 'PUT', '/telegram/owner', {'telegram': ' @Some_One '})).status == 200
+        assert (await w.web(u.user_id, 'GET', '/telegram/link')).body['ownerTelegram'] == '@some_one'
+        assert (await w.web(u.user_id, 'PUT', '/telegram/owner', {'telegram': str(u.tg_id)})).status == 200
+        shown = (await w.web(u.user_id, 'GET', '/telegram/link')).body['ownerTelegram']
+        assert shown == f'••{str(u.tg_id)[-4:]}' and str(u.tg_id) not in shown
+        assert (await w.web(u.user_id, 'POST', '/telegram/pairing')).status == 201
+
+    async def test_a_stranger_with_the_right_code_gets_nothing_and_the_code_stays_usable_for_the_owner(self, w: World) -> None:
+        u = await w.user_with_bot(pin=False)
+        await w.pin_owner(u, '@the_real_owner')  # the harness sender is "someone": not this account
+        code = (await w.web(u.user_id, 'POST', '/telegram/pairing')).body['command']
+
+        await w.say(u, code)
+        assert w.bot.sends(u.chat_id) == []
+        st = (await w.web(u.user_id, 'GET', '/telegram/link')).body
+        assert (st['linked'], st['pairingPending']) == (False, True)  # the stranger did not even use the code up
+        assert await w.sql('SELECT 1 FROM telegram_links WHERE user_id = $1', u.user_id) == []
+
+        # the owner (matched by username, whatever the case) sends the same code and links
+        await w.pin_owner(u, '@Someone')
+        await w.say(u, code)
+        assert w.bot.last_message(u.chat_id).text == 'Linked. Send /signin to start.'
+        assert (await w.web(u.user_id, 'GET', '/telegram/link')).body['linked'] is True
+        # once linked the owner cannot be swapped underneath the link
+        assert (await w.web(u.user_id, 'PUT', '/telegram/owner', {'telegram': 'someone_else'})).status == 409
+
+    async def test_an_owner_given_as_a_numeric_id_links_that_account_only(self, w: World) -> None:
+        u = await w.user_with_bot(pin=False)
+        await w.pin_owner(u, str(u.tg_id))
+        code = (await w.web(u.user_id, 'POST', '/telegram/pairing')).body['command']
+        await w.say(u, code, from_id=u.tg_id + 1, chat_id=u.tg_id + 1)
+        assert (await w.web(u.user_id, 'GET', '/telegram/link')).body['linked'] is False
+        await w.say(u, code)
+        assert (await w.web(u.user_id, 'GET', '/telegram/link')).body['linked'] is True
+
+
 class TestPairing:
     async def test_needs_a_saved_bot_token_the_code_is_shown_once_stored_hashed_valid_5_minutes_single_use(self, w: World) -> None:
         nobody = str(uuid.uuid4())
@@ -430,10 +476,11 @@ class TestSecretsStaySecret:
             assert (await call('POST', '/telegram/bot-token', {'token': token})).status_code == 200
             hook = bot.webhooks[token]
             path = hook['url'].split('/webhook/')[1]
+            assert (await call('PUT', '/telegram/owner', {'telegram': '42424'})).status_code == 200
             pair = (await call('POST', '/telegram/pairing')).json()
             hdr = {secret_header: hook['secret_token']}
 
-            async def send(update_id: int, text: str, from_id: int = 4242):
+            async def send(update_id: int, text: str, from_id: int = 42424):
                 update = {'update_id': update_id, 'message': {'message_id': update_id, 'from': {'id': from_id}, 'chat': {'id': from_id, 'type': 'private'}, 'text': text}}  # fmt: skip
                 return await call('POST', f'/telegram/webhook/{path}', update, hdr)
 

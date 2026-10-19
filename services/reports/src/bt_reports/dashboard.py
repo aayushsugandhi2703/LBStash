@@ -26,9 +26,7 @@ from .common import call_as, name_key, progress_of
 
 
 async def dashboard(deps: Any, ctx: Ctx, clock: Clock, q: DashboardQuery) -> DashboardRes:
-    """The Now page in one call. Ledger and plan are required; limits, alerts, recurring and the unparsed count are
-    optional and listed in `degraded` when missing, so a slow neighbour never blanks the page.
-    """
+    """The Now page in one call. Ledger and plan are required; limits, alerts, recurring and the unparsed count are optional and listed in `degraded` when missing, so a slow neighbour never blanks the page."""
     as_ = call_as(ctx)
     p = progress_of(clock, ctx.tz, q.month)
     start, end = month_range(p.month, ctx.tz)

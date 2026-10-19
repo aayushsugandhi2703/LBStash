@@ -1,7 +1,7 @@
-"""Idempotent database setup, run by `db-init` and by tests:
+"""Idempotent database setup, run by `db-init` and tests:
 
- - schema `bt` with `bt.enable_rls(table)`, the one place every RLS policy is defined
- - one login role and schema per data service (`svc_ledger` owns `ledger`)
+ - schema `bt` with `bt.enable_rls(table)`, the one place RLS policies are defined
+ - a login role and schema per data service (`svc_ledger` owns `ledger`)
  - role `bt_queue` owning schema `queue`
 """
 

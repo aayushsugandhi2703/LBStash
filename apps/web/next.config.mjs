@@ -19,9 +19,6 @@ export default {
         { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), publickey-credentials-get=(self), publickey-credentials-create=(self)' },
         { key: 'Cache-Control', value: 'no-store' },
       ],
-    }, {
-      source: '/ledger-capture.shortcut',
-      headers: [{ key: 'Content-Type', value: 'application/vnd.apple.shortcut' }],
     }];
   },
 };

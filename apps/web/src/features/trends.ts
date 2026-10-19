@@ -1,7 +1,7 @@
 import { compactK, css3, displayTag, formatInr, inr, inrSigned, monthName, monthScale, type Paise, pct, pct1, shortMonth, wholeRupees } from '@/common';
 import type { ReportMatrixRes, ReportMonthsRes } from '@/contracts';
 
-/** View-model for the Trends page (docs/ui-spec/06-trends): stats, headline, in/out columns with pace, "against a usual month" list. */
+/** Trends page view-model (docs/ui-spec/06-trends): stats, headline, in/out columns with pace, "against a usual month" list. */
 
 type MonthItem = ReportMonthsRes['items'][number];
 

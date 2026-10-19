@@ -85,7 +85,7 @@ export function RulesTable({ rules, tags, onPause, onChange, onSkip, onRemove }:
                     </ConfirmWell>
                   )}
                   {mode === 'remove' && (
-                    <ConfirmWell text={`Remove ${r.name}, ${scheduleSentence(r.schedule)}? It stops posting and leaves the committed total. Payments already in your ledger stay. This cannot be undone.`}>
+                    <ConfirmWell text={`Remove ${r.name}, ${scheduleSentence(r.schedule)}? It stops posting. Past payments stay. This cannot be undone.`}>
                       <GhostButton bad disabled={busy} onClick={() => void run(() => onRemove(r.id), true)}>Remove payment</GhostButton>
                       <TextLink mono onClick={() => setOpen(null)}>Cancel</TextLink>
                     </ConfirmWell>

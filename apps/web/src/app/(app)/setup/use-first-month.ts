@@ -6,7 +6,7 @@ import type { PlanResponse } from '@/features/plan';
 import type { Settings } from '@/features/setup';
 import { useAmountField } from '@/lib/use-amount-field';
 
-/** Step 4's fields: start from what the server holds and save on blur, on level change and on Finish. */
+/** Step 3's fields: start from the server's values; save on blur, level change and Finish. */
 export function useFirstMonth(i: {
   settings: Settings | undefined; plan: PlanResponse | undefined; month: string | undefined;
   saveSettings: (patch: Partial<Settings>) => Promise<void>; savePlan: (p: PlanResponse) => Promise<unknown>;

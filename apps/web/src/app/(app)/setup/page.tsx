@@ -5,18 +5,17 @@ import { Button, ErrorLine, IndexList, LedgerMath } from '@/components/ui';
 import { api, errorText, useApi } from '@/lib/api';
 import { useToday } from '@/lib/me';
 import { fromPaise } from '@/common';
-import { type Device, ingestState, type LinkStatus, type TgSettings } from '@/features/devices';
+import type { LinkStatus, TgSettings } from '@/features/devices';
 import type { PlanResponse } from '@/features/plan';
-import { clampStep, nextLabel, phoneHeard, type Settings, type Step, stepLabel, stepLead, STEPS, stepStates, stepTitle, summaryRows } from '@/features/setup';
+import { clampStep, nextLabel, type Settings, type Step, stepLabel, stepLead, STEPS, stepStates, stepTitle, summaryRows } from '@/features/setup';
 import { StepDone } from './step-done';
 import { StepFirstMonth } from './step-first-month';
-import { StepIphone, type Ticks } from './step-iphone';
 import { StepPrivacy } from './step-privacy';
 import { StepTelegram } from './step-telegram';
 import { useFirstMonth } from './use-first-month';
 import s from './page.module.css';
 
-/** The furthest step reached is a per-browser convenience: it only decides whether steps 3 and 4 read done. */
+/** The furthest step reached is a per-browser convenience: it only decides whether steps 2 and 3 read done. */
 const REACHED_KEY = 'ledger.setup.reached';
 
 function readReached(): Step {
@@ -29,13 +28,10 @@ function writeReached(step: Step): void {
 export default function SetupPage() {
   const [step, setStep] = useState<Step>(1);
   const [reached, setReached] = useState<Step>(1);
-  const [token, setToken] = useState('');
-  const [ticks, setTicks] = useState<Ticks>({ a: false, b: false, c: false, d: false });
   const [privacyError, setPrivacyError] = useState('');
 
   const today = useToday();
   const month = today?.month;
-  const devices = useApi<{ devices: Device[] }>('/devices');
   const link = useApi<LinkStatus>('/telegram/link');
   const settings = useApi<Settings>('/settings');
   const plan = useApi<PlanResponse>(month ? `/plans/${month}` : null);
@@ -47,23 +43,14 @@ export default function SetupPage() {
     setReached((r) => { const m = Math.max(r, next) as Step; writeReached(m); return m; });
   };
 
-  const ingest = ingestState(devices.data?.devices ?? []);
-  const device = ingest.kind === 'live' ? ingest.device : undefined;
-  const heard = phoneHeard(device);
   const signed = Boolean(link.data?.sessionActive);
   const states = stepStates({
-    step, reached, token: ingest.kind === 'live', test: heard,
+    step, reached,
     botSaved: Boolean(link.data?.botSaved), linked: Boolean(link.data?.linked), signed,
   });
 
-  // The page notices the phone's first message and the Telegram link and sign-in on its own.
-  const watchPhone = step === 1 && Boolean(device) && !heard;
-  const watchBot = step === 2 && !states.done[1];
-  useEffect(() => {
-    if (!watchPhone) return;
-    const t = window.setInterval(() => void devices.mutate(), 4000);
-    return () => window.clearInterval(t);
-  }, [watchPhone]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The page notices the Telegram link and sign-in on its own.
+  const watchBot = step === 1 && !states.done[0];
   useEffect(() => {
     if (!watchBot) return;
     const t = window.setInterval(() => void link.mutate(), 3000);
@@ -87,18 +74,18 @@ export default function SetupPage() {
   });
 
   async function next() {
-    if (step === 4 && !(await first.flush())) return;
+    if (step === 3 && !(await first.flush())) return;
     go(step + 1);
   }
 
   const summary = summaryRows({
-    s1: states.done[0], s2: states.done[1], link: link.data, settings: settings.data,
+    telegram: states.done[0], link: link.data, settings: settings.data,
     opening: settings.data ? fromPaise(settings.data.openingBalanceMinor) : '', plan: plan.data ? fromPaise(plan.data.totalMinor) : '',
   });
 
   const aside = (
     <>
-      <div className={`lbl ${s.blockHead}`}>Four steps</div>
+      <div className={`lbl ${s.blockHead}`}>Three steps</div>
       <IndexList
         label="Setup steps"
         items={STEPS.map((st, i) => ({
@@ -108,7 +95,7 @@ export default function SetupPage() {
       />
       <div className={`opt2 ${s.arith}`}>
         <LedgerMath
-          rows={[{ k: 'account secured', v: 'yes', tone: 'credit' }, { k: 'steps done', v: `${states.count} of 4` }]}
+          rows={[{ k: 'account secured', v: 'yes', tone: 'credit' }, { k: 'steps done', v: `${states.count} of 3` }]}
           total={{ k: '= still to do', v: <span className={s.ink}>{states.left}</span> }}
         />
       </div>
@@ -116,7 +103,7 @@ export default function SetupPage() {
   );
 
   return (
-    <AppShell home={null} glyph="setup" title="Setup guide" description="Four short steps. About 15 minutes, once." aside={aside}>
+    <AppShell home={null} glyph="setup" title="Setup guide" description="3 steps, about 10 minutes." aside={aside}>
       <div className={s.head}>
         <div className="lbl">{stepLabel(step)}</div>
         <h2 className={`fig-lg ${s.title}`}>{stepTitle(step)}</h2>
@@ -125,25 +112,20 @@ export default function SetupPage() {
 
       <div className={s.body}>
         {step === 1 && (
-          devices.error && !devices.data
-            ? <LoadFailed what="your devices" retry={() => void devices.mutate()} />
-            : <StepIphone device={device} token={token} ticks={ticks} tick={(k, v) => setTicks((t) => ({ ...t, [k]: v }))} onMade={(t) => { setToken(t); void devices.mutate(); }} />
-        )}
-        {step === 2 && (
           link.data
             ? <StepTelegram link={link.data} refresh={() => void link.mutate()} />
             : link.error ? <LoadFailed what="the Telegram link" retry={() => void link.mutate()} /> : null
         )}
-        {step === 3 && <StepPrivacy settings={settings.data} failed={Boolean(settings.error)} error={privacyError} save={(p) => void saveTelegram(p)} retry={() => void settings.mutate()} />}
-        {step === 4 && (
+        {step === 2 && <StepPrivacy settings={settings.data} failed={Boolean(settings.error)} error={privacyError} save={(p) => void saveTelegram(p)} retry={() => void settings.mutate()} />}
+        {step === 3 && (
           !first.ready && (settings.error || plan.error)
             ? <LoadFailed what="your balance and plan" retry={() => { void settings.mutate(); void plan.mutate(); }} />
             : <StepFirstMonth f={first} settings={settings.data} />
         )}
-        {step === 5 && <StepDone rows={summary} />}
+        {step === 4 && <StepDone rows={summary} />}
       </div>
 
-      {step < 5 && (
+      {step < 4 && (
         <div className={s.foot}>
           <Button large disabled={first.busy} onClick={() => void next()}>{nextLabel(step)}</Button>
           <button type="button" className={s.quiet} onClick={() => go(step - 1)}>Back</button>

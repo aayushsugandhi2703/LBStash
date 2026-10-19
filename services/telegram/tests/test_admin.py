@@ -82,6 +82,15 @@ class TestBotToken:
         assert (await w.webhook(u, {'update_id': 5})).status == 401
         assert await w.sql('SELECT 1 FROM telegram_prompts WHERE user_id = $1', u.user_id) == []
 
+    async def test_saving_the_same_token_again_keeps_its_new_webhook(self, w: World) -> None:
+        user_id = str(uuid.uuid4())
+        token = f'700777777:AAH{"d" * 30}'
+        assert (await w.web(user_id, 'POST', '/telegram/bot-token', {'token': token})).status == 200
+        first = w.bot.webhooks[token]['url']
+        assert (await w.web(user_id, 'POST', '/telegram/bot-token', {'token': token})).status == 200
+        assert w.bot.webhooks[token]['url'] != first  # a fresh secret path is registered and still in place
+        assert [c for c in w.bot.calls if c['op'] == 'deleteWebhook' and c['token'] == token] == []
+
 
 class TestDisconnecting:
     async def test_delete_link_deletes_the_link_sessions_pairings_and_prompt_records_removes_bot_messages_where_possible_and_the_id_is_a_stranger_afterwards(

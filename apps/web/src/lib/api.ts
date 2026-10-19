@@ -23,7 +23,7 @@ function refreshSession(): Promise<boolean> {
 }
 
 const AUTH_PAGES = ['/sign-in', '/create-account', '/secure', '/reset'];
-/** Sign-in style calls have no session to refresh (a 401 there is an answer); every other /auth call does (README 7.3). */
+/** Sign-in style calls have no session to refresh (a 401 there is an answer); other /auth calls do (README 7.3). */
 const SESSIONLESS = /^\/auth\/(login|register|refresh|2fa\/verify|reset\/|passkey\/login\/)/;
 
 async function send<T>(method: string, path: string, body: unknown, retry: boolean): Promise<T> {

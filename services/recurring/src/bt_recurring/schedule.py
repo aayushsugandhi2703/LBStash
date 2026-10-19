@@ -1,4 +1,4 @@
-"""Schedule math on calendar days. Pure, no clock. A day the month lacks clamps to its last day and always counts from the wanted day (Jan 31 -> Feb 28 -> Mar 31)."""
+"""Schedule math on calendar days. Pure, no clock. A day the month lacks clamps to its last day but still counts from the wanted day (Jan 31 -> Feb 28 -> Mar 31)."""
 
 import re
 from datetime import date

@@ -506,3 +506,22 @@ class TestTypedTags:
         await tap_on(w, u, tx, '＋ New tag')
         await w.say(u, '<b>bold</b>')
         assert tags_for(w, tx) == []
+
+
+class TestTypedPayments:
+    async def test_a_payment_typed_in_the_chat_is_confirmed_with_its_amount_and_direction_with_or_without_a_tag(self, w: World) -> None:
+        u = await w.signed_in_user()
+
+        await w.say(u, '/350 food')
+        assert w.bot.last_message(u.chat_id).text == 'Money out · ₹350 · Food ✓'
+        await w.say(u, '/1250.50')
+        assert w.bot.last_message(u.chat_id).text == 'Money out · ₹1,250.50 saved. Tag it below.'
+        await w.say(u, '+1500 salary')
+        assert w.bot.last_message(u.chat_id).text == 'Money in · ₹1,500 · Salary ✓'
+        await w.say(u, '+20000')
+        assert w.bot.last_message(u.chat_id).text == 'Money in · ₹20,000 saved. Tag it below.'
+
+    async def test_prompts_for_payments_the_bank_reported_still_carry_no_amount(self, w: World) -> None:
+        u = await w.signed_in_user()
+        tx = await w.incoming(u)
+        assert '450' not in (await w.message_of(tx))[1].text

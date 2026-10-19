@@ -11,6 +11,7 @@ from bt.crypto import TokenError, new_hashed_token, sha256_hex, sign_access_toke
 from bt.db import Tx
 from fastapi import Request
 
+from .allowlist import allowed_ips, allows
 from .client_info import ClientInfo
 from .cookies import Tokens, new_csrf_token, parse_cookies
 from .limits import SESSION_IDLE_HOURS, SESSION_MAX_DAYS
@@ -32,7 +33,10 @@ def _access_for(svc: Svc, sid: str, user_id: str, timezone: str) -> str:
 
 
 async def start_session(svc: Svc, tx: Tx, user_id: str, timezone: str, info: ClientInfo) -> IssuedSession:
-    """New session family with its first refresh token."""
+    """New session family with its first refresh token. Refused from an address that is not on the user's list."""
+    if not allows(await allowed_ips(tx, user_id), info.ip):
+        svc.deps.log.warning('sign-in refused by address list', uid=user_id, ip=info.ip)
+        raise Errors.forbidden('Sign-in is not allowed from this address')
     sid = str(uuid.uuid4())
     await tx.execute(
         'INSERT INTO sessions (id, user_id, family_id, device, ip, expires_at) '
@@ -65,7 +69,7 @@ async def rotate_refresh(svc: Svc, tx: Tx, refresh_token: str, csrf: str | None,
     (the caller commits that and answers 401)."""
     digest = sha256_hex(refresh_token)
     row = await tx.maybe_one(
-        f"""SELECT rt.session_id, rt.user_id, rt.used_at, rt.expires_at, ({ALIVE}) AS ok, u.timezone
+        f"""SELECT rt.session_id, rt.user_id, rt.used_at, rt.expires_at, ({ALIVE}) AS ok, u.timezone, u.allowed_ips
               FROM refresh_tokens rt JOIN sessions s ON s.id = rt.session_id JOIN users u ON u.id = rt.user_id
              WHERE rt.token_hash = $1 FOR UPDATE OF rt""",
         [digest],
@@ -75,7 +79,7 @@ async def rotate_refresh(svc: Svc, tx: Tx, refresh_token: str, csrf: str | None,
     if row['used_at'] is not None:
         await revoke_family(tx, row['session_id'], 'refresh_token_reuse')
         return RotateResult('reuse', user_id=row['user_id'])
-    if not row['ok'] or row['expires_at'] <= datetime.now(UTC):
+    if not row['ok'] or row['expires_at'] <= datetime.now(UTC) or not allows(row['allowed_ips'], info.ip):
         return RotateResult('invalid')
     await tx.execute('UPDATE refresh_tokens SET used_at = now() WHERE token_hash = $1', [digest])
     await tx.execute('UPDATE sessions SET last_used_at = now(), ip = COALESCE($2, ip) WHERE id = $1', [row['session_id'], info.ip])
@@ -114,20 +118,20 @@ async def list_sessions(tx: Tx, user_id: str, current: str | None) -> list[Sessi
     ]  # fmt: skip
 
 
-async def check_session(tx: Tx, sid: str) -> SessionCheckRes:
-    """Gateway check: is the session alive, and is it limited (setup unfinished or no passkey)."""
+async def check_session(tx: Tx, sid: str, ip: str | None = None) -> SessionCheckRes:
+    """Gateway check: is the session alive, is it limited (setup unfinished or no passkey), is the caller's `ip` on the user's list."""
     row = await tx.maybe_one(
         f"""SELECT (u.setup_completed_at IS NULL OR NOT EXISTS (
                       SELECT 1 FROM auth_factors af WHERE af.user_id = u.id AND af.kind = 'passkey'
-                    )) AS limited
+                    )) AS limited, u.allowed_ips
                FROM sessions s JOIN users u ON u.id = s.user_id
               WHERE s.id = $1 AND {ALIVE}
                 AND NOT EXISTS (SELECT 1 FROM sessions f WHERE f.family_id = s.family_id AND f.revoked_at IS NOT NULL)""",
         [sid],
     )
-    if row is None:
+    if row is None or not allows(row['allowed_ips'], ip):
         return SessionCheckRes(valid=False, limited=False)
-    # touch at most once a minute: the idle limit costs one write per minute, not per request
+    # touch at most once a minute: one write per minute for the idle limit, not per request
     await tx.execute("UPDATE sessions SET last_used_at = now() WHERE id = $1 AND last_used_at < now() - interval '1 minute'", [sid])
     return SessionCheckRes(valid=True, limited=row['limited'])
 

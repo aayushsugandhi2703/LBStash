@@ -62,7 +62,7 @@ export default function LimitsPage() {
   );
 
   return (
-    <AppShell home="limits" glyph="limits" title="Limits" description="A spending ceiling for each category. You get a warning before you reach it." aside={aside}>
+    <AppShell home="limits" glyph="limits" title="Limits" description="A spending ceiling per category, with a warning before you hit it." aside={aside}>
       <div className="rise" style={{ flex: 'none' }}>
         <div className="lbl">{today ? daysLeftText(today.day, today.days, mName) : ' '}</div>
         <div className={s.headline}>{rows ? headline(rows, displayTag) : '—'}</div>
@@ -165,10 +165,10 @@ function LimitItem({ row: r, month, mName, onChanged }: { row: LimitRow; month: 
 
       {mode === 'edit' && (
         <div className={s.wellWrap}>
-          <ConfirmWell text={`Change the monthly limit for ${name}. Raising it brings its warnings back for this month.`}>
+          <ConfirmWell text={`Change the limit for ${name}. Raising it re-arms its warnings this month.`}>
             <div className={s.editFields}>
               <div className={s.amt}>
-                <Field label="Monthly limit" inputMode="decimal" value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void save(); }} />
+                <Field label="Monthly limit" inputMode="decimal" placeholder="5000" value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void save(); }} />
               </div>
               <Button disabled={busy} onClick={() => void save()}>Save limit</Button>
               <TextLink mono onClick={() => void run(() => api.patch<BudgetDto>(`/budgets/${r.id}`, { useMonthAllocation: true, month }))}>Use {mName}&rsquo;s plan allocation</TextLink>
@@ -180,7 +180,7 @@ function LimitItem({ row: r, month, mName, onChanged }: { row: LimitRow; month: 
       )}
       {mode === 'remove' && (
         <div className={s.wellWrap}>
-          <ConfirmWell text={`Remove the ${name} limit and stop its warnings? Your payments and plan stay as they are. You can set a new limit any time.`}>
+          <ConfirmWell text={`Remove the ${name} limit and its warnings? Payments and plan are unchanged.`}>
             <GhostButton bad disabled={busy} onClick={() => void run(() => api.del(`/budgets/${r.id}`))}>Remove limit</GhostButton>
             <TextLink mono onClick={() => setMode(null)}>Cancel</TextLink>
             {err && <ErrorLine>{err}</ErrorLine>}
@@ -217,7 +217,7 @@ function AddLimit({ month, mName, known, onAdded }: { month: string | undefined;
       <h2 id="add-h" className={s.h3}>Add a limit</h2>
       <form className={s.form} onSubmit={(e) => { e.preventDefault(); void submit(false); }}>
         <div className={s.formCat}><Field label="Category or tag" placeholder="#tag" list="limit-cats" autoComplete="off" value={cat} onChange={(e) => setCat(e.target.value)} /></div>
-        <div className={s.formAmt}><Field label="Monthly limit" inputMode="decimal" autoComplete="off" value={amt} onChange={(e) => setAmt(e.target.value)} /></div>
+        <div className={s.formAmt}><Field label="Monthly limit" inputMode="decimal" autoComplete="off" placeholder="5000" value={amt} onChange={(e) => setAmt(e.target.value)} /></div>
         <Button type="submit" className={s.formBtn} disabled={busy}>Set limit</Button>
         <datalist id="limit-cats">{known.map((n) => <option key={n} value={n} />)}</datalist>
       </form>

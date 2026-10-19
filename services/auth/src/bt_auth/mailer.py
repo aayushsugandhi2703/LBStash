@@ -15,7 +15,7 @@ class Mailer(Protocol):
 
 
 class LogMailer:
-    """Development transport: logs the body (it holds the link). Silent in production; never logs the recipient."""
+    """Dev transport: logs the body (it holds the link), never the recipient. Silent in production."""
 
     def __init__(self, log: Logger, production: bool) -> None:
         self._log = log

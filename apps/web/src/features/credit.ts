@@ -17,7 +17,7 @@ export function creditTags(recent: readonly (string | null)[]): string[] {
 }
 
 export type DateChoice = 'today' | 'yesterday' | 'pick';
-/** The local day (YYYY-MM-DD) a choice stands for. `pick` is whatever the date box holds, clamped so it is never in the future. */
+/** The local day (YYYY-MM-DD) a choice stands for. `pick` is the date box value, clamped to today at most. */
 export function resolveDate(choice: DateChoice, today: string, picked: string): string {
   if (choice === 'today') return today;
   if (choice === 'yesterday') return addDays(today, -1);

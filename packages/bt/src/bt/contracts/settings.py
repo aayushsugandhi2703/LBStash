@@ -1,4 +1,4 @@
-"""`GET|PATCH /settings` is composed by the gateway. Each field belongs to the service that uses it (ledger, planning, telegram); a PATCH is split by field and sent to each owner."""
+"""`GET|PATCH /settings` is composed by the gateway. Each field belongs to one service (ledger, planning, telegram); a PATCH is split by field to its owner."""
 
 from typing import Literal
 

@@ -1,5 +1,4 @@
-"""Auth test harness: the real routes and workers on a throwaway database, plus a `Browser` that acts like a browser
-behind the gateway (keeps cookies, checks the session with auth, forwards the user)."""
+"""Auth test harness: real routes and workers on a throwaway database, plus a `Browser` that acts like one behind the gateway (keeps cookies, checks the session, forwards the user)."""
 
 import base64
 import os
@@ -121,8 +120,9 @@ class Browser:
     def __init__(self, app: FastAPI, ip: str | None = None, ua: str | None = None) -> None:
         self.jar: dict[str, str] = {}
         self._ua = ua or MAC_UA
+        self.ip = ip or '10.0.0.1'
         self._http = httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=app, client=(ip or '10.0.0.1', 50000)), base_url='http://test'
+            transport=httpx.ASGITransport(app=app, client=(self.ip, 50000)), base_url='http://test'
         )
 
     async def close(self) -> None:
@@ -155,7 +155,7 @@ class Browser:
                 pass
             else:
                 chk = await self._http.post(
-                    '/internal/sessions/check', json={'sid': claims.sid}, headers=headers_for(None, 'gateway')
+                    '/internal/sessions/check', json={'sid': claims.sid, 'ip': self.ip}, headers=headers_for(None, 'gateway')
                 )
                 if not skip_gateway and not chk.json()['valid']:
                     return Res(401, {'error': {'code': 'unauthorized'}}, [], {})

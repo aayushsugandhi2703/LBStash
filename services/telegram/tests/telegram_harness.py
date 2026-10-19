@@ -1,5 +1,4 @@
-"""Test harness: the app and workers over a real (RLS-enforced) database, a fake Bot API and fake ledger and auth clients.
-Named `telegram_harness` (not `harness`) so running several services' tests never imports the wrong one."""
+"""Telegram test harness: app and workers over a real (RLS-enforced) database, a fake Bot API, fake ledger and auth. Named `telegram_harness` so several services' tests never import the wrong one."""
 
 import base64
 import itertools
@@ -250,6 +249,14 @@ class FakeLedger:
             category_created=created,
         )  # fmt: skip
 
+    async def create_manual(self, as_: Any, body: dict[str, Any]) -> TransactionRes:
+        """A payment typed in the chat: filed under `tag` at once, or left pending without one."""
+        t = self.add(as_.user_id, body['occurredAt'], type=body['type'], amount_minor=body['amountMinor'], payee=None)
+        if body.get('tag'):
+            cat = self.category(as_.user_id, normalize_tag(body['tag']))
+            t.category_id, t.category_name, t.status = cat.id, cat.name, 'confirmed'
+        return TransactionRes(transaction=dto(t))
+
     async def pending(self, as_: Any, limit: int = 50) -> PendingRes:
         if self.down:
             raise Errors.upstream('ledger')
@@ -439,8 +446,8 @@ class World:
         """Tap a button on a message the fake bot holds."""
         await self.tap(u, self.bot.id_of(m), m.keyboard, label)
 
-    async def user_with_bot(self) -> TgUser:
-        """A user with a saved bot token, not yet linked."""
+    async def user_with_bot(self, *, pin: bool = True) -> TgUser:
+        """A user with a saved bot token, not yet linked. By default their own Telegram id is the account allowed to link."""
         n = next(_user_seq)
         user_id = str(uuid.uuid4())
         token = f'{700000000 + n}:AAH{os.urandom(18).hex()}'
@@ -448,16 +455,26 @@ class World:
         if res.status != 200:
             raise AssertionError(f'bot-token failed: {res.status} {res.body}')
         hook = self.bot.webhooks[token]
-        return TgUser(
+        u = TgUser(
             user_id, token, 9_000_000 + n, 9_000_000 + n, hook['url'].split('/telegram/webhook/')[1],
             hook['secret_token'], f'user{n}',
         )  # fmt: skip
+        if pin:
+            await self.pin_owner(u)
+        return u
+
+    async def pin_owner(self, u: TgUser, telegram: str | None = None) -> None:
+        """Choose who may link (default: this user's own Telegram id). Pairing codes need it."""
+        res = await self.web(u.user_id, 'PUT', '/telegram/owner', {'telegram': telegram or str(u.tg_id)})
+        if res.status != 200:
+            raise AssertionError(f'owner failed: {res.status} {res.body}')
 
     async def linked_user(self, tg_id: int | None = None) -> TgUser:
         """A user with a bot, linked via pairing but not signed in."""
         u = await self.user_with_bot()
         if tg_id:
             u.tg_id = u.chat_id = tg_id
+        await self.pin_owner(u)
         p = await self.web(u.user_id, 'POST', '/telegram/pairing')
         if p.status != 201:
             raise AssertionError(f'pairing failed {p.status}')

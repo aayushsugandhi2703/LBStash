@@ -203,15 +203,17 @@ async def split(deps: D, ctx: Ctx, id: str, parts: list[SplitPart]) -> SplitRes:
 async def create_manual(deps: D, ctx: Ctx, b: ManualTransactionReq) -> TxRow:
     async with deps.as_user(ctx) as tx:
         await lock_user(tx, ctx.user_id)
-        c = await classify(tx, ctx.user_id, b.payee)
+        tagged = (await resolve_category(tx, ctx.user_id, b.tag))[0] if b.tag else None
+        c = None if tagged else await classify(tx, ctx.user_id, b.payee)
+        category_id = tagged.id if tagged else (c.category_id if c else None)
         row = await insert_tx(
             tx, ctx.user_id, type=b.type, amount_minor=b.amount_minor, occurred_at=b.occurred_at, source='manual',
-            status='confirmed' if c else 'pending', dedupe_key=new_key('manual'), payee=b.payee, description=b.description,
-            category_id=c.category_id if c else None, classified_by=c.by if c else None,
+            status='confirmed' if category_id else 'pending', dedupe_key=new_key('manual'), payee=b.payee, description=b.description,
+            category_id=category_id, classified_by='user' if tagged else (c.by if c else None),
             rule_pattern=c.pattern if c and c.by == 'rule' else None,
         )  # fmt: skip
         assert row is not None
-        await emit_changed(deps, tx, ctx.tz, row, 'created', tagged_via='rule' if c else None)
+        await emit_changed(deps, tx, ctx.tz, row, 'created', tagged_via='telegram' if tagged else ('rule' if c else None))
         return row
 
 

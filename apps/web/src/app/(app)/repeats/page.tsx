@@ -44,7 +44,7 @@ export default function RepeatsPage() {
         ))}
         <div className={s.sumTotal}><span>= committed</span><span>{data && rules.length > 0 ? plain(committedTotal(rules)) : '—'}</span></div>
       </div>
-      <div className={`opt2 cap ${s.note}`}>If your phone already caught one of these within 2 days of its due date, it is linked to the rule, never counted twice.</div>
+      <div className={`opt2 cap ${s.note}`}>A payment logged within 2 days of its due date links to the rule, never counted twice.</div>
     </>
   );
 
@@ -53,7 +53,7 @@ export default function RepeatsPage() {
     : !data || !today ? <Loading>loading…</Loading> : null;
 
   return (
-    <AppShell home="repeats" glyph="repeats" title="Repeats" description="Payments that leave your account on their own. They post on the due date." aside={aside}>
+    <AppShell home="repeats" glyph="repeats" title="Repeats" description="Payments that leave on their own. They post on the due date." aside={aside}>
       <div className={s.head}>
         <h2 className="h2">The next 30 days</h2>
         <div className="lbl" style={{ textTransform: 'none' }}>stem height = amount{today ? ` · ${rangeText(today.today)}` : ''}</div>

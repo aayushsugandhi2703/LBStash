@@ -16,7 +16,7 @@ const viewOf = (p: LedgerPageDto, rows: LedgerRow[] = p.items): LedgerView => ({
   rows, nextCursor: p.nextCursor, matching: p.matching, counts: p.counts, balanceMinor: p.balanceMinor,
 });
 
-/** The Ledger list for one filter: a first page, "load older entries" appended below it, and `refresh` after a write (one request for as many rows as are on screen). */
+/** Ledger list for one filter: first page, older entries appended, `refresh` after a write. */
 export function useLedger(cat: string, src: SrcFilter, month: string | null) {
   const [view, setView] = useState<LedgerView | null>(null);
   const [loading, setLoading] = useState(true);

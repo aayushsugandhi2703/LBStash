@@ -11,7 +11,7 @@ from .settings import balance_at
 
 
 async def add_credit(deps: D, ctx: Ctx, b: CreditReq, now: datetime) -> CreditRes:
-    """Add a credit that counts in the balance at once (README 10.3); the date cannot be in the future. With "add to plan", `credit.added` is emitted in the same transaction and planning is called after commit."""
+    """Add a credit that counts in the balance at once (README 10.3); not dated in the future. With "add to plan", `credit.added` is emitted in the same transaction and planning is called after commit."""
     today = date_key(now, ctx.tz)
     try:
         add_days(b.date, 0)

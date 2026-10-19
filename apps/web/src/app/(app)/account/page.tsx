@@ -122,9 +122,9 @@ export default function ProfilePage() {
   return (
     <AccountShell
       page="profile" glyph="account" title="Account"
-      description="Who you are to the app. Sign-in methods are under Security; phones and the bot are under Devices."
+      description="Your profile and data. Sign-in is under Security."
       label="PROFILE" heading="Your account"
-      lead="One private account. Anything that could lock you out or move your data asks for your authenticator code first."
+      lead="Sensitive changes ask for your authenticator code."
       summary={<LedgerMath rows={[{ k: 'member since', v: audit.data ? sum.memberSince : '—' }, { k: 'entries kept', v: kept }, { k: 'last export', v: audit.data ? sum.lastExport : '—' }]} total={{ k: '= your data', v: 'yours' }} />}
     >
       {isLoading && !me && <Loading />}
@@ -134,7 +134,7 @@ export default function ProfilePage() {
           <Section first>PROFILE</Section>
           <div className={s.labelRow}>
             <label htmlFor="name" className="lbl">NAME</label>
-            <input id="name" className={`${s.input} ${s.grow}`} type="text" autoComplete="name" value={name} maxLength={80} onChange={(e) => { setName(e.target.value); setNameSaved(false); setNameError(''); }} />
+            <input id="name" className={`${s.input} ${s.grow}`} type="text" autoComplete="name" placeholder="Your name" value={name} maxLength={80} onChange={(e) => { setName(e.target.value); setNameSaved(false); setNameError(''); }} />
           </div>
           {dirty && (
             <div className={`rise ${s.actionsRow}`}>
@@ -154,25 +154,25 @@ export default function ProfilePage() {
           {emailEdit && (
             <Well>
               <label htmlFor="newemail" className="lbl">NEW EMAIL</label>
-              <input id="newemail" className={`${s.input} ${emailError ? s.err : ''}`} type="email" autoComplete="off" value={newEmail} onChange={(e) => { setNewEmail(e.target.value); setEmailError(''); }} />
+              <input id="newemail" className={`${s.input} ${emailError ? s.err : ''}`} type="email" autoComplete="off" placeholder="new@example.com" value={newEmail} onChange={(e) => { setNewEmail(e.target.value); setEmailError(''); }} />
               {emailError && <ErrorLine>{emailError}</ErrorLine>}
               <div className={`actions ${s.field}`}>
                 <CodeInput value={emailCode} onChange={(v) => { setEmailCode(v); setEmailCodeError(''); }} />
                 <Button disabled={!(isEmail(newEmail) && isCode(emailCode)) || emailBusy} onClick={() => void sendEmail()}>Send confirmation link</Button>
                 {emailCodeError && <div className={s.full}><ErrorLine>{emailCodeError}</ErrorLine></div>}
               </div>
-              <div className={s.note}>We email a link to the new address. Your sign-in email changes only after you open it.</div>
+              <div className={s.note}>We email a link to the new address. Open it to confirm.</div>
             </Well>
           )}
           {pending && !emailEdit && <LineStatus>Link sent to {pending}. Nothing changes until you open it.</LineStatus>}
 
           <Section>REGION</Section>
-          <SettingsRow title="Rupees, India time" sub="Money is shown in ₹ with Indian digit grouping, and days end at midnight in India. Both are fixed in this version.">
+          <SettingsRow title="Rupees, India time" sub="Money is in ₹ with Indian grouping; days end at midnight India time. Fixed for now.">
             <span className={`mono ${s.mono13}`}>₹ · IST</span>
           </SettingsRow>
 
           <Section>YOUR DATA</Section>
-          <SettingsRow title="Export everything" sub="Every entry, tag, plan, limit and repeat in one file. It is made when you ask and saved straight to your device.">
+          <SettingsRow title="Export everything" sub="Every entry, tag, plan, limit and repeat in one file, saved to your device.">
             <GhostButton onClick={() => toggleAsk('export')} disabled={exp.kind === 'working'}>{ask === 'export' ? 'Cancel' : 'Export'}</GhostButton>
           </SettingsRow>
           {ask === 'export' && (
@@ -192,7 +192,7 @@ export default function ProfilePage() {
             </div>
           )}
 
-          <SettingsRow title="Delete account" sub="Schedules deletion of your ledger, tokens, passkeys and Telegram link. Sign in within 7 days to cancel. After that it cannot be undone, and backups are cleared on their own schedule.">
+          <SettingsRow title="Delete account" sub="Deletes your ledger, tokens, passkeys and Telegram link after 7 days. Sign in before then to cancel. After that it is final.">
             <GhostButton bad onClick={() => toggleAsk('delete')} disabled={Boolean(me.deleteAfter)}>{ask === 'delete' ? 'Cancel' : 'Delete account'}</GhostButton>
           </SettingsRow>
           {ask === 'delete' && !me.deleteAfter && (
@@ -215,7 +215,7 @@ export default function ProfilePage() {
           {askError && ask === '' && <ErrorLine>{askError}</ErrorLine>}
 
           <Section>THIS BROWSER</Section>
-          <SettingsRow title="Sign out" sub="Ends this browser's session. Other browsers and the Telegram bot stay signed in; manage them under Security and Devices.">
+          <SettingsRow title="Sign out" sub="Ends this browser's session. Other browsers and the bot stay signed in.">
             <GhostButton onClick={() => void signOut()} disabled={signingOut}>Sign out</GhostButton>
           </SettingsRow>
         </>

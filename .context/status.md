@@ -8,6 +8,12 @@
 - Fixed a syntax error that stopped the ledger service importing (`transactions.py`).
 - UI: scroller no longer clips panels, min-height floors, Now has no CHECK link, auth header height fixed.
 
+**Done (Telegram logging)**
+- Removed the iPhone Shortcut (`scripts/make-shortcut.py`, the signed file, its header, `/public-url`, `PHONE_URL`). iOS cannot create the Message automation from a file and its Sender rule accepts only contacts.
+- Telegram: `/350 food` (money out, tagged at once), `+1500 salary` (money in), `/350` alone gives the tag buttons. Money out replies with an Open Google Pay button (`/pay` page). Ledger `ManualTransactionReq` has an optional `tag`.
+- Setup guide cut to 3 steps; README, ARCHITECTURE and SYSTEM_DESIGN updated. The optional `/ingest/message` route and Devices token page remain.
+- Not run on a phone or live bot: the `/pay` Google Pay hand-off and the typed-amount commands. Web typecheck and tests were not run (no Node here); `setup.test.ts` was edited to match.
+
 **Known broken (not touched, tests were out of scope)**
 - Backend pytest: `test_db.py` imports removed `camel_all`; `test_kit.py` imports removed `Paging`; nested `conftest.py` files define `pytest_plugins` (pytest 8+ needs it at the rootdir); `bt.common` exports trimmed in this cleanup (`password_score`, `password_label`, `round_to`, `encode_cursor`, ...) may need test imports updated. `test_contracts.py` still describes a Zod corpus.
 - Dockerfiles, compose and the registry-push flow are untested here (no Docker available).

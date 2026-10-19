@@ -64,6 +64,8 @@ class IngestService:
         # 1. authenticate (bad-token guessing is rate limited per address)
         device = await authenticate(deps, bearer)
         if device is None:
+            # last 4 characters of a rejected token only (to tell which old sender is calling), never the token
+            deps.log.info('ingest token rejected', tail=bearer[-4:] if bearer else None, chars=len(bearer or ''), rid=request_id)
             if not self.bad_token.allow(ip):
                 raise Errors.too_many()
             raise Errors.unauthorized('Bad or cancelled ingest token')
@@ -87,6 +89,18 @@ class IngestService:
             used = await tx.maybe_one('SELECT 1 FROM ingest_events WHERE device_id = $1 AND nonce = $2', [device.id, body.nonce])
         if used:
             raise _nonce_used()
+
+        # A sender run by hand has no message: record it as the device test, like the one-rupee test text, and store nothing
+        if not body.text.strip():
+            event_id = await self._claim_nonce(device, body.nonce)
+            async with deps.as_user(device.user_id) as t:
+                await t.execute("UPDATE ingest_events SET outcome = 'test' WHERE id = $1", [event_id])
+                await t.execute(
+                    """UPDATE devices SET last_seen_at = $2, last_test_at = $2, last_test_source = 'device',
+                      last_test_delay_seconds = 0, last_test_amount_minor = 100 WHERE id = $1""",
+                    [device.id, now],
+                )
+            return IngestResult(200, IngestMessageRes(outcome='test', transaction=None))
 
         # 4. OTP / promo guard: before anything is parsed, stored or logged
         if is_otp_or_promo(body.text):

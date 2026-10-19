@@ -242,10 +242,14 @@ def create_app(
         return _json(exc.status, exc.to_json())
 
     @app.exception_handler(RequestValidationError)
-    async def on_validation(_request: Request, exc: RequestValidationError) -> JSONResponse:
+    async def on_validation(request: Request, exc: RequestValidationError) -> JSONResponse:
         if any(e['type'] == 'json_invalid' for e in exc.errors()):
+            deps.log.info('bad request', why='body is not valid JSON', rid=request.state.request_id)
             return _json(400, Errors.bad_request('Body is not valid JSON').to_json())
-        return _json(400, Errors.validation(_details(exc)).to_json())
+        details = _details(exc)
+        # field names and rule messages only, never the values sent
+        deps.log.info('validation failed', fields=details, rid=request.state.request_id)
+        return _json(400, Errors.validation(details).to_json())
 
     @app.exception_handler(StarletteHTTPException)
     async def on_http(_request: Request, exc: StarletteHTTPException) -> JSONResponse:

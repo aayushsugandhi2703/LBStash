@@ -1,9 +1,9 @@
-"""Base model, field types and validation helpers every contract uses.
+"""Base model, field types and validators for every contract.
 
-* JSON keys are camelCase, Python attributes snake_case (both validate); unknown keys are ignored.
-* `Opt[T]`: the key is left out of the JSON when not given. `OptNull[T]`: absent stays absent, an explicit `null` stays `null`.
-* Numbers are strict: `"5"` is not an integer, `5.0` is.
-* `IsoDateTime` is an aware `datetime` in memory and `YYYY-MM-DDTHH:MM:SS.mmmZ` on the wire.
+* JSON keys are camelCase; Python attributes snake_case (both accepted). Unknown keys are ignored.
+* `Opt[T]`: key omitted when unset. `OptNull[T]`: absent stays absent, `null` stays `null`.
+* Numbers are strict: `"5"` is not an integer, `5.0` counts as 5.
+* `IsoDateTime`: aware `datetime` in memory, `YYYY-MM-DDTHH:MM:SS.mmmZ` on the wire.
 """
 
 import math
@@ -37,7 +37,7 @@ T = TypeVar('T')
 JS_MAX_SAFE_INTEGER: Final = 2**53 - 1
 
 
-# ── optional keys ───────────────────────────────────────────────────────────────────────────────
+# optional keys
 class _OptMarker:
     """Annotated metadata: this field is optional (the JSON key may be missing)."""
 
@@ -132,7 +132,7 @@ def partial(model: type[Model], name: str, *, nullable: frozenset[str] = frozens
     )
 
 
-# ── error reporting ─────────────────────────────────────────────────────────────────────────────
+# error reporting
 def error_message(err: Any) -> str:
     """The plain message for a pydantic error line (the wording the web app already shows)."""
     kind, ctx = err['type'], err.get('ctx') or {}
@@ -173,7 +173,7 @@ def validation_details(exc: ValidationError) -> dict[str, str]:
     return {'.'.join(str(p) for p in e['loc']) or '_': error_message(e) for e in exc.errors(include_url=False)}
 
 
-# ── refinements ─────────────────────────────────────────────────────────────────────────────────
+# refinements
 def refine_fail(*issues: tuple[str, tuple[str | int, ...]] | str) -> None:
     """Raise one validation error with one line per issue: `'message'` (root) or `('message', ('path',))`. Keeps the paths a plain `ValueError` would lose."""
     lines: list[InitErrorDetails] = []
@@ -207,7 +207,7 @@ def discriminated(key: str, *models: type[Model]) -> Any:
     return Annotated[Union[models], Field(discriminator=key), WrapValidator(dispatch)]  # noqa: UP007
 
 
-# ── scalar types ────────────────────────────────────────────────────────────────────────────────
+# scalar types
 _UUID_RE = re.compile(
     r'([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}'
     r'|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)'
@@ -360,7 +360,7 @@ def _time_str(v: Any) -> Any:
 TimeStr = Annotated[str, BeforeValidator(_time_str)]
 
 
-# ── enums (same strings as TS; plain Literal so values compare and serialise as str) ─────────────
+# enums (same strings as TS; plain Literal so values compare and serialise as str)
 TxType = Literal['debit', 'credit']
 TxSource = Literal['captured', 'recurring', 'manual', 'unaccounted']
 TxStatus = Literal['pending', 'confirmed', 'reversed']

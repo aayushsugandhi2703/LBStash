@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 112 32" role="img" aria-label="Ledger">
+  <rect width="32" height="32" fill="#00875A"/>
+  <path d="M10 7v18h13" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="square"/>
+  <path d="M15 12h8M15 17h5" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="2" stroke-linecap="square"/>
+  <text x="42" y="23.5" fill="#0E0E10" font-family="Geist, system-ui, sans-serif" font-size="22" font-weight="600" letter-spacing="-0.9">ledger</text>
+</svg>

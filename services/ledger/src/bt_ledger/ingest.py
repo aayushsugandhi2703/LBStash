@@ -112,7 +112,7 @@ async def _place(deps: D, tx: Tx, ctx: Ctx, req: IngestTransactionReq, at: datet
     status = 'confirmed' if c else 'pending'
 
     if not req.reversal:
-        # a late real message replaces the Unaccounted entry booked for it: same row, same amount, balance unchanged
+        # a late real message replaces the Unaccounted entry booked for it: same row and amount, balance unchanged
         unaccounted = await _near(
             tx, ctx, at, 3,
             "t.source = 'unaccounted' AND t.status = 'pending' AND t.category_id IS NULL AND t.type = $6 AND t.amount_minor = $7",
@@ -149,7 +149,7 @@ async def _place(deps: D, tx: Tx, ctx: Ctx, req: IngestTransactionReq, at: datet
 
 
 async def ingest(deps: D, ctx: Ctx, req: IngestTransactionReq, now: datetime) -> IngestTransactionRes:
-    """Dedupe, reversal, link to a hand-added credit or recurring post, replace an Unaccounted entry, else create, all in one transaction with the outbox rows. Then re-check the balance: a balance in the message opens a check, otherwise an open check is re-measured."""
+    """In one transaction with the outbox rows: dedupe, reversal, link to a hand-added credit or recurring post, replace an Unaccounted entry, else create. Then re-check the balance: a balance in the message opens a check, otherwise an open check is re-measured."""
     async with deps.as_user(ctx) as tx:
         await lock_user(tx, ctx.user_id)
         dup = await find_by_key(tx, ctx.user_id, req.dedupe_key)

@@ -190,7 +190,7 @@ describe('action links', () => {
   });
   it('names the parts that could not be read', () => {
     expect(degradedNote([])).toBeNull();
-    expect(degradedNote(['budgets', 'recurring'])).toBe('Could not read limits and the next payment just now. Those figures are missing.');
+    expect(degradedNote(['budgets', 'recurring'])).toBe('Could not read limits and the next payment just now.');
   });
 });
 

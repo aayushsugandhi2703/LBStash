@@ -1,12 +1,11 @@
-"""End-to-end check against the REAL running stack (every service, Postgres, the queue), through the gateway.
+"""End-to-end check against the REAL running stack, through the gateway.
 
     docker compose up -d --build
-    REGISTRATION=open ... (the stack must allow a second sign-up, see .env.example)
+    REGISTRATION=open ... (a second sign-up must be allowed, see .env.example)
     PUBLIC_URL=<the stack's PUBLIC_URL> uv run python scripts/e2e.py   # GATEWAY=http://127.0.0.1:3010 by default
-    PROXY=http://127.0.0.1:8088 uv run python scripts/e2e.py   # also checks the web app through the public proxy
+    PROXY=http://127.0.0.1:8088 uv run python scripts/e2e.py   # also checks the web app via the proxy
 
-It signs up a throwaway user, drives the money flows from README section 10, and checks the numbers.
-It only talks HTTP, so it works against any implementation of the API.
+Signs up a throwaway user, drives the money flows from README section 10 and checks the numbers. HTTP only.
 """
 from __future__ import annotations
 
@@ -90,7 +89,7 @@ def ok(method: str, path: str, body=None, **kw):
     return r.json
 
 
-# ── TOTP (RFC 6238, SHA-1, 6 digits, 30 s), kept here so the script has no dependency on the code under test ─────────
+# TOTP (RFC 6238), kept here so the script depends on none of the code under test
 def totp_code(secret: str, step: int) -> str:
     key = base64.b32decode(secret + "=" * (-len(secret) % 8), casefold=True)
     h = hmac.new(key, struct.pack(">Q", step), hashlib.sha1).digest()
@@ -139,11 +138,11 @@ def ingest(token: str, text: str, n: str | None = None) -> Reply:
 
 print(f"gateway {BASE}, user {email}\n")
 
-# ── health ──────────────────────────────────────────────────────────────────────────────────────
+# health
 eq("gateway /health", call("GET", "/health").status, 200)
 eq("no session -> 401", call("GET", "/me").status, 401)
 
-# ── sign-up and mandatory setup (README 10.7, 15.1) ─────────────────────────────────────────────
+# sign-up and mandatory setup (README 10.7, 15.1)
 reg = ok("POST", "/auth/register", {"email": email, "password": password, "name": "E2E", "timezone": tz})
 eq("register gives a setup-limited session", reg["setup"]["complete"], False)
 eq("limited session cannot reach the ledger", call("GET", "/ledger").status, 403)
@@ -158,14 +157,14 @@ eq("authenticator + passkey + 10 recovery codes: setup complete", [len(rc["codes
 me = ok("GET", "/me")
 eq("/me composed", [me["email"], me["timezone"], me["untaggedCount"]], [email, tz, 0])
 
-# ── settings composed from three services ───────────────────────────────────────────────────────
+# settings composed from three services
 ok("PATCH", "/settings", {"openingBalanceMinor": 10_000_000, "alertLevel": 80, "reconcileGraceHours": 0})
 st = ok("GET", "/settings")
 eq("settings merged (ledger + planning + telegram)",
    [st["openingBalanceMinor"], st["alertLevel"], st["reconcileGraceHours"], st["currency"], isinstance(st["allowReveal"], bool)],
    [10_000_000, 80, 0, "INR", True])
 
-# ── iPhone capture (README 4.6, 15.3) ───────────────────────────────────────────────────────────
+# bank-message capture (optional route; README 4.6, 15.3)
 dev = ok("POST", "/devices", {})
 token = dev["token"]
 log(isinstance(token, str) and len(token) > 30, "ingest token issued once")
@@ -177,9 +176,10 @@ eq("replayed nonce -> 409", ingest(token, debit, n1).status, 409)
 eq("OTP dropped 202", ingest(token, "Your OTP is 482913. Do not share it with anyone. Rs.450.00").status, 202)
 eq("bad token -> 401", ingest("ledg_nope", debit).status, 401)
 eq("unreadable -> 422", ingest(token, "debited something odd without any amount").status, 422)
+eq("empty text (sender run by hand) -> device test 200", ingest(token, "").status, 200)
 eq("/unparsed shows 1 open", ok("GET", "/unparsed")["open"], 1)
 
-# ── ledger, tagging, payee memory (README 10.2) ─────────────────────────────────────────────────
+# ledger, tagging, payee memory (README 10.2)
 led = ok("GET", "/ledger?limit=20")
 eq("one pending payment, counted as Needs a tag", [len(led["items"]), led["counts"]["needsTag"]], [1, 1])
 eq("balance counts the pending debit", led["balanceMinor"], 10_000_000 - 45_000)
@@ -193,7 +193,7 @@ led = ok("GET", "/ledger?limit=20")
 eq("payee memory auto-tags the next payment",
    len([i for i in led["items"] if i["status"] == "confirmed" and i["categoryName"] == "food"]), 2)
 
-# ── credits and plan (README 10.3) ──────────────────────────────────────────────────────────────
+# credits and plan (README 10.3)
 cr = ok("POST", "/credits", {"amountMinor": 5_000_000, "date": today, "tag": "salary", "addToPlan": True})
 eq("credit: new balance returned", cr["balanceMinor"], 10_000_000 - 45_000 - 32_000 + 5_000_000)
 eq("credit raised the plan total", cr["planTotalMinor"], 5_000_000)
@@ -202,7 +202,7 @@ plan = ok("GET", f"/plans/{month}")
 eq("plan: assigned / unassigned", [plan["assignedMinor"], plan["unassignedMinor"]], [2_800_000, 2_200_000])
 eq("plan: food spent comes from the ledger", next((l["spentMinor"] for l in plan["lines"] if l["categoryName"] == "food"), None), 77_000)
 
-# ── budgets and alerts (README 10.5) ────────────────────────────────────────────────────────────
+# budgets and alerts (README 10.5)
 log(bool(ok("POST", "/budgets", {"tag": "food", "limitMinor": 100_000, "period": "monthly"})), "limit created for food (₹1,000)")
 ingest(token, f"Rs.100.00 debited from a/c XX1234 on {msg_date} to VPA ramesh@okaxis (UPI Ref 323456789012)")  # 87%
 alert = until(lambda: next((a for a in ok("GET", "/alerts")["items"] if a["level"] == "alert"), None))
@@ -213,12 +213,12 @@ log(bool(until(lambda: next((a for a in ok("GET", "/alerts")["items"] if a["leve
 time.sleep(2.5)
 eq("exactly two alerts (one per level)", len(ok("GET", "/alerts")["items"]), 2)
 
-# ── recurring ───────────────────────────────────────────────────────────────────────────────────
+# recurring
 rule = ok("POST", "/recurring", {"name": "Rent", "tag": "rent", "amountMinor": 2_000_000, "schedule": {"kind": "monthly", "day": int(dd)}, "startsOn": today})
 log(bool(rule), "repeating payment created", f"next {rule.get('rule', {}).get('nextDue')}")
 eq("committed per month", ok("GET", "/recurring")["committedMinor"], 2_000_000)
 
-# ── dashboard and reports (derived, never stored) ───────────────────────────────────────────────
+# dashboard and reports (derived, never stored)
 dash = ok("GET", f"/dashboard?month={month}")
 spent = 45_000 + 32_000 + 10_000 + 20_000
 eq("dashboard spent / income", [dash["balance"]["spent"], dash["balance"]["income"]], [spent, 5_000_000])
@@ -228,7 +228,7 @@ log(isinstance(months.get("months", months.get("items")), list), "reports/months
 log(call("GET", f"/reports/daily?month={month}").status == 200, "reports/daily answers")
 log(call("GET", "/reports/category-matrix?range=6").status == 200, "reports/category-matrix answers")
 
-# ── balance check → Unaccounted (README 3.6, 10.9) ──────────────────────────────────────────────
+# balance check → Unaccounted (README 3.6, 10.9)
 ledger_now = dash["balance"]["available"]
 bc = ok("POST", "/balance-check", {"bankBalanceMinor": ledger_now - 18_000})
 eq("check finds a ₹180 gap", bc["check"]["gapMinor"], -18_000)
@@ -246,7 +246,7 @@ if un:
     split = ok("POST", f"/transactions/{u0['id']}/split", {"parts": [{"amountMinor": 10_000, "tag": "food"}, {"amountMinor": 8_000}]})
     log(bool(split), "split 100 + 80 (parts add up)")
 
-# ── security: sessions, 2FA-gated actions, audit, export ────────────────────────────────────────
+# security: sessions, 2FA-gated actions, audit, export
 eq("sessions list shows this browser", any(s["current"] for s in ok("GET", "/sessions")["sessions"]), True)
 au = ok("GET", "/audit?limit=20")
 log(len(au["entries"]) > 0 and all("Rs." not in json.dumps(e) for e in au["entries"]), "audit log has entries, no amounts")
@@ -255,32 +255,32 @@ exp = ok("POST", "/account/export", {"code": code()})
 log(len(exp.get("parts", [])) >= 5, "export composes every service", f"{len(exp.get('parts', []))} parts")
 eq("wrong code on a sensitive action", call("DELETE", f"/devices/{dev['device']['id']}", {"code": "000000"}).status, 401)
 
-# ── csrf, sign-out ──────────────────────────────────────────────────────────────────────────────
+# csrf, sign-out
 eq("bad CSRF token -> 403", call("POST", "/credits", {"amountMinor": 100, "date": today, "tag": "x"}, headers={"x-csrf-token": "wrong"}).status, 403)
 ok("POST", "/auth/logout", {})
 eq("after sign-out the session is dead", call("GET", "/me").status, 401)
 
-# ── sign back in the real way (password → authenticator) ────────────────────────────────────────
+# sign back in the real way (password → authenticator)
 l1 = ok("POST", "/auth/login", {"email": email, "password": password})
 wait_step()
 l2 = ok("POST", "/auth/2fa/verify", {"twoFactorToken": l1["twoFactorToken"], "code": code()})
 eq("login: password then authenticator", l2["user"]["email"], email)
 eq("and the data is all still there", ok("GET", "/ledger")["matching"] > 0, True)
 
-# ── passkey sign-in (the software authenticator enrolled above) ─────────────────────────────────
+# passkey sign-in (the software authenticator enrolled above)
 ok("POST", "/auth/logout", {})
 l3 = ok("POST", "/auth/login", {"email": email, "password": password})
 po = ok("POST", "/auth/passkey/login/options", {"twoFactorToken": l3["twoFactorToken"]})
 pv = call("POST", "/auth/passkey/login/verify", {"twoFactorToken": l3["twoFactorToken"], "response": authenticator.assert_(po["options"])})
 log(pv.status < 300 and pv.json["user"]["email"] == email, "passkey sign-in (software authenticator)", f"status {pv.status}")
 
-# ── the public edge: web app and API through the reverse proxy (only when PROXY is given) ───────
+# the public edge: web app and API via the reverse proxy (only with PROXY)
 if PROXY:
     page = http.get(PROXY + "/sign-in")
     log(page.status_code == 200 and "<html" in page.text.lower(), "proxy serves the web app (/sign-in)", f"status {page.status_code}")
     # a bare request: `http` still carries the signed-in cookie (cookies ignore the port, so the proxy would see it too)
     eq("proxy routes /api/* to the gateway (401 without a session)", httpx.get(PROXY + "/api/me").status_code, 401)
-    eq("proxy exposes the Shortcut endpoint without /api", httpx.post(PROXY + "/ingest/message", json={}).status_code, 401)
+    eq("proxy exposes the ingest endpoint without /api", httpx.post(PROXY + "/ingest/message", json={}).status_code, 401)
 
 print(f"\n{failures} check(s) FAILED" if failures else "\nall checks passed")
 sys.exit(1 if failures else 0)

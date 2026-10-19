@@ -1,4 +1,4 @@
-"""The public API (README 9) and which service answers each prefix. The gateway builds its proxy table from this. Browser paths sit under `/api`; `/ingest/*` and `/telegram/webhook/*` are also reachable without it."""
+"""Public API (README 9) and the service behind each prefix; the gateway builds its proxy table from this. Browser paths sit under `/api`; `/ingest/*` and `/telegram/webhook/*` also work without it."""
 
 from typing import Final
 

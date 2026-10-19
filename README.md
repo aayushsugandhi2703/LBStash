@@ -1,25 +1,25 @@
 # Budget Tracker
 
-A private budget tracker for iPhone and Indian bank SMS. Every bank debit or credit message is captured automatically, shows up in a Telegram chat and the web app, and you tag it with one tap. Amounts are in INR (₹).
+A private budget tracker run from a Telegram chat. Send `/350 food` when you spend, `+1500 salary` when money comes in, and it is saved, tagged and shown in the web app. Amounts are in INR (₹).
 
 ## About and how it works
 
 You decide how much to plan each month and split it across categories. The app does the rest:
 
-1. **Capture.** An iPhone Shortcut forwards bank debit and credit messages to your server. (iPhone apps cannot read SMS, so the Shortcut does it.)
-2. **Read.** The server pulls out the amount, direction, time and payee, then throws the message away.
-3. **Tag.** Known payees are tagged automatically. New ones arrive in Telegram with category buttons. Tag once and the payee is remembered.
+1. **Log.** Send the bot `/350` for money out or `+1500` for money in. Add a tag to file it at once (`/350 food`); without one the bot replies with category buttons. Money out also gets an **Open Google Pay** button, so you can pay whoever you need there. (iPhone apps cannot read SMS, so you log each payment yourself.)
+2. **Save.** The server records the amount, direction and time. Your typed message is deleted from the chat.
+3. **Tag.** Untagged payments arrive in Telegram with category buttons. Known payees are tagged automatically; tag once and the payee is remembered.
 4. **Track.** Balance, limits, alerts, trends and recurring payments are worked out from your tagged payments.
 
 Where a payment can come from:
 
 | Source | Used for |
 |---|---|
-| iPhone Shortcut | Bank SMS (main route) |
-| Telegram bot | Tagging payments on the go |
+| Telegram bot | Logging payments (`/350 food`, `+1500 salary`) and tagging them (main route) |
 | Web app | Everything, plus hand-added credits |
+| Bank-message token (optional) | Another tool that posts bank SMS text to `/ingest/message` |
 
-If a message arrives late or never, the payment is booked at the time written in the message, and a balance check books any gap as "Unaccounted" for you to tag.
+A payment you forget to log is caught by the balance check, which books the gap as "Unaccounted" for you to tag.
 
 ### Web app pages
 
@@ -32,7 +32,7 @@ Now · Ledger · Plan · Limits · Repeats · Trends · Add credit · Needs a lo
 ```mermaid
 flowchart LR
   Browser --> Proxy
-  Phone["iPhone Shortcut"] --> Proxy
+  Sender["Optional bank-message sender"] -.-> Proxy
   Telegram --> Proxy
   Proxy -->|"/"| Web["web (Next.js)"]
   Proxy -->|"/api, /ingest, /telegram/webhook"| Gateway
@@ -56,12 +56,12 @@ flowchart LR
 | proxy (Caddy) | The only public entry. Routes `/` to the web app and `/api`, `/ingest`, `/telegram/webhook` to the gateway |
 | gateway | The only door to the backend: checks login, CSRF and rate limits, adds security headers, forwards by path |
 | auth | Users, sessions, 2FA, passkeys, recovery codes, audit log, data export, account deletion |
-| ingest | Device tokens, the OTP guard and the bank-message reader |
+| ingest | Optional bank-message route: device tokens, the OTP guard and the message reader |
 | ledger | Transactions, categories, tag rules, credits, balance checks |
 | planning | Monthly plans, limits, alerts |
 | recurring | Repeating payments and the cron that posts them |
 | reports | Dashboard and trend views, built on read from other services (stores nothing) |
-| telegram | The bot, tagging prompts, daily digest, the encrypted bot token |
+| telegram | The bot, `/350` and `+1500` logging, tagging prompts, the Google Pay button, daily digest, the encrypted bot token |
 
 ### How services work together
 
@@ -71,30 +71,28 @@ flowchart LR
 - **Events used:** `transaction.changed` (planning re-checks limits, Telegram updates prompts), `credit.added`, `alert.created`, `unparsed.created`, `account.deleted` (every service purges that user), `audit.record`.
 - **Derived, not stored:** balance, spend per category, pace and trends are calculated when read, so there are no cached totals to drift out of date.
 - **Money:** whole paise as integers, never floats. Months and "today" use your time zone.
-- **Shared code:** `packages/bt` holds what every service needs (money, crypto, contracts, DB access, queue, HTTP clients). Details: [ARCHITECTURE](docs/ARCHITECTURE.md).
+- **Shared code:** `packages/bt` holds what every service needs (money, crypto, contracts, DB access, queue, HTTP clients). Details: [ARCHITECTURE](docs/ARCHITECTURE.md). Colours: [COLOURS](docs/COLOURS.md).
 - **Deploy:** one Docker image per service on a shared base image. A one-shot `db-init` job creates roles and schemas, then services start, then the gateway, then the proxy.
 
-### What happens to one bank message
+### What happens to one logged payment
 
 ```mermaid
 sequenceDiagram
-  participant Bank
-  participant Phone as iPhone Shortcut
-  participant Ingest
+  participant You
+  participant Telegram
+  participant Bot as telegram service
   participant Ledger
   participant Q as Queue
-  participant Telegram
-  participant You
-  Bank->>Phone: SMS "Rs 450 debited..."
-  Phone->>Ingest: POST /ingest/message (token + nonce + time)
-  Ingest->>Ingest: check token, nonce, time, drop OTPs, read amount and payee, discard text
-  Ingest->>Ledger: save transaction (duplicates ignored)
+  participant Planning
+  You->>Telegram: "/350 food"
+  Telegram->>Bot: webhook (secret header, your id, signed-in session)
+  Bot->>Ledger: save manual transaction with tag "food"
   Ledger->>Q: transaction.changed (same DB transaction)
-  Q->>Telegram: send prompt
-  Telegram->>You: "Money out" + category buttons
-  You->>Telegram: tap a category
-  Telegram->>Ledger: tag it (payee remembered)
+  Bot->>Telegram: delete your message, reply "Tagged Food" + Open Google Pay
   Q->>Planning: re-check limits, raise alert once if crossed
+  Note over You,Telegram: With no tag ("/350") the bot sends category buttons and tagging is one tap
+  You->>Telegram: tap Open Google Pay
+  Telegram->>You: opens the /pay page, which opens Google Pay
 ```
 
 ## System design
@@ -109,13 +107,13 @@ Built for one person's money data, so correctness and privacy come before scale:
 | **Sessions** | • Access token lasts 15 min, refresh token rotates<br>• A reused refresh token means it was copied, so the session is revoked<br>• Ends after 12 h idle or 30 days |
 | **Cookies and CSRF** | • `HttpOnly`, `Secure`, `SameSite=Strict`<br>• CSRF token on every change |
 | **Brute force** | • 5 wrong passwords lock 30 s, doubling to 15 min<br>• Per-IP rate limits on login, reset, phone and webhook<br>• Generic errors, so emails cannot be guessed |
-| **Idempotency (safe to repeat)** | • Phone request has a one-time `nonce` and a 5-min time window<br>• Unique dedupe key, so one SMS saves once<br>• Queue jobs can run twice with the same result: alerts fire once, credits count once<br>• Telegram taps and sign-in codes work once |
+| **Idempotency (safe to repeat)** | • Each Telegram update is processed once, even if Telegram retries<br>• Optional bank-message route: one-time `nonce`, 5-min window, unique dedupe key<br>• Queue jobs can run twice with the same result: alerts fire once, credits count once<br>• Telegram taps and sign-in codes work once |
 | **Encryption** | • AES-256-GCM for 2FA secrets, bot token, unreadable messages<br>• Tokens stored only as hashes<br>• Key comes from the environment |
 | **Data isolation** | • One Postgres login and schema per service<br>• Row-level security on every user table |
 | **Between services** | • Not exposed to the internet<br>• Signed 60-second token on every call<br>• Internal routes refuse outside requests |
 | **Edge** | • HSTS, `nosniff`, `no-referrer`, strict CSP, Permissions-Policy<br>• Strict input validation, parameterised queries<br>• Constant-time secret checks |
-| **Phone capture** | • Per-device token: ingest-only, shown once, revocable<br>• OTP-like text dropped unread (`202`), nothing stored<br>• Parsed messages are not kept |
-| **Telegram** | • Only your Telegram id, private chat<br>• `/signin` with an authenticator code<br>• No amount, payee or balance in messages<br>• Webhook secret header, stored hashed |
+| **Bank-message token (optional)** | • Per-device token: ingest-only, shown once, revocable<br>• OTP-like text dropped unread (`202`), nothing stored<br>• Parsed messages are not kept |
+| **Telegram** | • Only your Telegram id, private chat<br>• `/signin` with an authenticator code before any `/350` is accepted<br>• Your typed amount is deleted from the chat; replies carry no amount, payee or balance<br>• Webhook secret header, stored hashed |
 | **Never collected** | • Bank logins, UPI PINs, card numbers, OTPs<br>• The app never moves money |
 | **Logs and audit** | • Logs hold ids and outcome codes only<br>• Append-only audit log |
 | **Your data** | • Export any time<br>• Delete account (7-day grace)<br>• Old rows cleaned nightly |
@@ -131,7 +129,16 @@ docker compose up --build        # db, services, gateway, web and proxy
 
 Open http://localhost:8088 and create your account. Back up `FIELD_KEY` from `.env`; encrypted data cannot be read without it. Registration allows one account unless you set `REGISTRATION=open`.
 
-Then follow the in-app **Setup guide** (Account menu) to connect your iPhone Shortcut and Telegram bot.
+Then follow the in-app **Setup guide** (Account menu) to connect your Telegram bot. For the Open Google Pay button, set `PUBLIC_URL` to an address your phone can reach.
+
+### Put it on a domain (https)
+
+`docker compose up -d` also starts **nginx** (config in `nginx/`), which forwards to the app and serves it at `http://localhost`. Two ways to get `https://aegios.co.in`:
+
+- **Cloudflare Tunnel (home machine, no public IP, no open ports).** Cloudflare Zero Trust > Networks > Tunnels: create a tunnel, add the public hostname `aegios.co.in` -> `http://nginx:80`, delete any A record for the name. Put the tunnel token in `.env` as `TUNNEL_TOKEN` and set `COMPOSE_PROFILES=tunnel`, then `docker compose up -d`. Cloudflare provides the certificate; turn on "Always Use HTTPS" there to redirect http to https. nginx reads the visitor address from Cloudflare's header.
+- **Let's Encrypt on a machine with a public IP.** Point the DNS A record at it, open ports 80 and 443, set `LETSENCRYPT_EMAIL` in `.env`, and `docker compose up -d`. **certbot** requests the certificate into `nginx/certs` (never committed) and nginx switches to https and redirects http to `https://aegios.co.in` by itself. Use `LETSENCRYPT_STAGING=1` first for a dry run.
+
+Either way `PUBLIC_URL` must be `https://aegios.co.in` (set in `.env`). To use another domain, set `DOMAIN`. Telegram needs the https address for its webhook, so save your bot token in the Setup guide once it is live.
 
 Stop with `docker compose down` (add `-v` to wipe the database).
 

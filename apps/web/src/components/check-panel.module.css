@@ -7,3 +7,5 @@
 .gap { display: flex; gap: 10px; align-items: flex-start; font-size: var(--fs-s); line-height: 1.5; }
 .sq { width: 9px; height: 9px; flex: none; margin-top: 5px; background: var(--warn); }
 .choices { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; margin-top: 10px; }
+
+@media (max-width: 640px) { .input { width: 100%; } }

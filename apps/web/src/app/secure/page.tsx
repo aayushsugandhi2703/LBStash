@@ -196,7 +196,7 @@ export default function SecurePage() {
       title={title}
       description={passkeyRequiredOnly
         ? 'Create a passkey before you can open your ledger.'
-        : 'A password alone is not enough for financial data. Three short parts, about two minutes.'}
+        : 'A password alone is not enough. Three quick parts, about 2 minutes.'}
       aside={
         <div className="signin-steps">
           <div className="lbl signin-steps-title">THREE PARTS</div>
@@ -219,7 +219,7 @@ export default function SecurePage() {
                 </div>
                 <div className="signin-qr-help">
                   <h2 className="h2">Scan it with an authenticator app</h2>
-                  <p className="cap">Use Apple Passwords, 1Password, Google Authenticator or another TOTP app. Cannot scan? Type this key instead.</p>
+                  <p className="cap">Use any authenticator app (Apple Passwords, 1Password, Google). Cannot scan? Type the key.</p>
                   {secret && <div className="signin-secret">
                     <code className="mono">{secret.match(/.{1,4}/g)?.join(' ') ?? secret}</code>
                     <button className="signin-toggle" type="button" onClick={() => void copyText(secret, 'secret')}>{copiedSecret ? 'copied' : 'copy'}</button>
@@ -248,7 +248,7 @@ export default function SecurePage() {
             <div className="signin-form signin-part-form">
               <div className="lbl">{passkeyRequiredOnly ? 'REQUIRED · PASSKEY' : 'PART 2 OF 3 · REQUIRED PASSKEY'}</div>
               <h2 className="fig-lg">{passkeyRequiredOnly ? 'Create a passkey to finish signing in.' : 'Create a passkey to secure your account.'}</h2>
-              <p className="cap">A passkey protects your account and is required before opening your ledger. You can still use your authenticator app or a recovery code if the device is lost.</p>
+              <p className="cap">A passkey is required to open your ledger. Lost the device? Use your authenticator or a recovery code.</p>
               {passkeyAdded && <div className="signin-passkey-added"><span aria-hidden="true">✓</span><strong>Passkey added</strong></div>}
               {error && <ErrorLine>{error}</ErrorLine>}
               <div className="signin-actions">
@@ -296,7 +296,7 @@ export default function SecurePage() {
                       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
                     }}>download .txt</button>
                   </div>
-                  <p className="mono lbl signin-code-note">Each code works once. They are the only way back in if you lose your phone and authenticator.</p>
+                  <p className="mono lbl signin-code-note">Each works once. Your only way back in if you lose your phone and authenticator.</p>
                   <label className="signin-saved-label">
                     <input type="checkbox" checked={saved} onChange={(event) => setSaved(event.target.checked)} />
                     I have saved these somewhere safe

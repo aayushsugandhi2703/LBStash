@@ -106,6 +106,7 @@ const LABELS: Record<string, string | ((m: Record<string, unknown>) => string)> 
   'recovery_code.used': 'A recovery code was used up',
   'session.revoked': 'A browser was signed out',
   'sessions.revoked_others': 'Other browsers were signed out',
+  'allowlist.changed': (m) => (m.count === 0 ? 'Address limit turned off' : `Allowed addresses changed (${String(m.count)})`),
   logout: 'Signed out',
   'email.change_requested': 'Email change asked for',
   'email.changed': 'Sign-in email changed',
@@ -113,7 +114,7 @@ const LABELS: Record<string, string | ((m: Record<string, unknown>) => string)> 
   export: 'Data export made',
   'delete.scheduled': 'Account deletion scheduled',
   'delete.restored': 'Account deletion cancelled',
-  'device.token_created': 'Ingest token created for the phone',
+  'device.token_created': 'Bank-message token created',
   'device.token_rotated': 'Ingest token replaced',
   'device.revoked': 'Ingest token cancelled',
   'telegram.link': 'Telegram linked',
@@ -132,11 +133,11 @@ export function auditLabel(e: Pick<AuditEntry, 'action' | 'meta'>): string {
 }
 /** The wrong-code and paused entries are drawn in the dark yellow of the design. */
 export const auditWarn = (action: string): boolean => ['login.failed', 'login.locked', '2fa.failed', 'telegram.signin_paused'].includes(action);
-export const auditPlace = (e: Pick<AuditEntry, 'action' | 'ip'>): string => (e.action.startsWith('telegram.') ? 'bot' : e.action.startsWith('device.') ? 'phone' : e.ip ?? '');
+export const auditPlace = (e: Pick<AuditEntry, 'action' | 'ip'>): string => (e.action.startsWith('telegram.') ? 'bot' : e.action.startsWith('device.') ? 'token' : e.ip ?? '');
 /** OCT 18 · 6:42 PM */
 export const auditWhen = (iso: string, tz = TZ): string => `${monthDay(iso, tz)} · ${timeOfDay(iso, tz).toUpperCase()}`;
 
-/** Aside summary of Profile: member since / last export, read from the activity log (newest first, `limit` entries). */
+/** Profile aside: member since / last export, read from the activity log (newest first, `limit` entries). */
 export function profileSummary(entries: Pick<AuditEntry, 'action' | 'at'>[], limit: number, tz = TZ): { memberSince: string; lastExport: string } {
   const reg = [...entries].reverse().find((e) => e.action === 'register');
   const exp = entries.find((e) => e.action === 'export');
@@ -150,9 +151,12 @@ export function profileSummary(entries: Pick<AuditEntry, 'action' | 'at'>[], lim
 
 export const formatBytes = (n: number): string => (n < 1024 ? `${n} B` : n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`);
 
-/** The download: one JSON document, built in the browser from what `POST /account/export` returned. */
+/** The download: one JSON document built in the browser from the `POST /account/export` answer. */
 export function buildExportFile(res: ExportResult): { filename: string; text: string; bytes: number; entries: number } {
   const text = `${JSON.stringify({ exportedAt: res.exportedAt, entries: res.entries, parts: res.parts }, null, 2)}\n`;
   return { filename: res.filename, text, bytes: new TextEncoder().encode(text).length, entries: res.entries };
 }
 export const exportLine = (f: { filename: string; entries: number; bytes: number }): string => `${f.filename} · ${f.entries} ${f.entries === 1 ? 'entry' : 'entries'} · ${formatBytes(f.bytes)}`;
+
+/** The address box: one per line, commas and spaces also split, blanks and repeats dropped. */
+export const parseIps = (text: string): string[] => [...new Set(text.split(/[\s,;]+/).map((x) => x.trim()).filter(Boolean))];

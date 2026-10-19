@@ -20,7 +20,7 @@ from .base import (
 )
 
 
-# ── GET /dashboard?month= (the Now page) ────────────────────────────────────────────────────────
+# GET /dashboard?month= (the Now page)
 class DashboardQuery(Model):
     month: Opt[MonthKey] = None
 
@@ -112,7 +112,7 @@ class DashboardRes(Model):
     degraded: list[str]
 
 
-# ── GET /reports/daily?month= ───────────────────────────────────────────────────────────────────
+# GET /reports/daily?month=
 class ReportDailyQuery(Model):
     month: Opt[MonthKey] = None
 
@@ -135,7 +135,7 @@ class ReportDailyRes(Model):
     fixed_categories: list[str]
 
 
-# ── GET /reports/months?range=6 and /reports/category-matrix?range=6 (Trends) ───────────────────
+# GET /reports/months?range=6 and /reports/category-matrix?range=6 (Trends)
 class ReportRangeQuery(Model):
     range: CoerceInt = Field(default=6, ge=1, le=24)
 

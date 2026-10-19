@@ -6,7 +6,7 @@
 .legend > span { display: flex; align-items: center; gap: 8px; }
 .sw { display: inline-block; }
 .rows { flex: none; margin-top: 4px; display: flex; flex-direction: column; }
-@media (min-width: 1024px) and (min-height: 640px) { .rows { flex: 1 1 0; min-height: 200px; overflow-y: auto; } }
+@media (min-width: 1024px) and (min-height: 720px) { .rows { flex: 1 1 0; min-height: 200px; overflow-y: auto; } }
 .limit { flex: 1 1 auto; max-height: 190px; padding: var(--row-pad) 0; border-bottom: 1px solid var(--rule); display: flex; flex-direction: column; justify-content: center; transition: background .12s ease; }
 .limit:hover { background: var(--hover-row); }
 .limit[data-open="true"] { max-height: none; justify-content: flex-start; }
@@ -41,3 +41,10 @@
 .warn .t { flex: 1; font-weight: 500; font-size: var(--fs-body); }
 .editFields { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: flex-end; }
 .editFields .amt { width: 180px; }
+
+@media (max-width: 1023px), (max-height: 719px) { .limit { max-height: none; } }
+@media (max-width: 640px) {
+  .bottom > section { flex-basis: 100%; }
+  .editFields .amt { width: 100%; }
+  .acts button { min-height: 40px; }
+}

@@ -8,7 +8,7 @@ const dev = (over: Partial<Device> = {}): Device => ({
   rotatedAt: null, lastDelaySeconds: 14, allowedSenders: [], lastTest: null, ...over,
 });
 const link = (over: Partial<LinkStatus> = {}): LinkStatus => ({
-  botSaved: true, botUsername: 'my_bot', linked: true, telegramIdHint: '••4821', telegramUsername: null, linkedAt: '2026-10-04T10:00:00Z',
+  botSaved: true, botUsername: 'my_bot', ownerTelegram: null, linked: true, telegramIdHint: '••4821', telegramUsername: null, linkedAt: '2026-10-04T10:00:00Z',
   sessionActive: true, sessionSince: '2026-10-18T13:01:00Z', lastSeenAt: null, signInPausedUntil: null, pairingPending: false, heldCount: 0, ...over,
 });
 const check = (over: Partial<BalanceCheck> = {}): BalanceCheck => ({
@@ -40,8 +40,8 @@ describe('iPhone capture', () => {
   it('says when the last message came, or why nothing can', () => {
     expect(receiveLead(ingestState([dev()]), now)).toBe('last message today 6:42 pm · arrived 14 s after it was sent');
     expect(receiveLead(ingestState([dev({ lastSeenAt: null })]), now)).toBe('no message yet · send a test message to check the line');
-    expect(receiveLead(ingestState([dev({ revokedAt: '2026-10-10T10:00:00Z' })]), now)).toBe('the token was cancelled, so the phone cannot send');
-    expect(receiveLead(ingestState([]), now)).toBe('no token yet, make one in the Setup guide');
+    expect(receiveLead(ingestState([dev({ revokedAt: '2026-10-10T10:00:00Z' })]), now)).toBe('the token was cancelled, so nothing can send');
+    expect(receiveLead(ingestState([]), now)).toBe('no token yet, make one below');
     expect(receiveTitle(ingestState([dev()]))).toBe('Receiving');
     expect(receiveTitle(ingestState([]))).toBe('Not receiving');
   });
@@ -62,11 +62,11 @@ describe('Telegram', () => {
     expect(tgShort(tgState(link({ sessionActive: false })))).toBe('signed out');
   });
   it('shows only the hint of the id', () => {
-    expect(tgMeta(link())).toBe('id ••4821 · linked Oct 04 · only this id can use the bot');
+    expect(tgMeta(link())).toBe('id ••4821 · linked Oct 04');
     expect(tgMeta(link({ linked: false }))).toBe('the bot will not send or accept anything');
   });
   it('explains the bot session, including a paused sign-in and held prompts', () => {
-    expect(sessionLead(link(), now)).toBe('Since today 6:31 pm. Prompts arrive as they happen.');
+    expect(sessionLead(link(), now)).toBe('Since today 6:31 pm.');
     expect(sessionLead(link({ sessionActive: false, heldCount: 2 }), now)).toBe('Prompts wait here and are released when you send /signin. 2 waiting.');
     expect(sessionLead(link({ sessionActive: false, signInPausedUntil: '2026-10-18T13:30:00Z' }), now)).toContain('paused after three wrong codes');
     expect(sessionLead(link({ sessionActive: false, signInPausedUntil: '2026-10-18T13:10:00Z' }), now)).toContain('released when you send /signin');

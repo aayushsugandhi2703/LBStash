@@ -13,7 +13,7 @@ def call_as(c: Ctx) -> CallAs:
 
 
 async def month_spend(deps: Deps, ctx: Ctx, month: MonthKey) -> dict[str, int]:
-    """Spend per category id for a month in the user's zone. Uncategorised is dropped: it has no plan line or budget."""
+    """Spend per category id for a month in the user's zone. Uncategorised is dropped (no plan line or budget)."""
     start, end = month_range(month, ctx.tz)
     res = await deps.clients.ledger.spend_by_category(call_as(ctx), to_iso(start), to_iso(end))
     out: dict[str, int] = {}

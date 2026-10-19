@@ -1,6 +1,7 @@
 """Bot token, pairing, link status, unlink, sign-out from the web, settings, export, account purge."""
 
 import asyncio
+import re
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -21,6 +22,33 @@ from .runtime import Runtime, quietly
 from .store import SETTINGS_COLUMNS, active_session, end_sessions, get_bot, get_link, get_settings
 
 PAIRING_MINUTES = 5
+
+_USERNAME = re.compile(r'[A-Za-z][A-Za-z0-9_]{4,31}')
+_NUMERIC_ID = re.compile(r'\d{5,15}')
+
+
+def normalize_owner(raw: str) -> str:
+    """Stored form of "who may link": lower-case username without `@`, or a numeric id. Validation error otherwise."""
+    text = raw.strip().removeprefix('@')
+    if _NUMERIC_ID.fullmatch(text):
+        return text
+    if _USERNAME.fullmatch(text):
+        return text.lower()
+    raise Errors.validation({'telegram': 'Enter your Telegram username (like @yourname) or your numeric id'})
+
+
+def owner_label(owner: str | None) -> str | None:
+    """How the Setup page shows the stored owner: "@name", or "••4821" for a numeric id (the whole id is never sent back)."""
+    if not owner:
+        return None
+    return f'••{owner[-4:]}' if owner.isdigit() else f'@{owner}'
+
+
+def is_owner(owner: str | None, user_id: int, username: str | None) -> bool:
+    """Whether this Telegram account is the one allowed to link. No owner set = nobody."""
+    if not owner:
+        return False
+    return owner == str(user_id) or (username is not None and owner == username.lower())
 
 
 def pairing_hash(user_id: str, code: str) -> str:
@@ -54,6 +82,7 @@ async def link_status(rt: Runtime, ctx: Ctx) -> TelegramLinkStatus:
     return TelegramLinkStatus(
         bot_saved=bot is not None,
         bot_username=bot.bot_username if bot else None,
+        owner_telegram=owner_label(bot.owner_tg) if bot else None,
         linked=link is not None,
         telegram_id_hint=f'••{str(link.telegram_user_id)[-4:]}' if link else None,
         telegram_username=link.tg_username if link else None,
@@ -74,8 +103,11 @@ async def create_pairing(rt: Runtime, ctx: Ctx) -> PairingRes:
     expires_at = now + timedelta(minutes=PAIRING_MINUTES)
     async with rt.deps.as_user(ctx) as tx:
         await _remember_tz(tx, ctx.user_id, ctx.tz)
-        if not await get_bot(tx, ctx.user_id):
+        bot = await get_bot(tx, ctx.user_id)
+        if not bot:
             raise Errors.conflict('Save your bot token first')
+        if not bot.owner_tg:
+            raise Errors.conflict('Enter your Telegram username first: only that account can link this bot')
         if await get_link(tx, ctx.user_id):
             raise Errors.conflict('Telegram is already linked. Disconnect it first to link another account')
         await tx.execute('DELETE FROM telegram_pairings WHERE user_id = $1', [ctx.user_id])
@@ -85,6 +117,17 @@ async def create_pairing(rt: Runtime, ctx: Ctx) -> PairingRes:
             [ctx.user_id, pairing_hash(ctx.user_id, code), expires_at, now],
         )
     return PairingRes(code=code, command=f'/start {code}', expires_at=expires_at)
+
+
+async def set_owner(rt: Runtime, ctx: Ctx, telegram: str) -> None:
+    """Choose the one Telegram account that may link. A code made earlier stays valid only for that account."""
+    owner = normalize_owner(telegram)
+    async with rt.deps.as_user(ctx) as tx:
+        if not await get_bot(tx, ctx.user_id):
+            raise Errors.conflict('Save your bot token first')
+        if await get_link(tx, ctx.user_id):
+            raise Errors.conflict('Telegram is already linked. Disconnect it first to change the account')
+        await tx.execute('UPDATE telegram_bots SET owner_tg = $2, updated_at = $3 WHERE user_id = $1', [ctx.user_id, owner, rt.clock()])
 
 
 async def save_bot_token(rt: Runtime, ctx: Ctx, token: str) -> BotTokenRes:
@@ -116,7 +159,8 @@ async def save_bot_token(rt: Runtime, ctx: Ctx, token: str) -> BotTokenRes:
                  header_hash = EXCLUDED.header_hash, tz = EXCLUDED.tz, last_update_id = NULL, updated_at = EXCLUDED.updated_at""",
             [ctx.user_id, rt.cipher.encrypt_string(token, ctx.user_id), me.username, sha256_hex(path_secret), sha256_hex(header_secret), ctx.tz, now],
         )
-        if old:
+        # saving the same token again must not delete the webhook that was just set for it
+        if old and rt.token(old) != token:
             previous = (rt.token(old), cleared)
     if previous:
         # best effort: drop the old bot's webhook and messages
@@ -195,7 +239,7 @@ def _json_row(r: dict[str, Any]) -> dict[str, Any]:
 
 
 async def export_part(rt: Runtime, ctx: Ctx) -> ExportPart:
-    """Links and counts only: no token, no webhook secrets, no pairing hashes, no message ids or callback tokens."""
+    """Links and counts only: no token, webhook secrets, pairing hashes, message ids or callback tokens."""
     async with rt.deps.as_user(ctx) as tx:
         links = await tx.many('SELECT telegram_user_id, tg_username, linked_at, last_seen_at FROM telegram_links WHERE user_id = $1', [ctx.user_id])
         sessions = await tx.many(

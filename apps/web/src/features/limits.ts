@@ -74,7 +74,7 @@ export function daysLeftText(day: number, days: number, month: string): string {
 }
 
 interface AlertItem { id: string; budgetId: string; categoryName: string; level: 'alert' | 'exceeded'; sentAt: string }
-/** "Fun passed 80%" / "Food went over its limit". The percentage is the limit's current alert level (alerts do not store it). */
+/** "Fun passed 80%" / "Food went over its limit". The % is the limit's current alert level (alerts don't store it). */
 export function warningText(a: AlertItem, budgets: BudgetDto[], level: number, display: (n: string) => string): string {
   if (a.level === 'exceeded') return `${display(a.categoryName)} went over its limit`;
   const b = budgets.find((x) => x.id === a.budgetId);

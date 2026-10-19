@@ -1,6 +1,6 @@
 """Sender-style templates: data, not code (README 4.7).
 
-A matching template's patterns (capture group 1) are tried first for payee, reference, account and balance; misses fall back to `parse.py`. Amount and direction always come from the fallback, so a template can only lose detail, never the payment.
+A matching template's patterns (capture group 1) run first for payee, reference, account and balance; misses fall back to `parse.py`. Amount and direction always come from the fallback, so a template can lose detail but never the payment.
 
 When a bank rewords its alerts, edit a row here (bump `version`) and add the message to `tests/parser_table.py`.
 """

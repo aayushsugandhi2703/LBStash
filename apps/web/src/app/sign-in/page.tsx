@@ -179,7 +179,7 @@ export default function SignInPage() {
               <Field
                 label="Email"
                 type="email"
-                autoComplete="username"
+                autoComplete="username" placeholder="you@example.com"
                 value={email}
                 onChange={(event) => { setEmail(event.target.value); setError(''); setNotice(''); }}
                 required
@@ -253,7 +253,7 @@ export default function SignInPage() {
               ) : (
                 <div className="signin-passkey-panel">
                   <strong>Use your passkey</strong>
-                  <p className="cap">Face ID or Touch ID on this device. Nothing to type, and nothing a thief can reuse.</p>
+                  <p className="cap">Face ID or Touch ID on this device. Nothing to type.</p>
                 </div>
               )}
               {error && <ErrorLine>{error}</ErrorLine>}

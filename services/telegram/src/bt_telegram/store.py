@@ -17,6 +17,7 @@ class BotRow:
     header_hash: str
     tz: str
     last_update_id: int | None
+    owner_tg: str | None
 
 
 @dataclass

@@ -39,7 +39,7 @@ export function initialForm(it: UnreadItem): Form {
 
 export const canAdd = (amountMinor: number): boolean => amountMinor > 0;
 
-/** The line that replaces a form once the user acts. `tagged`: undefined while the undo window runs, a name when the payee was known, null when untagged. */
+/** The line replacing a form once the user acts. `tagged`: undefined while Undo is open, a name if the payee was known, null if untagged. */
 export function doneText(f: Pick<Form, 'dir' | 'name' | 'done'>, amountMinor: number, tagged?: string | null): string {
   if (f.done === 'dismissed') return 'Deleted. The message is gone for good.';
   const sign = listAmount(amountMinor, f.dir).charAt(0);

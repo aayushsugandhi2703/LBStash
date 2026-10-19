@@ -85,7 +85,7 @@ describe('dates in India time', () => {
   it('lists time and place for the activity log', () => {
     expect(auditWhen('2026-10-18T13:12:00Z')).toBe('OCT 18 · 6:42 PM');
     expect(auditPlace({ action: 'telegram.link', ip: '1.2.3.4' })).toBe('bot');
-    expect(auditPlace({ action: 'device.revoked', ip: '1.2.3.4' })).toBe('phone');
+    expect(auditPlace({ action: 'device.revoked', ip: '1.2.3.4' })).toBe('token');
     expect(auditPlace({ action: 'login.ok', ip: '1.2.3.4' })).toBe('1.2.3.4');
     expect(auditPlace({ action: 'login.ok', ip: null })).toBe('');
   });

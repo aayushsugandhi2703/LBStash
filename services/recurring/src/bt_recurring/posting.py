@@ -41,7 +41,7 @@ PostOutcome = Literal['posted', 'linked', 'already_posted', 'idle']
 
 
 async def post_one(deps: Deps[Any], user_id: str, tz: str, rule_id: str, today: str) -> PostOutcome:
-    """Post one due occurrence and advance `next_due`, in one transaction under a row lock. The ledger call is idempotent; a failed call rolls everything back."""
+    """Post one due occurrence and advance `next_due` in one transaction under a row lock. The ledger call is idempotent; a failure rolls everything back."""
     async with deps.as_user(user_id) as tx:
         found = await tx.maybe_one(f'SELECT * FROM recurring_rules WHERE id = $2 AND {_DUE} FOR UPDATE SKIP LOCKED', [today, rule_id])
         if found is None:

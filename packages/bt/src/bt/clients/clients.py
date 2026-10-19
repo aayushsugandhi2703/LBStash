@@ -1,4 +1,4 @@
-"""Typed clients: one class per service, one method per endpoint another service calls. The paths here are the internal API; routes must match. Every method takes `as_` first and returns the contract model."""
+"""One typed client per service, one method per internal endpoint. Paths must match the routes. Methods take `as_` first and return the contract model."""
 
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -131,10 +131,10 @@ class AuthClient(ServiceClient):
     async def me(self, as_: Any) -> MeInternalRes:
         return await self.request(as_, 'GET', '/internal/me', model=MeInternalRes)
 
-    async def check_session(self, sid: str) -> SessionCheckRes:
-        """Is this browser session still alive? Carries no user."""
+    async def check_session(self, sid: str, ip: str | None = None) -> SessionCheckRes:
+        """Is this browser session still alive, and allowed from `ip`? Carries no user."""
         return await self.request(
-            None, 'POST', '/internal/sessions/check', body={'sid': sid}, model=SessionCheckRes
+            None, 'POST', '/internal/sessions/check', body={'sid': sid, 'ip': ip}, model=SessionCheckRes
         )
 
 

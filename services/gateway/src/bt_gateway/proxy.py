@@ -13,7 +13,7 @@ from .env import Env
 from .guard import GatewayInfo
 from .paths import resolve_service
 
-# Answer headers passed on; everything else is ours to set. `set-cookie` is handled apart (there can be several).
+# Answer headers passed on; all else is ours. `set-cookie` is handled apart (there can be several).
 PASS_BACK: Final = ('content-type', 'content-disposition', 'retry-after', 'etag', 'location')
 _BODYLESS: Final = frozenset({101, 204, 205, 304})
 
@@ -49,7 +49,7 @@ async def forward(deps: Deps[Env], client: httpx.AsyncClient, request: Request, 
     pass_('accept')
     if body is not None:
         pass_('content-type')
-    # auth reads the refresh cookie (and the access cookie's session id); no other service ever sees a cookie.
+    # only auth reads cookies (refresh cookie, and the access cookie's session id); no other service sees one
     if svc == 'auth':
         pass_('cookie')
     # The two callers that are not browsers authenticate themselves with these.

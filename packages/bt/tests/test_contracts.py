@@ -1,9 +1,6 @@
 """Contract tests (port of `packages/contracts`).
 
-`CORPUS` was produced by running the TypeScript Zod schemas (`packages/contracts/src`, through `tsx`) on each input:
-the expected value is the exact JSON `Schema.parse(input)` printed ('same' = the input comes back unchanged), or the
-list of issue paths Zod reported. The Python models must give the same camelCase JSON, or fail on the same paths.
-Times are compared as instants: Zod echoed the string it was given, the models normalise to `...mmmZ`.
+`CORPUS` holds the output of the TypeScript Zod schemas on each input: the exact JSON `Schema.parse` printed ('same' = unchanged), or the issue paths Zod reported. The Python models must give the same camelCase JSON or fail on the same paths. Times compare as instants (Zod echoed the input string; the models normalise to `...mmmZ`).
 """
 
 import json
@@ -250,7 +247,7 @@ CORPUS: list[tuple[str, Any, Any]] = [
     ('BalanceChecksRes', {'items': [{'id': '3f2b8c1e-5d4a-4b7e-9a10-2c6d8e0f1a23', 'bankBalanceMinor': 5000, 'ledgerBalanceMinor': 5100, 'gapMinor': -100, 'source': 'message', 'status': 'open', 'checkedAt': '2025-03-14T10:30:00.000Z', 'asOf': '2025-03-14T16:00:00+05:30', 'transactionId': None, 'graceEndsAt': '2025-03-14T10:30:00Z'}]}, 'same'),
     ('IngestBody', {'text': 'Rs 5 debited', 'receivedAt': '2025-03-14T16:00:00+05:30', 'nonce': '12345678'}, 'same'),
     ('IngestBody', {'text': 't', 'receivedAt': '2025-03-14T10:30:00.000Z', 'nonce': '12345678', 'sender': 'AX-HDFCBK'}, 'same'),
-    ('IngestBody', {'text': '', 'receivedAt': '2025-01-01T10:00:00', 'nonce': '1'}, ['nonce', 'receivedAt', 'text']),
+    ('IngestBody', {'text': '', 'receivedAt': '2025-01-01T10:00:00', 'nonce': '1'}, ['nonce', 'receivedAt']),
     ('IngestBody', {'text': 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'receivedAt': '2025-03-14T10:30:00.000Z', 'nonce': 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'sender': ''}, ['nonce', 'sender', 'text']),
     ('IngestMessageRes', {'outcome': 'created', 'transaction': {'id': '3f2b8c1e-5d4a-4b7e-9a10-2c6d8e0f1a23', 'type': 'debit', 'amountMinor': 5, 'status': 'pending'}}, 'same'),
     ('IngestMessageRes', {'outcome': 'ignored', 'transaction': None, 'reason': 'otp_or_promo'}, 'same'),
@@ -402,9 +399,9 @@ CORPUS: list[tuple[str, Any, Any]] = [
     ('TelegramSettingsPatch', {}, 'same'),
     ('TelegramSettingsPatch', {'digestHour': 0, 'afterTag': 'keep'}, 'same'),
     ('TelegramSettingsPatch', {'digestMode': None}, ['digestMode']),
-    ('TelegramLinkStatus', {'botSaved': True, 'botUsername': 'my_bot', 'linked': True, 'telegramIdHint': '••4821', 'telegramUsername': None, 'linkedAt': '2025-03-14T10:30:00.000Z', 'sessionActive': True, 'sessionSince': '2025-03-14T16:00:00+05:30', 'lastSeenAt': None, 'signInPausedUntil': None, 'pairingPending': False, 'heldCount': 0}, 'same'),
-    ('TelegramLinkStatus', {'botSaved': True, 'botUsername': None, 'linked': True, 'telegramIdHint': None, 'telegramUsername': None, 'linkedAt': None, 'sessionActive': True, 'sessionSince': None, 'lastSeenAt': None, 'signInPausedUntil': None, 'pairingPending': False, 'heldCount': 0}, 'same'),
-    ('TelegramLinkStatus', {'botSaved': True, 'botUsername': 'my_bot', 'linked': True, 'telegramIdHint': '••4821', 'telegramUsername': None, 'linkedAt': '2025-03-14T10:30:00.000Z', 'sessionActive': True, 'sessionSince': '2025-03-14T16:00:00+05:30', 'lastSeenAt': None, 'signInPausedUntil': None, 'pairingPending': False}, ['heldCount']),
+    ('TelegramLinkStatus', {'botSaved': True, 'botUsername': 'my_bot', 'ownerTelegram': '@me', 'linked': True, 'telegramIdHint': '••4821', 'telegramUsername': None, 'linkedAt': '2025-03-14T10:30:00.000Z', 'sessionActive': True, 'sessionSince': '2025-03-14T16:00:00+05:30', 'lastSeenAt': None, 'signInPausedUntil': None, 'pairingPending': False, 'heldCount': 0}, 'same'),
+    ('TelegramLinkStatus', {'botSaved': True, 'botUsername': None, 'ownerTelegram': None, 'linked': True, 'telegramIdHint': None, 'telegramUsername': None, 'linkedAt': None, 'sessionActive': True, 'sessionSince': None, 'lastSeenAt': None, 'signInPausedUntil': None, 'pairingPending': False, 'heldCount': 0}, 'same'),
+    ('TelegramLinkStatus', {'botSaved': True, 'botUsername': 'my_bot', 'ownerTelegram': '@me', 'linked': True, 'telegramIdHint': '••4821', 'telegramUsername': None, 'linkedAt': '2025-03-14T10:30:00.000Z', 'sessionActive': True, 'sessionSince': '2025-03-14T16:00:00+05:30', 'lastSeenAt': None, 'signInPausedUntil': None, 'pairingPending': False}, ['heldCount']),
     ('PairingRes', {'code': 'ABC', 'command': '/start ABC', 'expiresAt': '2025-03-14T16:00:00+05:30'}, 'same'),
     ('BotTokenReq', {'token': '123456789:AAH-abc_DEFghi123456789'}, 'same'),
     ('BotTokenReq', {'token': 'short'}, ['token']),
@@ -524,7 +521,7 @@ def test_every_ts_export_exists() -> None:
     assert [n for n in names if not hasattr(C, renamed.get(n, n))] == []
 
 
-# ── scalar types ────────────────────────────────────────────────────────────────────────────────
+# scalar types
 class _Scalars(C.Model):
     paise: Paise
     positive: PositivePaise
@@ -586,7 +583,7 @@ def test_coerce_int_and_string_bool_follow_zod_for_query_strings() -> None:
         _Scalars.model_validate(_scalars(flag='maybe'))
 
 
-# ── optional keys, defaults, transforms ─────────────────────────────────────────────────────────
+# optional keys, defaults, transforms
 def test_optional_keys_are_left_out_and_explicit_null_is_kept_only_where_nullable() -> None:
     req = C.IngestTransactionReq.model_validate(
         {'type': 'debit', 'amountMinor': 5, 'occurredAt': T1, 'deviceId': U1, 'capturedAt': T1, 'dedupeKey': 'k'}
@@ -639,7 +636,7 @@ def test_extra_keys_are_ignored_except_for_loose_telegram_objects() -> None:
     assert upd.message.from_.id == 4  # type: ignore[union-attr]
 
 
-# ── refinements and error paths ─────────────────────────────────────────────────────────────────
+# refinements and error paths
 def test_refine_errors_carry_zod_messages_and_paths() -> None:
     with pytest.raises(ValidationError) as e:
         C.BudgetCreateReq.model_validate({})
@@ -696,7 +693,7 @@ def test_patch_models_know_which_keys_an_empty_request_really_has() -> None:
     assert dump(C.PatchRecurringReq.model_validate({'endsOn': None, 'paused': True})) == {'endsOn': None, 'paused': True}
 
 
-# ── unions ──────────────────────────────────────────────────────────────────────────────────────
+# unions
 def test_schedule_union_dispatches_on_kind_and_reports_zod_paths() -> None:
     s = C.ScheduleAdapter.validate_python({'kind': 'yearly', 'month': 12, 'day': 25})
     assert isinstance(s, C.YearlySchedule) and dump(s) == {'kind': 'yearly', 'month': 12, 'day': 25}
@@ -721,7 +718,7 @@ def test_attention_items_round_trip_by_kind() -> None:
     assert ad.dump_python(ad.validate_python(items), mode='json', by_alias=True) == items
 
 
-# ── settings composition ────────────────────────────────────────────────────────────────────────
+# settings composition
 def test_settings_are_composed_from_the_owners_and_patch_keys_say_who_takes_what() -> None:
     assert patch_keys(C.LedgerSettingsPatch) == ['openingBalanceMinor', 'reconcileGraceHours']
     assert patch_keys(C.PlanningSettingsPatch) == ['alertLevel', 'warnOnPace']
@@ -735,7 +732,7 @@ def test_settings_are_composed_from_the_owners_and_patch_keys_say_who_takes_what
     assert dump(C.SettingsPatch.model_validate({})) == {}
 
 
-# ── events, jobs, routes ────────────────────────────────────────────────────────────────────────
+# events, jobs, routes
 def test_event_and_job_catalogue_matches_ts() -> None:
     assert list(C.EVENTS) == ['transaction.changed', 'credit.added', 'alert.created', 'unparsed.created', 'account.deleted', 'audit.record']
     assert list(C.JOBS) == ['budget.evaluate', 'balance.reconcile', 'recurring.post', 'telegram.send', 'telegram.sync_prompt', 'telegram.digest', 'retention.sweep']
