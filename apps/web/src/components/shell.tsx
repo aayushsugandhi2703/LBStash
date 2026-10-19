@@ -176,7 +176,7 @@ export function AccountShell({ page, glyph, title, description, label, heading, 
         <div className="lbl">{label}</div>
         <h2 className="fig-lg" style={{ marginTop: 4 }}>{heading}</h2>
         <p className="cap" style={{ maxWidth: 680, marginTop: 6 }}>{lead}</p>
-        <div style={{ borderTop: '1px solid var(--ink)', marginTop: 'clamp(10px,2vh,18px)', paddingTop: 'clamp(10px,2vh,18px)', flex: 1, minHeight: 200, overflowY: 'auto' }}>{children}</div>
+        <div style={{ borderTop: '1px solid var(--ink)', marginTop: 'var(--cv-10-2-18)', paddingTop: 'var(--cv-10-2-18)', flex: 1, minHeight: 200, overflowY: 'auto' }}>{children}</div>
       </div>
     </AppShell>
   );

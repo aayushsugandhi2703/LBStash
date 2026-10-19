@@ -1,14 +1,16 @@
 .state { color: var(--muted); }
 .state[data-done="true"] { color: var(--accent); }
 .ink { color: var(--ink); }
-.blockHead { margin-top: clamp(12px, 2.6vh, 24px); padding-bottom: 7px; border-bottom: 1px solid var(--ink); }
+.blockHead { margin-top: var(--cv-12-2p6-24); padding-bottom: 7px; border-bottom: 1px solid var(--ink); }
 .arith { margin-top: 24px; }
 
 .head { flex: none; }
 .title { margin-top: 6px; line-height: 1.15; }
 .lead { margin-top: 8px; max-width: 680px; line-height: 1.55; }
-.body { flex: 1 1 0; min-height: 200px; overflow-y: auto; margin-top: clamp(10px, 2vh, 18px); border-top: 1px solid var(--ink); }
-.foot { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; padding-top: clamp(8px, 1.6vh, 14px); border-top: 1px solid var(--rule); margin-top: clamp(6px, 1.2vh, 10px); }
+.body { flex: none; margin-top: var(--cv-10-2-18); border-top: 1px solid var(--ink); }
+@media (min-width: 1024px) and (min-height: 640px) { .body { flex: 1 1 0; min-height: 200px; overflow-y: auto; } }
+.foot { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; padding-top: var(--cv-8-1p6-14); border-top: 1px solid var(--rule); margin-top: var(--cv-6-1p2-10); }
+@media (max-width: 1023px), (max-height: 639px) { .foot { position: sticky; bottom: 0; z-index: 2; background: var(--surface); padding-bottom: 8px; } }
 .quiet { display: inline-flex; align-items: center; min-height: 44px; padding: 0; border: 0; background: transparent; color: var(--muted); font-size: var(--fs-body); cursor: pointer; }
 .quiet:hover { color: var(--accent); }
 
@@ -55,13 +57,22 @@
 .quietLink:hover { color: var(--accent); }
 .botLink { display: inline-flex; align-items: center; min-height: 36px; margin-top: 6px; }
 
+@media (max-width: 560px) {
+  .step { gap: 12px; }
+  .num { width: 18px; }
+  .field { flex-wrap: wrap; align-items: flex-start; gap: 4px 12px; }
+  .k { width: 100%; }
+  .v { white-space: normal; overflow-wrap: anywhere; }
+  .sumRow { flex-wrap: wrap; }
+}
+
 /* step 3 */
-.privacy { display: flex; flex-wrap: wrap; gap: clamp(16px, 3vh, 28px) clamp(28px, 4vw, 56px); padding-top: var(--row-pad); }
+.privacy { display: flex; flex-wrap: wrap; gap: var(--cv-16-3-28) clamp(28px, 4vw, 56px); padding-top: var(--row-pad); }
 .left { flex: 1 1 340px; min-width: 0; max-width: 520px; }
 .right { flex: 1 1 280px; min-width: 0; max-width: 380px; }
 .under { padding-bottom: 7px; border-bottom: 1px solid var(--ink); }
 .never { padding: var(--row-pad) 0; border-bottom: 1px solid var(--rule); font-size: var(--fs-body); line-height: 1.55; color: var(--text-2); }
-.segBlock { margin-top: clamp(12px, 2.4vh, 22px); }
+.segBlock { margin-top: var(--cv-12-2p4-22); }
 .segBlock :global(.seg) { margin-top: 8px; }
 .segNote { margin-top: 6px; max-width: 460px; }
 .preview { background: var(--hover-index); padding: 16px 18px; margin-top: 12px; }
@@ -72,11 +83,11 @@
 .previewNote { margin-top: 10px; line-height: 1.6; }
 
 /* step 4 */
-.first { max-width: 560px; display: flex; flex-direction: column; gap: clamp(12px, 2.4vh, 22px); padding-top: var(--row-pad); }
+.first { max-width: 560px; display: flex; flex-direction: column; gap: var(--cv-12-2p4-22); padding-top: var(--row-pad); }
 .rupee { display: flex; align-items: baseline; gap: 6px; border-bottom: 1px solid var(--disabled); }
 .rupee:focus-within { border-bottom-color: var(--ink); }
 .rupee > span { font-size: var(--fs-h2); font-weight: 300; color: var(--muted); }
-.rupee input { flex: 1; min-width: 0; height: clamp(34px, 5vh, 42px); border: 0; background: transparent; padding: 0; font-size: var(--fs-h2); font-weight: 300; color: var(--ink); }
+.rupee input { flex: 1; min-width: 0; height: var(--cv-34-5-42); border: 0; background: transparent; padding: 0; font-size: var(--fs-h2); font-weight: 300; color: var(--ink); }
 .rupee input:focus-visible { outline-offset: 6px; }
 .help { margin-top: 6px; }
 .firstMath { max-width: 360px; }
@@ -90,5 +101,5 @@
 .sumLabel { flex: 1; font-size: var(--fs-body); font-weight: 500; }
 .sumValue { font-size: var(--fs-s); }
 .sumValue[data-ok="false"] { color: var(--muted); }
-.next { max-width: 620px; margin-top: clamp(14px, 2.6vh, 24px); color: var(--text-2); line-height: 1.45; }
-.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin-top: clamp(14px, 2.6vh, 24px); }
+.next { max-width: 620px; margin-top: var(--cv-14-2p6-24); color: var(--text-2); line-height: 1.45; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin-top: var(--cv-14-2p6-24); }
