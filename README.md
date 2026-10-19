@@ -99,142 +99,26 @@ sequenceDiagram
 
 ## System design
 
-**Goal:** capture every bank debit and credit with no typing, keep the data private, and never lose or double-count a payment.
-
-**Shape of the load:** personal, one account per install (`REGISTRATION=first-only`), a few dozen events a day, bursts when several messages land at once. So the design favours correctness and privacy over raw scale.
-
-### Key decisions
-
-| Decision | Why |
-|---|---|
-| iPhone Shortcut reads the SMS | iOS apps cannot read SMS, so no native app is needed |
-| Amount first, tag later | The payment counts in your balance at once; the tag only adds the "why" |
-| Parse on the server, then discard the text | One parser to fix for all banks; the raw message is not kept |
-| Book at the time written in the message | A late Shortcut run still lands on the right day |
-| Balance check instead of trusting delivery | Anything that never arrived shows up as a gap you can tag |
-| Learn payees | Tag "RAMESH" once, every later payment is tagged by itself |
-| Microservices, one schema each | Clear ownership and security boundaries; each can change alone |
-| Postgres as the queue (outbox) | No extra broker; the event is saved with the change, so none is lost |
-| Compute on read, no cached totals | Numbers can never drift from the payments |
-| Telegram carries no bank details | Telegram keeps what it is sent, so it only gets "money out, 6:42 pm" |
-
-### Data model
-
-```mermaid
-erDiagram
-  USER ||--o{ SESSION : has
-  USER ||--o{ AUTH_FACTOR : secures
-  USER ||--o{ DEVICE : "phones"
-  DEVICE ||--o{ INGEST_EVENT : "nonces"
-  USER ||--o{ TRANSACTION : owns
-  CATEGORY ||--o{ TRANSACTION : tags
-  TRANSACTION ||--o{ TELEGRAM_PROMPT : "asks for tag"
-  USER ||--o{ PLAN : plans
-  PLAN ||--o{ PLAN_LINE : "split by category"
-  USER ||--o{ BUDGET : limits
-  BUDGET ||--o{ ALERT : raises
-  USER ||--o{ RECURRING_RULE : repeats
-  USER ||--o{ BALANCE_CHECK : reconciles
-```
-
-| Schema | Main tables |
-|---|---|
-| auth | users, sessions, refresh_tokens, auth_factors, challenges, login_throttle, audit_log |
-| ledger | transactions, categories, tag_rules, tx_links, balance_checks |
-| ingest | devices, ingest_events (nonces), unparsed_messages |
-| planning | plans, plan_lines, plan_credits, budgets, alerts |
-| recurring | recurring_rules |
-| telegram | telegram_bots, telegram_links, telegram_sessions, telegram_prompts |
-
-Every user table carries `user_id` and has row-level security.
-
-### Payment life cycle
-
-```mermaid
-stateDiagram-v2
-  [*] --> Pending: captured from SMS
-  [*] --> Pending: Unaccounted entry from a balance check
-  Pending --> Confirmed: payee known, rule matched, or you tap a category
-  Confirmed --> Confirmed: re-tag is ignored (first write wins)
-  Confirmed --> Reversed: bank sends a reversal
-```
-
-Pending payments already count in your balance. A message the reader cannot understand goes to **Needs a look** (kept encrypted, 30 days) and you fix it by hand.
-
-### Balance check
-
-```mermaid
-flowchart LR
-  A["You enter your bank balance"] --> B{"bank balance minus ledger balance"}
-  B -->|"0"| C["All good"]
-  B -->|"gap"| D["Wait the grace period"]
-  D -->|"late message arrives"| E["Merge it, gap closes"]
-  D -->|"still a gap"| F["Book one Unaccounted entry"]
-  F --> G["You tag or split it"]
-```
-
-### When things go wrong
-
-| Failure | What happens |
-|---|---|
-| Shortcut runs late or never | Booked at the message time; the balance check catches the rest |
-| Same SMS sent twice | Nonce and dedupe key make it one payment |
-| A service crashes mid-way | The event is still in the outbox; the job retries with backoff |
-| A handler runs twice | Handlers are idempotent, so the result is the same |
-| Telegram is down or blocked | Payments are already saved; the web app shows "Needs a tag" |
-| Database restarts | Services wait for it; unsent events are still stored |
-| Bank wording unknown | Message goes to Needs a look instead of being guessed |
-| Phone lost | Revoke the device token; it stops at once |
-
-### Scaling and limits
-
-- Fine for one person or a household on a small machine. Postgres is the only stateful piece, so back up the database and `FIELD_KEY`.
-- To grow: run more copies of any stateless service (queue claims use `SKIP LOCKED`, and only one copy fires each cron tick), then move to a managed Postgres.
-- Not built yet: Android, bank aggregators (Account Aggregator), statement import, push notifications and email capture.
+Requirements, estimates, API, data schema, deep dives, failure handling and scaling are in **[docs/SYSTEM_DESIGN.md](docs/SYSTEM_DESIGN.md)**, written as the four steps from Alex Xu's *System Design Interview*.
 
 ## Security
 
-**Sign-in and sessions**
-- Passwords: at least 12 characters, common ones rejected, hashed with Argon2id (64 MiB, 3 passes).
-- Mandatory second step (authenticator app); passkeys supported; 10 one-time recovery codes stored hashed.
-- Short-lived access token (15 min) plus a rotating refresh token. If an old refresh token is used again it was copied, so the whole session family is revoked.
-- A session ends after 12 hours idle or 30 days total. You can end sessions from the web app.
-- Cookies are `HttpOnly`, `Secure`, `SameSite=Strict`. Every state-changing browser request needs a CSRF token (double-submit).
-- Progressive lockout: 5 wrong passwords lock that email and IP for 30 s, doubling up to 15 min; 3 wrong second-step codes lock for 60 s, doubling. Lock keys are hashes, so no email or IP is stored.
-- Error messages are generic, so nobody can find out which emails have accounts.
-
-**Idempotency and replay protection**
-- Each phone request carries a one-time `nonce`; reuse returns `409`. The timestamp must be within 5 minutes of server time.
-- Every payment has a unique dedupe key per user (reference or fingerprint). The same SMS sent twice, or a retried request, saves one transaction.
-- All queue consumers are idempotent because delivery is at-least-once: alerts fire once per budget, period and level; a hand-added credit raises the plan once per transaction; balance checks skip closed checks; recurring posting runs under a row lock; account deletion can run twice safely.
-- Telegram buttons use opaque one-use tokens, checked against the user and open prompt, so a stale or repeated tap does nothing. Your sign-in code works once per time step.
-
-**Data protection**
-- Encrypted with AES-256-GCM: authenticator secrets, the Telegram bot token, and messages the reader could not parse (kept at most 30 days). The key (`FIELD_KEY`) comes from the environment, never the repo.
-- Device tokens (256-bit random, shown once) and refresh tokens are stored only as hashes.
-- Parsed bank messages are never stored, only amount, payee, reference, time and last 4 digits.
-- Never collected: bank logins, UPI PINs, card numbers, OTPs. The app only reads results; it never moves money.
-- Self-serve export, and account deletion with a 7-day grace period; deletion purges every service.
-- Nightly retention sweeps remove expired rows and old nonces.
-
-**Isolation**
-- One Postgres login per service and one schema per service. Row-level security is forced on every user table, so a bug in a query still cannot read another user's rows.
-- Services are not exposed to the internet. Every call between them carries a signed 60-second token naming the caller and user, and internal-only routes reject anything forwarded from outside.
-
-**Edge hardening**
-- Gateway checks, in order: path, who you are, rate limits, session still alive, CSRF. Extra per-IP limits apply to login, second step, reset, phone ingest and the Telegram webhook, plus per-device limits inside ingest.
-- Headers: HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, a locked-down CSP (`default-src 'none'`, no framing) on API responses, and a Permissions-Policy that disables camera, microphone and location. The server header is removed.
-- All input is validated with strict pydantic models and every query is parameterised. Secrets are compared in constant time.
-- Same-origin `/api` keeps `SameSite=Strict` cookies working. Use HTTPS in production (the proxy gets certificates automatically for a real domain).
-
-**Phone and Telegram**
-- The OTP guard drops OTP-looking text before parsing or logging and stores nothing (`202`). Pick your Shortcut trigger words carefully (see the Setup guide).
-- Telegram: only your own numeric id works, in a private chat, after `/signin` with an authenticator code (the bot deletes your message). The webhook has a secret header (stored hashed) and a random path. Messages carry no amount, payee, balance or account number; an optional Reveal button shows details for 30 seconds.
-- Lost phone: revoke its device token in the web app and it stops working at once.
-
-**Logging and audit**
-- Logs hold ids and outcome codes only, never message text, amounts or payees, and common sensitive fields are redacted.
-- An append-only audit log records sign-ins, device changes, exports and deletions.
+| Area | What we do |
+|---|---|
+| **Sign-in** | Passwords of 12+ characters, common ones rejected, hashed with Argon2id. Authenticator-app second step is mandatory. Passkeys and 10 hashed recovery codes. |
+| **Sessions** | 15-minute access token plus a rotating refresh token. A reused refresh token means it was copied, so the whole session is revoked. Ends after 12 h idle or 30 days. |
+| **Cookies and CSRF** | `HttpOnly`, `Secure`, `SameSite=Strict`, plus a CSRF token on every change. |
+| **Brute force** | Progressive lockout (5 bad passwords locks 30 s, doubling up to 15 min). Per-IP rate limits on login, second step, reset, phone ingest and the Telegram webhook. Generic errors, so emails cannot be guessed. |
+| **Idempotency** | Safe to repeat. Each phone request has a one-time `nonce` and a 5-minute time window. Payments have a unique dedupe key, so the same SMS saves once. Queue jobs may run twice, so each is built to give the same result: alerts fire once, credits count once, deletes can repeat. Telegram buttons and sign-in codes work once. |
+| **Encryption** | AES-256-GCM for authenticator secrets, the bot token and unreadable messages. Device and refresh tokens are stored only as hashes. Key comes from the environment. |
+| **Data isolation** | One Postgres login and schema per service. Row-level security on every user table, so a bug cannot show another user's rows. |
+| **Between services** | Not exposed to the internet. Calls carry a signed 60-second token. Internal-only routes refuse outside requests. |
+| **Edge** | HSTS, `nosniff`, `no-referrer`, a locked-down CSP on API responses, Permissions-Policy. Strict input validation, parameterised queries, constant-time secret checks. |
+| **Phone capture** | Per-device token, ingest-only, shown once, revocable. OTP-looking text is dropped unread (`202`) and nothing is stored. Parsed messages are not kept. |
+| **Telegram** | Only your Telegram id, private chat, after `/signin` with an authenticator code. Messages carry no amount, payee or balance. Webhook uses a secret header (stored hashed). |
+| **Never collected** | Bank logins, UPI PINs, card numbers, OTPs. The app never moves money. |
+| **Logs and audit** | Logs hold ids and outcome codes only. Append-only audit log for sign-ins, device changes, exports and deletions. |
+| **Your data** | Export any time. Delete your account (7-day grace). Old rows are cleaned nightly. |
 
 ## Run it
 
