@@ -82,7 +82,7 @@ describe('the phone test', () => {
 describe('shortcut details', () => {
   it('builds the URL and the header the Shortcut needs', () => {
     expect(ingestUrl('https://ledger.example.com/')).toBe('https://ledger.example.com/api/ingest/message');
-    expect(authHeader('ledg_live_abc')).toBe('Authorization: Bearer ledg_live_abc');
+    expect(authHeader('ledg_live_abc')).toBe('Bearer ledg_live_abc');
   });
 });
 

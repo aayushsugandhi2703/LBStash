@@ -1,4 +1,4 @@
-.sec { margin-top: clamp(14px, 2.6vh, 26px); padding-bottom: 7px; border-bottom: 1px solid var(--ink); }
+.sec { margin-top: var(--cv-14-2p6-26); padding-bottom: 7px; border-bottom: 1px solid var(--ink); }
 .sec.first { margin-top: 0; }
 .line { padding: var(--row-pad) 0; border-bottom: 1px solid var(--rule); }
 .lineRow { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: var(--row-pad) 0; border-bottom: 1px solid var(--rule); flex-wrap: wrap; }

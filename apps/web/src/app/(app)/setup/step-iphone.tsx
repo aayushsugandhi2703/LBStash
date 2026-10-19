@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import type { z } from 'zod';
 import type { DeviceTokenRes } from '@/contracts';
-import { Button, ErrorLine, TextLink } from '@/components/ui';
+import { Button, ErrorLine, Field, TextLink } from '@/components/ui';
 import { api, errorText } from '@/lib/api';
 import type { Device } from '@/features/devices';
 import { authHeader, BODY_LINES, HEADER_MASKED, ingestUrl, testReceived } from '@/features/setup';
@@ -18,6 +18,7 @@ export function StepIphone({ device, token, ticks, tick, onMade }: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [origin, setOrigin] = useState('');
+  const [bank, setBank] = useState('');
   useEffect(() => setOrigin(window.location.origin), []);
 
   async function create() {
@@ -60,22 +61,32 @@ export function StepIphone({ device, token, ticks, tick, onMade }: {
         )}
       </StepRow>
 
-      <StepRow n={2} title="Open Shortcuts and start an automation" text="On your iPhone open the Shortcuts app, then go through these screens." check={<Checkbox n={2} checked={ticks.b} onChange={(v) => tick('b', v)} />}>
-        <div className={`mono ${s.path} ${s.control}`} style={{ fontSize: 'var(--fs-s)' }}>Shortcuts › Automation › New Automation › Message</div>
+      <StepRow n={2} title="Open Shortcuts and start an automation" text="On your iPhone open the Shortcuts app, tap the Automation tab, tap + to make a new personal automation, then pick Message." check={<Checkbox n={2} checked={ticks.b} onChange={(v) => tick('b', v)} />}>
+        <div className={`mono ${s.path} ${s.control}`} style={{ fontSize: 'var(--fs-s)' }}>Shortcuts › Automation tab › + › Message</div>
       </StepRow>
 
-      <StepRow n={3} title="Set the trigger: Message Contains" text="Make one automation per word. Your bank may phrase things differently, so check a real message and add that word too." check={<Checkbox n={3} checked={ticks.c} onChange={(v) => tick('c', v)} />}>
+      <StepRow
+        n={3} title="Set the trigger: match your bank's words"
+        text={<>The <b>Sender</b> box only lists people in your contacts, so a bank's sender name (like AX-HDFCBK) cannot be picked there. Leave it empty. Tap <b>Choose</b> next to the box that filters on the message text (Apple's guide calls it Message Contains) and type a phrase that your bank's alerts always contain. Check a real alert first.</>}
+        check={<Checkbox n={3} checked={ticks.c} onChange={(v) => tick('c', v)} />}
+      >
         <div className={`${s.chips} ${s.control}`}>
           {['debited', 'credited'].map((w) => (
             <span key={w} className={s.kw}><span className="mono" style={{ fontSize: 'var(--fs-s)' }}>{w}</span><CopyLink chip value={w} /></span>
           ))}
+          {bank.trim() && (
+            <span className={s.kw}><span className="mono" style={{ fontSize: 'var(--fs-s)' }}>{bank.trim()}</span><CopyLink chip value={bank.trim()} /></span>
+          )}
         </div>
-        <Note>Never trigger on every message from the bank. Banks also text OTPs, and an OTP must never leave your phone.</Note>
+        <div className={s.control} style={{ maxWidth: 360 }}>
+          <Field label="Your bank's name as it appears in its alerts (optional)" placeholder="HDFC Bank" value={bank} onChange={(e) => setBank(e.target.value)} autoComplete="off" />
+        </div>
+        <Note>Two ways, pick one. <b>debited</b> and <b>credited</b> (one automation each) keep OTPs on your phone, but would also match another sender&apos;s debit text. Your <b>bank&apos;s name</b> catches only that bank&apos;s alerts in a single automation, but the bank&apos;s OTP texts that mention it also reach your server, which drops them unread (it answers 202 and stores nothing).</Note>
       </StepRow>
 
       <StepRow
         n={4} title="Add the action: Get Contents of URL"
-        text="Fill it in exactly like this. First add a Dictionary action with the three fields below, then this action with Request Body set to JSON and that Dictionary as its value. Your shortcut should have only these two actions: fewer steps run more reliably on a locked phone."
+        text="Search for Get Contents of URL and add it, then tap Show More. Set Method to POST, add the header below, set Request Body to JSON and use Add new field for each line of the body (type Text); to insert a value such as Shortcut Input, tap the value box and pick it from the variable bar above the keyboard. For the nonce, add a Random Number action above this one (any range, for example 10000000 to 99999999) and use its result. That is the whole shortcut: two actions."
         check={<Checkbox n={4} checked={ticks.d} onChange={(v) => tick('d', v)} />}
       >
         <div className={s.fields}>
@@ -93,8 +104,8 @@ export function StepIphone({ device, token, ticks, tick, onMade }: {
       </StepRow>
 
       <StepRow
-        n={5} title="Run it immediately, silently"
-        text={<>Pick <b>Run Immediately</b> (not Ask Before Running) and turn <b>Notify When Run</b> off. If your iOS offers a run-while-locked setting for the shortcut, turn it on. Tap Done. Repeat for the second word.</>}
+        n={5} title="Run it immediately"
+        text={<>On the same screen pick <b>Run Immediately</b>, not <b>Run After Confirmation</b> (older iOS calls that one Ask Before Running). If a <b>Notify When Run</b> switch is shown, turn it off; newer iOS may always show a banner for this option, which is fine. Open the shortcut's settings (the ⓘ button), go to Privacy and turn on <b>Allow Running When Locked</b> if it is listed. Run the shortcut once yourself and, if iPhone asks to allow sending data to your server, choose Always Allow. Then tap Done and repeat for the second word.</>}
         check={<Checkbox n={5} checked={ticks.e} onChange={(v) => tick('e', v)} />}
       >
         <Note>iPhone may run it late while locked. That is fine: each payment is saved at the time written in the bank message, and a balance check later catches anything that never arrives.</Note>

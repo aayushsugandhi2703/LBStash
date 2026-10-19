@@ -57,11 +57,12 @@ export function testReceived(d: Device | undefined): string | null {
   return `received · your first message was read${delayText(d.lastDelaySeconds)}`;
 }
 
-export const BODY_LINES = ['text = Shortcut Input (the message)', 'receivedAt = Current Date (fallback time only)', 'nonce = Random Number + Current Date'] as const;
+export const BODY_LINES = ['text = Shortcut Input', 'receivedAt = Current Date (Date Format: ISO 8601)', 'nonce = Random Number + Current Date'] as const;
 export const ingestUrl = (origin: string): string => `${origin.replace(/\/$/, '')}/api/ingest/message`;
 /** What the HEADER row shows. The token is readable only when it is made, so the copy link needs one in hand. */
-export const HEADER_MASKED = 'Authorization: Bearer ledg_live_••••••••';
-export const authHeader = (token: string): string => `Authorization: Bearer ${token}`;
+export const HEADER_MASKED = 'Authorization = Bearer ledg_live_••••••••';
+/** The header's value box in Shortcuts; the key `Authorization` is typed separately. */
+export const authHeader = (token: string): string => `Bearer ${token}`;
 
 /** Step 2. */
 const BOT_TOKEN_MIN = 20;

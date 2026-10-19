@@ -20,7 +20,7 @@
 .add { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 12px 40px; align-items: flex-end; }
 .addMain { flex: 1 1 280px; max-width: 420px; }
 .addRow { display: flex; gap: 10px; align-items: flex-end; margin-top: 2px; border-bottom: 1px solid var(--ink); }
-.addRow input { flex: 1; min-width: 0; height: clamp(34px, 5vh, 42px); border: 0; background: transparent; padding: 0; font-size: var(--fs-h2); font-weight: 300; letter-spacing: -0.02em; }
+.addRow input { flex: 1; min-width: 0; height: var(--cv-34-5-42); border: 0; background: transparent; padding: 0; font-size: var(--fs-h2); font-weight: 300; letter-spacing: -0.02em; }
 .addRow button { margin-bottom: 4px; }
 .suggest { display: flex; flex-wrap: wrap; gap: 0 18px; }
 .suggest button { min-height: 44px; font-size: var(--fs-s); }

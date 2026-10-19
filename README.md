@@ -278,17 +278,20 @@ So the message gives **what, how much, when and (often) who**. The **why** is yo
 
 ### 4.5 iPhone setup (one time, about 10 minutes per bank keyword)
 
-In the **Shortcuts** app → **Automation** → **New Automation** → **Message**:
+In the **Shortcuts** app → **Automation** tab → **+** → **Message** (Apple's name for the trigger; its two fields are **Sender** and **Message Contains**):
 
-1. **Trigger:** *Message Contains* → type the word your bank uses (`debited`). Make a second automation for `credited`. Add more for other wording your bank uses (`sent`, `received`, `withdrawn`, `spent`) after looking at your real messages.
-   - Do **not** use "any message from the bank". Bank senders also send **OTPs**, and an OTP must never leave your phone. Keyword triggers keep OTPs out.
-2. **Run Immediately** (not "Ask Before Running"), and turn **Notify When Run** off.
+1. **Trigger:** do not use **Sender**. It lists only people in your contacts, so a bank's alphanumeric sender name (for example `AX-HDFCBK`) cannot be picked, and users report it matches unreliably. Leave it empty and tap **Choose** next to the box that filters on message text (Apple's guide calls it **Message Contains**), then type a phrase your bank's alerts always contain. Check a real alert first. Two ways, pick one:
+   - **Action words (recommended):** one automation for `debited` and one for `credited` (more for `sent`, `received`, `withdrawn`, `spent` if your bank uses them). OTP texts do not contain these words, so they never leave the phone. The catch: another sender's "debited" text also matches.
+   - **Your bank's name as written in its alerts** (for example `HDFC Bank`): one automation catches that bank's debits and credits, and nothing from other senders. The catch: the bank's OTP texts that mention its name also reach your server, which drops OTP-like text before parsing or logging (`202`, nothing stored).
+   - Never use an empty or one-letter filter ("any message"): every OTP and chat would be forwarded.
+2. **Run option:** choose **Run Immediately**, not **Run After Confirmation** (called *Ask Before Running* before iOS 17). If a **Notify When Run** switch is shown, turn it off; on newer iOS the banner may be mandatory for Run Immediately, which is harmless.
 3. **Actions**, in order:
-   1. *Dictionary* with keys: `text` = **Shortcut Input** (the message), `receivedAt` = **Current Date** (ISO 8601; the moment the Shortcut runs, used only as a fallback for the payment time), `nonce` = **Random Number** (large) joined with **Current Date**.
-   2. *Get Contents of URL* → `https://<your-api>/ingest/message`
-      - Method **POST**, request body **JSON** = the dictionary.
-      - Header `Authorization: Bearer <device token>` (the token is created in the web app under Devices, shown once).
-4. **Keep it to exactly these two actions.** Fewer steps are reported to run more reliably while the phone is locked. If your iOS version has a "run while locked" setting for the shortcut, turn it on (wording differs by version).
+   1. *Random Number* (any range, for example 10000000 to 99999999), used for the nonce.
+   2. *Get Contents of URL* → `https://<your-api>/ingest/message`. Tap **Show More**, then:
+      - **Method** `POST`.
+      - **Headers** → add new header: key `Authorization`, value `Bearer <device token>` (the token is created in the web app under Devices, shown once).
+      - **Request Body** `JSON` → **Add new field** (type Text) three times: `text` = **Shortcut Input** (the message), `receivedAt` = **Current Date** with Date Format **ISO 8601** (the moment the Shortcut runs, used only as a fallback for the payment time), `nonce` = **Random Number** joined with **Current Date**. Insert each variable by tapping the value box and choosing it from the variable bar. No separate Dictionary action is needed.
+4. **Keep it to exactly these two actions.** Fewer steps are reported to run more reliably while the phone is locked. Open the shortcut's settings (the ⓘ button) → **Privacy** and turn on **Allow Running When Locked** if it is listed (Apple documents it for automations that run without asking). Run the shortcut once yourself; if iPhone asks to allow sending data to your server, choose **Always Allow**, otherwise a locked-phone run can stall on that prompt.
 5. **Test:** have someone text you a line containing the keyword (for example `Rs 1.00 debited test`) and watch the web app.
 
 **Delays are normal.** Apple does not promise that a Message automation runs the moment a message arrives on a locked phone, and user reports are mixed. The design therefore never depends on speed:
