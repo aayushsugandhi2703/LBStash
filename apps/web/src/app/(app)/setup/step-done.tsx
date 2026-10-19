@@ -15,7 +15,7 @@ export function StepDone({ rows }: { rows: SummaryRow[] }) {
           </div>
         ))}
       </div>
-      <div className={`lead ${s.next}`}>The next time your bank messages you, it shows up here and in Telegram within seconds. Tag it once per new payee.</div>
+      <div className={`lead ${s.next}`}>Next time your bank messages you, it shows up here and in Telegram within seconds. Tag it once per new payee.</div>
       <div className={s.actions}>
         <Link href="/" className="btn lg">Open Now</Link>
         <Link href="/ledger" className={s.quiet}>See the Ledger</Link>

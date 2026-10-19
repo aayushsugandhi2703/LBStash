@@ -13,14 +13,14 @@ export function StepFirstMonth({ f, settings }: { f: Fields; settings: Settings 
   return (
     <div className={`rise ${s.first}`}>
       <div>
-        <label htmlFor="opening" className="lbl">BALANCE OF YOUR BANK ACCOUNT RIGHT NOW (OPENING BALANCE)</label>
+        <label htmlFor="opening" className="lbl">BANK BALANCE RIGHT NOW (OPENING BALANCE)</label>
         <div className={s.rupee}><span aria-hidden="true">₹</span><input id="opening" type="text" placeholder="0" {...f.opening.inputProps} onBlur={() => void f.flush()} /></div>
-        <div className={`cap ${s.help}`}>Use the one bank account these messages come from. Cash goes in later as credits. The app carries this forward every month, and now and then compares it with your bank: any payment that never reached it is booked as Unaccounted for you to tag or split.</div>
+        <div className={`cap ${s.help}`}>Use the bank account these messages come from. Cash goes in later as credits. The app checks it against your bank now and then and books any missing payment as Unaccounted.</div>
       </div>
       <div>
         <label htmlFor="plan" className="lbl">MONEY TO PLAN THIS MONTH</label>
         <div className={s.rupee}><span aria-hidden="true">₹</span><input id="plan" type="text" placeholder="0" {...f.plan.inputProps} onBlur={() => void f.flush()} /></div>
-        <div className={`cap ${s.help}`}>You split this across categories on the Plan page. It can differ from what you earn.</div>
+        <div className={`cap ${s.help}`}>You split this across categories on the Plan page.</div>
       </div>
       <div>
         <div className="lbl" style={{ marginBottom: 8 }}>WARN ME WHEN A LIMIT IS</div>

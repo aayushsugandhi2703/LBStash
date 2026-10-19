@@ -18,11 +18,11 @@ export function StepPrivacy({ settings, failed, error, save, retry }: {
     <div className={`rise ${s.privacy}`}>
       <div className={s.left}>
         <div className={`lbl ${s.under}`}>WHAT TELEGRAM NEVER GETS</div>
-        <div className={s.never}>No amount, no payee, no balance, no account number, no bank name, no UPI ID, no original message. Each message only says that money went out or came in, and when.</div>
+        <div className={s.never}>No amount, payee, balance, account number, bank name or UPI ID. Only that money went out or came in, and when.</div>
         <div className="settings-row">
           <div style={{ minWidth: 0 }}>
             <div className="t">Show a Reveal button</div>
-            <div className="s">Tap it to see the amount and payee for 30 seconds. While visible, those details pass through Telegram. Off means Telegram never sees any bank detail.</div>
+            <div className="s">Shows amount and payee for 30 seconds (they pass through Telegram). Off: Telegram never sees bank details.</div>
           </div>
           <Switch checked={settings.allowReveal} label="Show a Reveal button" onChange={(v) => save({ allowReveal: v })} />
         </div>
@@ -30,7 +30,7 @@ export function StepPrivacy({ settings, failed, error, save, retry }: {
         <div className={s.segBlock}>
           <div className="lbl">ALSO SIGN ME OUT OF THE BOT AFTER</div>
           <Segmented label="Idle days" value={String(settings.sessionIdleDays)} options={IDLE_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))} onChange={(v) => save({ sessionIdleDays: Number(v) })} />
-          <div className={`cap ${s.segNote}`}>You stay signed in until you send /signout. This is only a safety net for when you stop using the bot.</div>
+          <div className={`cap ${s.segNote}`}>A safety net if you stop using the bot. Otherwise you stay signed in until /signout.</div>
         </div>
         <div className={s.segBlock}>
           <div className="lbl">DAILY REMINDER OF UNTAGGED PAYMENTS</div>
@@ -50,7 +50,7 @@ export function StepPrivacy({ settings, failed, error, save, retry }: {
           <div className={`mono ${s.l2}`}>{previewLine2(settings.allowReveal)}</div>
           <div className={`mono ${s.buttons}`}>{previewButtons(settings.allowReveal).map((b) => <span key={b}>{b}</span>)}</div>
         </div>
-        <div className={`mono ${s.small} ${s.previewNote}`}>Your own category names do show on the buttons. Nothing about the bank does.</div>
+        <div className={`mono ${s.small} ${s.previewNote}`}>Your category names show on the buttons. Nothing about the bank does.</div>
       </div>
     </div>
   );

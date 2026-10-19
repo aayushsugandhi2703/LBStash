@@ -9,12 +9,12 @@ export type Settings = z.infer<typeof SettingsDto>;
 
 export type Step = 1 | 2 | 3 | 4 | 5;
 export const STEPS = [
-  { label: 'Connect your iPhone', lead: 'Your iPhone forwards each bank debit and credit message to your server. You set it up once in the Shortcuts app; nothing to install.' },
-  { label: 'Connect Telegram', lead: 'Telegram is where each payment arrives with category buttons, so you can tag it whenever you like. It takes a bot of your own, one link step and a sign-in.' },
-  { label: 'Telegram privacy', lead: 'Telegram keeps whatever its messages contain, so yours carry no bank details at all. Choose the one optional exception and how long the bot session lasts.' },
+  { label: 'Connect your iPhone', lead: 'Your iPhone sends each bank debit and credit message to your server. Set up once in the Shortcuts app.' },
+  { label: 'Connect Telegram', lead: 'Telegram shows each payment with category buttons so you can tag it. You need your own bot, one link step and a sign-in.' },
+  { label: 'Telegram privacy', lead: 'Telegram keeps what it is sent, so messages carry no bank details. Choose the one optional exception.' },
   { label: 'Your first month', lead: 'So the plan, the limits and the balance start from real numbers.' },
 ] as const;
-const DONE_LEAD = 'Here is what is connected. You can redo any step later from Devices and Telegram in the Account menu.';
+const DONE_LEAD = 'This is what is connected. Redo any step from Devices and Telegram in the Account menu.';
 
 export interface StepInput {
   step: Step;
@@ -57,12 +57,8 @@ export function testReceived(d: Device | undefined): string | null {
   return `received · your first message was read${delayText(d.lastDelaySeconds)}`;
 }
 
-export const BODY_LINES = ['text = Shortcut Input', 'receivedAt = Current Date (Date Format: ISO 8601)', 'nonce = Random Number + Current Date'] as const;
-export const ingestUrl = (origin: string): string => `${origin.replace(/\/$/, '')}/api/ingest/message`;
-/** What the HEADER row shows. The token is readable only when it is made, so the copy link needs one in hand. */
-export const HEADER_MASKED = 'Authorization = Bearer ledg_live_••••••••';
-/** The header's value box in Shortcuts; the key `Authorization` is typed separately. */
-export const authHeader = (token: string): string => `Bearer ${token}`;
+/** The importable Shortcut (built and signed by scripts/make-shortcut.py). */
+export const SHORTCUT_FILE = '/ledger-capture.shortcut';
 
 /** Step 2. */
 const BOT_TOKEN_MIN = 20;

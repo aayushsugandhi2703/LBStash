@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Device, LinkStatus } from '@/features/devices';
-import { alertText, authHeader, canSaveBot, clampStep, ingestUrl, linkedText, money, nextLabel, phoneHeard, previewButtons, previewLine2, signWaitText, type StepInput, stepLabel, stepLead, stepStates, stepTitle, summaryRows, testReceived } from '@/features/setup';
+import { alertText, canSaveBot, clampStep, linkedText, money, nextLabel, phoneHeard, previewButtons, previewLine2, signWaitText, type StepInput, stepLabel, stepLead, stepStates, stepTitle, summaryRows, testReceived } from '@/features/setup';
 
 const base: StepInput = { step: 1, reached: 1, token: false, test: false, botSaved: false, linked: false, signed: false };
 const device = (over: Partial<Device> = {}): Device => ({
@@ -76,13 +76,6 @@ describe('the phone test', () => {
   });
   it('does not count a cancelled token', () => {
     expect(phoneHeard(device({ lastSeenAt: 'x', revokedAt: 'y' }))).toBe(false);
-  });
-});
-
-describe('shortcut details', () => {
-  it('builds the URL and the header the Shortcut needs', () => {
-    expect(ingestUrl('https://ledger.example.com/')).toBe('https://ledger.example.com/api/ingest/message');
-    expect(authHeader('ledg_live_abc')).toBe('Bearer ledg_live_abc');
   });
 });
 

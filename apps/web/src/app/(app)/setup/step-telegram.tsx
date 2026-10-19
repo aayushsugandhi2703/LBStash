@@ -51,11 +51,11 @@ export function StepTelegram({ link, refresh }: { link: LinkStatus; refresh: () 
 
   return (
     <div className="rise">
-      <StepRow n={1} title="Create your own bot" text={<>In Telegram open {mono('@BotFather')}, send {mono('/newbot')}, pick a name and a username ending in {mono('bot')}. BotFather replies with a token.</>}>
+      <StepRow n={1} title="Create your own bot" text={<>In Telegram open {mono('@BotFather')}, send {mono('/newbot')}, pick a name and a username ending in {mono('bot')}. Copy the token it gives you.</>}>
         <a className={`link mono ${s.botLink}`} href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer">open @BotFather in Telegram ↗</a>
       </StepRow>
 
-      <StepRow n={2} title="Give the server the token" text="It is stored encrypted on your server and never shown again. Anyone with the token could talk as your bot, so do not paste it anywhere else.">
+      <StepRow n={2} title="Save the token" text="Stored encrypted and never shown again. Do not paste it anywhere else.">
         {asking ? (
           <form className={s.control} onSubmit={(e) => { e.preventDefault(); if (canSaveBot(botToken)) void saveBot(); }}>
             <div className={s.tokenRow}>
@@ -77,7 +77,7 @@ export function StepTelegram({ link, refresh }: { link: LinkStatus; refresh: () 
         )}
       </StepRow>
 
-      <StepRow n={3} title="Link your Telegram account" text="Open your new bot and send this message. The code works once and expires in 5 minutes. After this, only your Telegram id can use the bot.">
+      <StepRow n={3} title="Link your Telegram account" text="Open your bot and send this code. It works once and expires in 5 minutes. After that only you can use the bot.">
         {link.linked ? (
           <Live kind="ok">{linkedText(link)}</Live>
         ) : !link.botSaved || replacing ? (
@@ -101,7 +101,7 @@ export function StepTelegram({ link, refresh }: { link: LinkStatus; refresh: () 
         )}
       </StepRow>
 
-      <StepRow n={4} title="Sign in to the bot" text={<>Send {mono('/signin')}, then the 6-digit code from your authenticator app. The bot deletes your code message. You stay signed in until you send {mono('/signout')}. While signed out the bot sends nothing and payments wait for you.</>}>
+      <StepRow n={4} title="Sign in to the bot" text={<>Send {mono('/signin')}, then your 6-digit authenticator code. You stay signed in until {mono('/signout')}. Signed out, the bot sends nothing.</>}>
         {link.sessionActive
           ? <Live kind="ok">signed in · stays until you send /signout</Live>
           : <Live kind="wait">{signWaitText(link)}</Live>}

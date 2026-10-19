@@ -30,7 +30,7 @@ export default function SetupPage() {
   const [step, setStep] = useState<Step>(1);
   const [reached, setReached] = useState<Step>(1);
   const [token, setToken] = useState('');
-  const [ticks, setTicks] = useState<Ticks>({ a: false, b: false, c: false, d: false, e: false });
+  const [ticks, setTicks] = useState<Ticks>({ a: false, b: false, c: false, d: false });
   const [privacyError, setPrivacyError] = useState('');
 
   const today = useToday();
@@ -116,7 +116,7 @@ export default function SetupPage() {
   );
 
   return (
-    <AppShell home={null} glyph="setup" title="Setup guide" description="Four steps so your bank messages flow into the ledger on their own. About 15 minutes, once." aside={aside}>
+    <AppShell home={null} glyph="setup" title="Setup guide" description="Four short steps. About 15 minutes, once." aside={aside}>
       <div className={s.head}>
         <div className="lbl">{stepLabel(step)}</div>
         <h2 className={`fig-lg ${s.title}`}>{stepTitle(step)}</h2>
