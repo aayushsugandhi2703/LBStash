@@ -30,7 +30,7 @@ Only real credentials and private IDs are here. Your email stays a variable beca
 |---|---|---|
 | Domain `lbstash.site` | `DOMAIN` in `.env.example` | It is public anyway. Deploy and the status badge read it from here |
 | Docker Hub username `aayush2703` | `HUB_USER` and `REGISTRY` in `.github/workflows/release.yml` | Public on Docker Hub |
-| VM size (1 CPU, 6 GB) | `ocpus`, `memory_gb` in `infra/terraform/variables.tf` | A setting |
+| VM type (free AMD micro) | `shape` in `infra/terraform/variables.tf` | A setting |
 
 To change any of these, edit the file and push.
 

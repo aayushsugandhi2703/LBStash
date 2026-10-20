@@ -74,27 +74,27 @@ variable "ssh_ingress_cidrs" {
 # ---------------------------------------------------------------
 
 variable "shape" {
-  description = "VM type. A1.Flex = ARM, free up to 2 CPU / 12 GB. E2.1.Micro = 1 GB, too small for this app."
+  description = "VM type. E2.1.Micro = AMD, 1 GB, free, almost always available. A1.Flex = ARM, free up to 2 CPU / 12 GB, often out of capacity."
   type        = string
-  default     = "VM.Standard.A1.Flex"
+  default     = "VM.Standard.E2.1.Micro"
 }
 
 variable "ocpus" {
-  description = "CPUs (Flex shapes only). Free total: 2. Smaller requests find free space more easily."
+  description = "CPUs (A1.Flex only; the micro has a fixed size). Free total: 2."
   type        = number
   default     = 1
 }
 
 variable "memory_gb" {
-  description = "RAM in GB (Flex shapes only). Free total: 12. The app needs about 3 GB."
+  description = "RAM in GB (A1.Flex only; the micro has 1 GB). Free total: 12. The app needs about 3 GB."
   type        = number
   default     = 6
 }
 
 variable "boot_volume_gb" {
-  description = "Disk size in GB. Free total for all disks: 200."
+  description = "Disk size in GB (minimum 47). Free total for all disks: 200."
   type        = number
-  default     = 100
+  default     = 50
 }
 
 variable "ubuntu_version" {

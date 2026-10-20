@@ -14,9 +14,9 @@ You need: the Oracle setup from `infra/terraform/policies.txt`, `~/.oci/config` 
 3. **Build the server.** GitHub > Actions > **Terraform** > Run workflow > `apply`.
    Copy the `public_ip` from the run summary.
 
-"Out of host capacity" means Oracle has no free ARM space right now. It is common and usually clears within hours. Run the workflow with **retry_minutes** set to `300`: it tries again every minute until the VM is created (it stops after 5 hours; run it again if it gives up). The network and firewall are already built, so only the VM is retried.
+The server is Oracle's free AMD micro VM (`VM.Standard.E2.1.Micro`): Ubuntu 24.04, 1 GB RAM plus 4 GB of swap, and a public IP. It is almost always available.
 
-The VM is small on purpose (1 CPU, 6 GB, set by `ocpus` and `memory_gb` in `infra/terraform/variables.tf`) because small requests find free space more easily, and the app needs only about 3 GB. If you want the full free size, set them to `2` and `12` and run `apply`.
+It is small for this app (about 3 GB wanted), so it runs slowly and starts slowly. For more room, use the free ARM VM instead: set `shape = "VM.Standard.A1.Flex"` in `infra/terraform/variables.tf`. If Oracle answers "Out of host capacity", run the workflow with **retry_minutes** set to `300`: it retries every minute until there is space.
 
 ## Later changes
 
@@ -29,6 +29,6 @@ To delete everything, run `destroy` and type `destroy` to confirm.
 | Problem | Fix |
 |---|---|
 | Fails at init | The `lbstash-tfstate` bucket is missing, or not in the `LBStash` compartment |
-| "Out of host capacity" | Run with `retry_minutes` = `300`, or try again later |
+| "Out of host capacity" (ARM only) | Run with `retry_minutes` = `300`, or use the micro |
 
 Cost is about ₹0/month. Details of what gets built: [infra/terraform/README.md](../../infra/terraform/README.md).

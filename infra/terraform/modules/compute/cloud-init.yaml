@@ -9,6 +9,14 @@ package_update: true
 package_upgrade: true
 
 # ---------------------------------------------------------------
+# Swap: the free micro VM has only 1 GB of RAM, so give it 4 GB of disk as extra memory
+# ---------------------------------------------------------------
+
+swap:
+  filename: /swapfile
+  size: 4G
+
+# ---------------------------------------------------------------
 # Software to install
 # ---------------------------------------------------------------
 
