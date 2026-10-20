@@ -8,7 +8,7 @@ Release workflow --> builds images (amd64 + arm64) --> Docker Hub --> server pul
 
 ## First time
 
-1. **Add the secrets.** Make the Docker Hub token and run **step B** in [SECRETS](../SECRETS.md) (step A was done before Terraform).
+1. **Add the secrets.** Make the Docker Hub token and run **step B** in [SECRETS](../infrastructure/SECRETS.md) (step A was done before Terraform).
 
 2. **Set up Cloudflare.**
    DNS: add an `A` record, name `@`, value the `public_ip`, proxy on.
@@ -37,7 +37,7 @@ Images are created as **public** repos on the first push (the free plan allows u
 
 To roll back, set `IMAGE_TAG=<old version>` in the server's `.env` and run `docker compose up -d`. Only the latest version's tags are kept, so roll back to the most recent one.
 
-The **Update status badge** workflow checks the site every 15 minutes for the README badge. It starts once `DOMAIN` is set.
+The **Update status badge** workflow checks the site every 15 minutes for the README badge. It reads the address from `DOMAIN` in `.env.example`.
 
 ## Problems
 
@@ -45,7 +45,7 @@ The **Update status badge** workflow checks the site every 15 minutes for the RE
 |---|---|
 | Version exists | Use the next version |
 | Run from main | Merge the pull request first |
-| Docker login fails | Check `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` (needs Read, Write, Delete) |
+| Docker login fails | Check `DOCKERHUB_TOKEN` (needs Read, Write, Delete) and that `HUB_USER` in `release.yml` is your Docker Hub username |
 | Deploy cannot connect | Check `VM_HOST` and `VM_SSH_PRIVATE_KEY`. The deploy key must be in place at the first apply |
 | Too many redirects | Cloudflare SSL/TLS must be **Full (strict)** |
 | https error | DNS must point at the IP. The certificate retries every 30 minutes |

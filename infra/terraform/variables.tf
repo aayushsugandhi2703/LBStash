@@ -80,15 +80,15 @@ variable "shape" {
 }
 
 variable "ocpus" {
-  description = "CPUs (Flex shapes only). Free total: 2."
+  description = "CPUs (Flex shapes only). Free total: 2. Smaller requests find free space more easily."
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "memory_gb" {
-  description = "RAM in GB (Flex shapes only). Free total: 12."
+  description = "RAM in GB (Flex shapes only). Free total: 12. The app needs about 3 GB."
   type        = number
-  default     = 12
+  default     = 6
 }
 
 variable "boot_volume_gb" {
@@ -109,16 +109,13 @@ variable "availability_domain_index" {
   default     = 0
 }
 
-variable "ssh_public_key_path" {
-  description = "Path to your public SSH key. The private key stays on your Mac."
-  type        = string
-  default     = "~/.ssh/lbstash_oci.pub"
-}
-
-variable "extra_ssh_public_keys" {
-  description = "More public keys allowed to log in, for example the GitHub Actions deploy key."
+variable "ssh_public_keys" {
+  description = "Public keys allowed to log in: yours and the GitHub deploy key. Public keys are not secret."
   type        = list(string)
-  default     = []
+  default = [
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIT9duCRV3UQdDrYCptVj8gpfxe38SPNQJK4WA4mm2YO lbstash-oci",
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPA+6z3xAdh5eovSs3RvNbhRux9uLruinxBHkctmYg9M lbstash-deploy",
+  ]
 }
 
 # ---------------------------------------------------------------

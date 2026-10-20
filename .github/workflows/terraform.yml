@@ -1,7 +1,7 @@
 # Runs Terraform for the Oracle Cloud server.
 #   Pull request that touches infra/terraform  -> check and plan only
 #   Actions tab > Terraform > Run workflow     -> plan, apply or destroy
-# Setup (secrets, variables, first run): see docs/SECRETS.md and docs/infrastructure/SERVER_SETUP.md.
+# Setup (secrets, variables, first run): see docs/infrastructure/SECRETS.md and docs/infrastructure/SERVER_SETUP.md.
 
 name: Terraform
 
@@ -63,17 +63,15 @@ jobs:
           terraform_version: ">=1.12"
           terraform_wrapper: false
 
-      # Same files Terraform uses on your Mac: ~/.oci/config and the SSH public keys.
+      # Same file Terraform uses on your Mac: ~/.oci/config.
       - name: Set up Oracle Cloud login
         env:
           OCI_USER_OCID: ${{ secrets.OCI_USER_OCID }}
           OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
           OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
           OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
-          SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
-          DEPLOY_SSH_PUBLIC_KEY: ${{ secrets.DEPLOY_SSH_PUBLIC_KEY }}
         run: |
-          install -d -m 700 ~/.oci ~/.ssh
+          install -d -m 700 ~/.oci
           printf '%s\n' "$OCI_PRIVATE_KEY" > ~/.oci/tf_key.pem
           chmod 600 ~/.oci/tf_key.pem
           cat > ~/.oci/config <<EOF
@@ -84,8 +82,6 @@ jobs:
           region=ap-mumbai-1
           key_file=$HOME/.oci/tf_key.pem
           EOF
-          printf '%s\n' "$SSH_PUBLIC_KEY" > ~/.ssh/lbstash_oci.pub
-          echo "TF_VAR_extra_ssh_public_keys=$(jq -cn --arg k "$DEPLOY_SSH_PUBLIC_KEY" '[$k | rtrimstr("\n")]')" >> "$GITHUB_ENV"
 
       - name: Format check
         run: terraform fmt -check -recursive

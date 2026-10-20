@@ -14,18 +14,12 @@ compartment_ocid = "ocid1.compartment.oc1..xxxx" # Identity & Security > Compart
 
 region = "ap-mumbai-1" # your home region
 
-# Make the key first: ssh-keygen -t ed25519 -f ~/.ssh/lbstash_oci -C lbstash-oci
-ssh_public_key_path = "~/.ssh/lbstash_oci.pub"
-
 # ---------------------------------------------------------------
 # Optional
 # ---------------------------------------------------------------
 
 # Allow SSH only from your own IP:
 # ssh_ingress_cidrs = ["203.0.113.7/32"]
-
-# Extra keys allowed to log in (the GitHub Actions deploy key):
-# extra_ssh_public_keys = ["ssh-ed25519 AAAA... lbstash-deploy"]
 
 # Cloudflare Tunnel mode, open no web ports:
 # web_ingress_cidrs = []

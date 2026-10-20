@@ -3,8 +3,8 @@ name: Update status badge
 # Every 15 minutes: opens the live site and saves a tiny status.json on a separate
 # "status" branch (so it never clutters main). The README badge reads that file
 # through shields.io. No extra account or secret: it uses the workflow's own token.
-# Needs the repository variable DOMAIN (the same one the Release workflow uses).
-# Setup: see docs/SECRETS.md.
+# The address comes from DOMAIN in .env.example, the same place the server gets it.
+# Setup: see docs/infrastructure/SECRETS.md.
 
 on:
   schedule:
@@ -16,17 +16,14 @@ permissions:
 
 jobs:
   check:
-    # Nothing to check until DOMAIN is set.
-    if: vars.DOMAIN != ''
     runs-on: ubuntu-latest
-    env:
-      CHECK_URL: https://${{ vars.DOMAIN }}/
     steps:
       - uses: actions/checkout@v4
 
       - name: Open the live site
         id: check
         run: |
+          CHECK_URL="https://$(grep -E '^DOMAIN=' .env.example | cut -d= -f2)/"
           # curl prints "000 <seconds>" when the site cannot be reached, so this never fails the step.
           read -r code secs < <(curl -s -o /dev/null -w "%{http_code} %{time_total}" --max-time 10 "$CHECK_URL" || true)
           code="${code:-000}"

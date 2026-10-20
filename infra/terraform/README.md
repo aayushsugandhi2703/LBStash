@@ -10,7 +10,7 @@ Login comes from `~/.oci/config`. No secrets live in this folder.
 |---|---|---|
 | Networking | VCN, internet gateway, route table, public subnet | VPC |
 | Networking | Firewall (NSG): ports 22, 80, 443 | Security group |
-| Compute | ARM VM (2 CPU, 12 GB), Ubuntu 24.04, public IP | EC2 |
+| Compute | ARM VM (1 CPU, 6 GB; up to 2 and 12 is free), Ubuntu 24.04, public IP | EC2 |
 | Block Volume | 100 GB boot disk | EBS |
 | Object Storage | Private bucket `lbstash-backups` | S3 |
 
@@ -34,7 +34,7 @@ infra/terraform/
 
 ## Run it
 
-Easiest: GitHub > Actions > **Terraform** > Run workflow. Secrets: [SECRETS](../../docs/SECRETS.md). Steps: [Server setup](../../docs/infrastructure/SERVER_SETUP.md).
+Easiest: GitHub > Actions > **Terraform** > Run workflow. Secrets: [SECRETS](../../docs/infrastructure/SECRETS.md). Steps: [Server setup](../../docs/infrastructure/SERVER_SETUP.md).
 
 From your Mac:
 
@@ -45,6 +45,6 @@ terraform plan
 terraform apply
 ```
 
-If you also run it on GitHub, keep `extra_ssh_public_keys` the same in both places.
+The SSH public keys that may log in are in `ssh_public_keys` in `variables.tf` (public keys are not secret).
 
 Delete everything: `terraform destroy`.

@@ -72,7 +72,7 @@ lbstash/
 │   └── scripts/                 gen-secrets.py (makes .env), e2e.py (end-to-end test), update-changelog.py (used by Release)
 │
 ├── .github/workflows/           terraform.yml (builds the server), release.yml (builds, deploys, tags), status.yml (live-site badge)
-├── docs/                        SECRETS.md, application/ (architecture, service guide, release, brand, changelog), infrastructure/ (server setup)
+├── docs/                        application/ (architecture, service guide, release, brand, changelog), infrastructure/ (secrets, server setup)
 ├── docker-compose.yml           starts the whole stack (kept at the top so `docker compose up` just works)
 ├── .env, .env.example           secrets and settings (.env is never committed)
 └── README.md
@@ -130,7 +130,7 @@ Pick one. Always **back up `FIELD_KEY`** from the `.env`: encrypted data cannot 
 
 An always-on server for about ₹0/month. Terraform builds it; GitHub Actions builds the images (amd64 + arm64), stores them on Docker Hub and updates the server.
 
-Add the GitHub secrets first ([SECRETS](docs/SECRETS.md), one place for all of them), then follow [server setup](docs/infrastructure/SERVER_SETUP.md) and [release and deploy](docs/application/RELEASE.md).
+Add the GitHub secrets first ([SECRETS](docs/infrastructure/SECRETS.md), one place for all of them), then follow [server setup](docs/infrastructure/SERVER_SETUP.md) and [release and deploy](docs/application/RELEASE.md).
 
 In short: create the server with **Actions > Terraform**, point your domain at it, then run **Actions > Release** with a version (`x.y.z`) after each merge to `main`.
 
