@@ -74,21 +74,21 @@ variable "ssh_ingress_cidrs" {
 # ---------------------------------------------------------------
 
 variable "shape" {
-  description = "VM type. E2.1.Micro = AMD, 1 GB, free, almost always available. A1.Flex = ARM, free up to 2 CPU / 12 GB, often out of capacity."
+  description = "VM type. E4.Flex = AMD, paid (covered by the 30-day trial credit). A1.Flex = ARM, free up to 2 CPU / 12 GB, often out of capacity. E2.1.Micro = free but far too small for this app."
   type        = string
-  default     = "VM.Standard.E2.1.Micro"
+  default     = "VM.Standard.E4.Flex"
 }
 
 variable "ocpus" {
-  description = "CPUs (A1.Flex only; the micro has a fixed size). Free total: 2."
+  description = "CPUs (Flex shapes). On E4.Flex 1 OCPU = 2 vCPU. On A1.Flex the free total is 2."
   type        = number
   default     = 1
 }
 
 variable "memory_gb" {
-  description = "RAM in GB (A1.Flex only; the micro has 1 GB). Free total: 12. The app needs about 3 GB."
+  description = "RAM in GB (Flex shapes). The app needs about 3 GB. On A1.Flex the free total is 12."
   type        = number
-  default     = 6
+  default     = 4
 }
 
 variable "boot_volume_gb" {

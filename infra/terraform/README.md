@@ -1,6 +1,6 @@
 # Terraform (Oracle Cloud)
 
-Builds the server for LBStash in Mumbai, inside the `LBStash` compartment. It fits Oracle's Always Free tier, so about ₹0/month.
+Builds the server for LBStash in Mumbai, inside the `LBStash` compartment. The first 30 days run on the trial credit; after that move to the free ARM VM (see the server setup guide).
 
 Login comes from `~/.oci/config`. No secrets live in this folder.
 
@@ -10,7 +10,7 @@ Login comes from `~/.oci/config`. No secrets live in this folder.
 |---|---|---|
 | Networking | VCN, internet gateway, route table, public subnet | VPC |
 | Networking | Firewall (NSG): ports 22, 80, 443 | Security group |
-| Compute | AMD micro VM (1 GB RAM + 4 GB swap), Ubuntu 24.04, public IP | EC2 |
+| Compute | AMD VM (E4.Flex, 1 OCPU = 2 vCPU, 4 GB), Ubuntu 24.04, public IP | EC2 |
 | Block Volume | 100 GB boot disk | EBS |
 | Object Storage | Private bucket `lbstash-backups` | S3 |
 
