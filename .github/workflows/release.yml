@@ -15,7 +15,7 @@ name: Release
 #   4. Deletes older version tags from Docker Hub.
 #   5. Bumps frontend/package.json, adds an entry to docs/application/CHANGELOG.md, commits and tags vX.Y.Z.
 # Steps 4 and 5 only run when everything before them worked.
-# Setup (secrets, variables, first run): see docs/infrastructure/SECRETS.md, docs/infrastructure/SERVER_SETUP.md and docs/application/RELEASE.md.
+# Setup (secrets, variables, first run): see docs/SECRETS.md, docs/infrastructure/SERVER_SETUP.md and docs/application/RELEASE.md.
 
 on:
   workflow_dispatch:

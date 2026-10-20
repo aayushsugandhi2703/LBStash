@@ -8,7 +8,7 @@ Release workflow --> builds images (amd64 + arm64) --> Docker Hub --> server pul
 
 ## First time
 
-1. **Add the secrets.** Make the Docker Hub token and run **step B** in [SECRETS](../infrastructure/SECRETS.md) (step A was done before Terraform).
+1. **Add the secrets.** Make the Docker Hub token and run **step B** in [SECRETS](../SECRETS.md) (step A was done before Terraform).
 
 2. **Set up Cloudflare.**
    DNS: add an `A` record, name `@`, value the `public_ip`, proxy on.

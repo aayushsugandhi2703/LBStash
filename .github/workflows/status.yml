@@ -4,7 +4,7 @@ name: Update status badge
 # "status" branch (so it never clutters main). The README badge reads that file
 # through shields.io. No extra account or secret: it uses the workflow's own token.
 # The address comes from DOMAIN in .env.example, the same place the server gets it.
-# Setup: see docs/infrastructure/SECRETS.md.
+# Setup: see docs/SECRETS.md.
 
 on:
   schedule:

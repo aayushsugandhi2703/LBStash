@@ -30,7 +30,7 @@ Only real credentials and private IDs are here. Your email stays a variable beca
 |---|---|---|
 | Domain `lbstash.site` | `DOMAIN` in `.env.example` | It is public anyway. Deploy and the status badge read it from here |
 | Docker Hub username `aayush2703` | `HUB_USER` and `REGISTRY` in `.github/workflows/release.yml` | Public on Docker Hub |
-| VM type (free AMD micro) | `shape` in `infra/terraform/variables.tf` | A setting |
+| VM type and size | `shape`, `ocpus`, `memory_gb` in `infra/terraform/variables.tf` | A setting |
 
 To change any of these, edit the file and push.
 
@@ -80,5 +80,5 @@ gh variable list   # LETSENCRYPT_EMAIL
 ## Order of everything
 
 1. Make the two things above. Run step A.
-2. Create the `lbstash-tfstate` bucket and run the Terraform workflow: [SERVER_SETUP](SERVER_SETUP.md).
-3. Run step B. Then release the app: [RELEASE](../application/RELEASE.md).
+2. Create the `lbstash-tfstate` bucket and run the Terraform workflow: [SERVER_SETUP](infrastructure/SERVER_SETUP.md).
+3. Run step B. Then release the app: [RELEASE](application/RELEASE.md).

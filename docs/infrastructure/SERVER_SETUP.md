@@ -9,7 +9,7 @@ You need: the Oracle setup from `infra/terraform/policies.txt`, `~/.oci/config` 
 1. **Make a bucket** in the Oracle console (Storage > Buckets).
    Name `lbstash-tfstate`, compartment `LBStash`, private, versioning on. Terraform saves its state here.
 
-2. **Add the secrets.** Make the deploy key and run **step A** in [SECRETS](SECRETS.md). Do it before the first apply: adding the deploy key later may mean rebuilding the server.
+2. **Add the secrets.** Make the deploy key and run **step A** in [SECRETS](../SECRETS.md). Do it before the first apply: adding the deploy key later may mean rebuilding the server.
 
 3. **Build the server.** GitHub > Actions > **Terraform** > Run workflow > `apply`.
    Copy the `public_ip` from the run summary.
