@@ -1,4 +1,4 @@
--- auth service schema ("auth"), forward-only. Every table with user data: SELECT bt.enable_rls('table');
+-- auth service schema ("auth"), forward-only. Every table with user data: SELECT lbstash.enable_rls('table');
 
 -- ---------------------------------------------------------------------------------------------
 -- users: one row per account. Secrets are encrypted (TOTP, AES-256-GCM with the user id as AAD)
@@ -23,7 +23,7 @@ CREATE TABLE users (
 );
 CREATE UNIQUE INDEX users_email_key ON users (email);
 CREATE INDEX users_delete_after ON users (delete_after) WHERE delete_after IS NOT NULL;
-SELECT bt.enable_rls('users', 'id');
+SELECT lbstash.enable_rls('users', 'id');
 
 -- ---------------------------------------------------------------------------------------------
 -- sessions: one row per signed-in browser. `family_id` ties the session to its refresh tokens; revoking
@@ -43,7 +43,7 @@ CREATE TABLE sessions (
 );
 CREATE INDEX sessions_user ON sessions (user_id, created_at DESC);
 CREATE INDEX sessions_family ON sessions (family_id);
-SELECT bt.enable_rls('sessions');
+SELECT lbstash.enable_rls('sessions');
 
 -- Every refresh token ever issued for a session, hashed. A token that was already rotated and is shown again
 -- means it was copied: the whole family is revoked.
@@ -56,7 +56,7 @@ CREATE TABLE refresh_tokens (
   expires_at timestamptz NOT NULL
 );
 CREATE INDEX refresh_tokens_session ON refresh_tokens (session_id);
-SELECT bt.enable_rls('refresh_tokens');
+SELECT lbstash.enable_rls('refresh_tokens');
 
 -- ---------------------------------------------------------------------------------------------
 -- auth_factors: passkeys (public key, credential id, counter) and recovery codes (hash, used_at).
@@ -81,7 +81,7 @@ CREATE TABLE auth_factors (
 CREATE UNIQUE INDEX auth_factors_credential ON auth_factors (credential_id) WHERE credential_id IS NOT NULL;
 CREATE UNIQUE INDEX auth_factors_code ON auth_factors (user_id, code_hash) WHERE code_hash IS NOT NULL;
 CREATE INDEX auth_factors_user ON auth_factors (user_id, kind);
-SELECT bt.enable_rls('auth_factors');
+SELECT lbstash.enable_rls('auth_factors');
 
 -- ---------------------------------------------------------------------------------------------
 -- challenges: short-lived single-use server-side state of a multi-step flow. Tokens are stored hashed.
@@ -105,7 +105,7 @@ CREATE TABLE challenges (
 );
 CREATE INDEX challenges_user ON challenges (user_id, kind);
 CREATE INDEX challenges_expires ON challenges (expires_at);
-SELECT bt.enable_rls('challenges');
+SELECT lbstash.enable_rls('challenges');
 
 -- Confirmation links for "change my e-mail" (hashed, single use).
 CREATE TABLE email_changes (
@@ -118,7 +118,7 @@ CREATE TABLE email_changes (
   used_at timestamptz
 );
 CREATE INDEX email_changes_user ON email_changes (user_id);
-SELECT bt.enable_rls('email_changes');
+SELECT lbstash.enable_rls('email_changes');
 
 -- ---------------------------------------------------------------------------------------------
 -- login_throttle: persisted progressive lockout per (email, ip) and per second-step. Keys are hashes, so no
@@ -147,7 +147,7 @@ CREATE TABLE audit_log (
   at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX audit_log_user ON audit_log (user_id, id DESC);
-SELECT bt.enable_rls('audit_log');
+SELECT lbstash.enable_rls('audit_log');
 
 CREATE FUNCTION audit_log_guard() RETURNS trigger LANGUAGE plpgsql AS $f$
 BEGIN

@@ -8,15 +8,15 @@ from dataclasses import replace
 from datetime import datetime, timedelta
 
 import pytest
-from bt.common import create_logger
-from bt.contracts import dump
-from bt.contracts.base import iso_ms
-from bt.crypto import FieldCipher
-from bt.kit.testing import build_test_app, headers_for
-from bt_telegram.env import Env
-from bt_telegram.routes import make_register
-from bt_telegram.runtime import RuntimeOptions
-from telegram_harness import FIELD_KEY, PUBLIC_URL, FakeAuth, FakeBot, FakeLedger, World
+from lbstash.common import create_logger
+from lbstash.contracts import dump
+from lbstash.contracts.base import iso_ms
+from lbstash.crypto import FieldCipher
+from lbstash.kit.testing import build_test_app, headers_for
+from lbstash_telegram.env import Env
+from lbstash_telegram.routes import make_register
+from lbstash_telegram.runtime import RuntimeOptions
+from telegram_harness import FIELD_KEY, PUBLIC_URL, FakeAuth, FakeBot, FakeTransactions, World
 
 
 async def no_sleep(_: float) -> None:
@@ -74,7 +74,7 @@ class TestWhoMayTalkToTheBot:
         tx = await w.incoming(u)
         message_id, msg = await w.message_of(tx)
         n = len(w.bot.calls)
-        tags = len(w.ledger.tag_calls)
+        tags = len(w.transactions.tag_calls)
         stranger = {'from_id': 31337, 'chat_id': 31337}
         await w.say(u, '/signin', **stranger)
         await w.say(u, '/start', **stranger)
@@ -85,7 +85,7 @@ class TestWhoMayTalkToTheBot:
         # right id but another chat is the same as a stranger
         await w.say(u, '/pending', chat_id=424242)
         assert calls_since(w, n) == []
-        assert len(w.ledger.tag_calls) == tags
+        assert len(w.transactions.tag_calls) == tags
         assert msg.text == 'Money out · 6:42 pm'
 
     async def test_group_and_channel_chats_are_ignored_even_from_the_linked_id(self, w: World) -> None:
@@ -107,7 +107,7 @@ class TestWhoMayTalkToTheBot:
         # a tap on an old message: toast only
         await w.tap_data(u, 1, 'sometoken:c0')
         assert w.bot.last_answer() == 'Signed out. Send /signin.'
-        assert [c for c in w.ledger.tag_calls if c['id'] == tx.id] == []
+        assert [c for c in w.transactions.tag_calls if c['id'] == tx.id] == []
         # /signin itself works
         await w.say(u, '/signin')
         assert w.bot.last_message(u.chat_id).text == 'Send your 6-digit authenticator code.'
@@ -364,48 +364,48 @@ class TestCallbacks:
         tx_b = await w.incoming(b)
         a_id, a_msg = await w.message_of(tx_a)
         b_id, _ = await w.message_of(tx_b)
-        tags = len(w.ledger.tag_calls)
+        tags = len(w.transactions.tag_calls)
         food = w.bot.button(a_msg, 'Food')['callback_data']
 
         # B taps A's button (A's token on B's webhook, even on B's own message id)
         await w.tap_data(b, b_id, food)
         assert w.bot.last_answer() == 'That button is no longer active.'
         await w.tap_data(b, a_id, food)
-        assert len(w.ledger.tag_calls) == tags
+        assert len(w.transactions.tag_calls) == tags
         assert a_msg.text == 'Money out · 6:42 pm'
 
         # garbage and unknown tokens
         await w.tap_data(a, a_id, 'garbage')
         await w.tap_data(a, a_id, 'AAAAAAAAAAAA:c0')
-        assert len(w.ledger.tag_calls) == tags
+        assert len(w.transactions.tag_calls) == tags
 
         # the right token on the wrong message (an older copy) is refused too
         await w.tap_data(a, a_id + 999, food)
         assert w.bot.last_answer() == 'That button is no longer active.'
-        assert len(w.ledger.tag_calls) == tags
+        assert len(w.transactions.tag_calls) == tags
 
         # the owner's own tap works
         await w.tap_data(a, a_id, food)
-        assert len(w.ledger.tag_calls) == tags + 1
+        assert len(w.transactions.tag_calls) == tags + 1
 
     async def test_a_payment_that_no_longer_exists_is_reported_not_tagged(self, w: World) -> None:
         u = await w.signed_in_user()
         tx = await w.incoming(u)
         message_id, m = await w.message_of(tx)
-        del w.ledger.txs[tx.id]
+        del w.transactions.txs[tx.id]
         await w.tap(u, message_id, m.keyboard, 'Food')
         assert w.bot.last_answer() == 'That payment no longer exists.'
         assert m.text == 'Money out · removed'
 
-    async def test_a_ledger_outage_answers_the_tap_with_a_retry_hint_and_changes_nothing(self, w: World) -> None:
+    async def test_a_transactions_outage_answers_the_tap_with_a_retry_hint_and_changes_nothing(self, w: World) -> None:
         u = await w.signed_in_user()
         tx = await w.incoming(u)
         message_id, m = await w.message_of(tx)
-        w.ledger.down = True
+        w.transactions.down = True
         try:
             await w.tap(u, message_id, m.keyboard, 'Food')
         finally:
-            w.ledger.down = False
+            w.transactions.down = False
         assert w.bot.last_answer() == 'Could not do that right now. Try again in a moment.'
         assert m.text == 'Money out · 6:42 pm'
         rows = await w.sql('SELECT status FROM telegram_prompts WHERE transaction_id = $1', tx.id)
@@ -457,7 +457,7 @@ class TestSecretsStaySecret:
         bot, auth = FakeBot(), FakeAuth()
         opts = RuntimeOptions(bot=bot, cipher=FieldCipher({1: FIELD_KEY}), sleep=no_sleep)
         app = await build_test_app(
-            service='telegram', register=make_register(opts), pool=w.db.pool, clients={'ledger': FakeLedger(), 'auth': auth},
+            service='telegram', register=make_register(opts), pool=w.db.pool, clients={'transactions': FakeTransactions(), 'auth': auth},
             env={'FIELD_KEY': FIELD_KEY, 'PUBLIC_URL': PUBLIC_URL, 'TELEGRAM_API_BASE': 'http://fake.invalid', 'TELEGRAM_SEND_GAP_MS': 0},
             env_model=Env,
         )  # fmt: skip

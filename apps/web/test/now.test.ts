@@ -165,8 +165,8 @@ describe('action links', () => {
     ]);
     expect(links.map((l) => [l.tag, l.text, l.href])).toEqual([
       ['WATCH', 'Fun is at 82% of its limit', '/limits'],
-      ['TAG', '1 payment needs a tag', '/ledger?cat=needs-tag'],
-      ['LOOK', '2 messages could not be read', '/ledger/unread'],
+      ['TAG', '1 payment needs a tag', '/transactions?cat=needs-tag'],
+      ['LOOK', '2 messages could not be read', '/transactions/unread'],
       ['NEXT', 'Rent ₹20,000 on Nov 1', '/repeats'],
     ]);
     expect(links[0]!.marker).toBe('warn');
@@ -204,7 +204,7 @@ describe('balance check wording', () => {
     const base = { checkedAt: '2026-10-18T10:00:00.000Z', graceEndsAt: '2026-10-18T16:00:00.000Z' };
     expect(gapSentence({ ...base, gapMinor: R(-180) })).toBe(
       '₹180 left your account and no message explains it. It is booked as an Unaccounted entry after 6 hours, unless the missing message arrives first.');
-    expect(gapSentence({ ...base, gapMinor: R(500) })).toContain('₹500 more is in your account than the ledger says');
+    expect(gapSentence({ ...base, gapMinor: R(500) })).toContain('₹500 more is in your account than the transactions says');
     expect(gapSentence({ ...base, graceEndsAt: null, gapMinor: R(-180) })).toContain('booked as an Unaccounted entry soon');
   });
 });

@@ -7,7 +7,7 @@ from typing import Any
 
 import httpx
 import pytest
-from bt_telegram.botapi import BotApiError, BotMe, ForceReply, HttpBotApi, escape_html
+from lbstash_telegram.botapi import BotApiError, BotMe, ForceReply, HttpBotApi, escape_html
 
 Script = Callable[[str, int], tuple[int, Any]]
 

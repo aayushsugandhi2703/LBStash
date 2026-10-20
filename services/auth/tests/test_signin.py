@@ -5,11 +5,10 @@ from datetime import UTC, datetime
 
 import pytest
 import pytest_asyncio
-
 from auth_harness import ACCESS_SECRET, STRONG, Account, Harness, make_harness
-from bt.common import COOKIES
-from bt.crypto import totp_code, totp_step, verify_access_token
-from bt_auth.throttle import LOGIN_POLICY, locked_for, record_failure
+from lbstash.common import COOKIES
+from lbstash.crypto import totp_code, totp_step, verify_access_token
+from lbstash_auth.throttle import LOGIN_POLICY, locked_for, record_failure
 
 
 @pytest_asyncio.fixture(scope='module', loop_scope='session')
@@ -60,8 +59,8 @@ class TestRegistrationAndMandatorySetup:
         b = h.browser()
         assert (await b.call('POST', '/auth/register', {'email': 'Welcome@Example.com', 'password': STRONG, 'name': 'Wen'})).status == 201
         sent = h.mails[before:]
-        assert [(m.to, m.subject) for m in sent] == [('welcome@example.com', 'Welcome to Ledger')]
-        assert sent[0].text.startswith('Hi Wen,') and 'Thank you for choosing Ledger' in sent[0].text
+        assert [(m.to, m.subject) for m in sent] == [('welcome@example.com', 'Welcome to LBStash')]
+        assert sent[0].text.startswith('Hi Wen,') and 'Thank you for choosing LBStash' in sent[0].text
 
         # duplicate and weak-password attempts send nothing
         assert (await b.call('POST', '/auth/register', {'email': 'welcome@example.com', 'password': STRONG})).status == 409
@@ -94,7 +93,7 @@ class TestRegistrationAndMandatorySetup:
         assert (await register(email='ann@example.com', password=STRONG)).status == 409
 
     async def test_sets_secure_cookies_only_when_public_url_is_https(self, h: Harness):
-        app = await h.app_with(PUBLIC_URL='https://ledger.example.com')
+        app = await h.app_with(PUBLIC_URL='https://transactions.example.com')
         res = await h.browser(app=app).call('POST', '/auth/register', {'email': 'tls@example.com', 'password': STRONG})
         assert len(res.set_cookie) == 3
         for c in res.set_cookie:
@@ -457,8 +456,8 @@ class TestTokensAndThrottlingDetails:
 @pytest.mark.parametrize('value', ['', '   '])
 def test_env_treats_blank_optional_variables_as_unset(value: str):
     """docker-compose passes unset optionals as empty strings; an empty MAIL_FROM must not become the sender."""
-    from bt.kit.testing import test_env_values
-    from bt_auth.env import Env, rp_id
+    from lbstash.kit.testing import test_env_values
+    from lbstash_auth.env import Env, rp_id
 
     env = Env.model_validate(test_env_values('auth', ACCESS_TOKEN_SECRET='a' * 40, FIELD_KEY='b' * 44, MAIL_FROM=value, WEBAUTHN_RP_ID=value, SMTP_URL=value))
     assert env.MAIL_FROM is None and env.SMTP_URL is None

@@ -122,7 +122,7 @@ export function StripLink({ tag, children, href, onClick, arrow = '→' }: { tag
 }
 
 /** `= available` style block: rows of label/value, last row is the total in accent. */
-export function LedgerMath({ rows, total }: { rows: { k: string; v: ReactNode; tone?: 'credit' | 'debit' }[]; total?: { k: string; v: ReactNode } }) {
+export function TallyMath({ rows, total }: { rows: { k: string; v: ReactNode; tone?: 'credit' | 'debit' }[]; total?: { k: string; v: ReactNode } }) {
   return (
     <div className="math mono">
       {rows.map((r) => <div key={r.k} className="r"><span className="k">{r.k}</span><span className={r.tone ?? ''}>{r.v}</span></div>)}

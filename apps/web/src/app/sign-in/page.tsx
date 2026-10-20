@@ -158,7 +158,7 @@ export default function SignInPage() {
       title={step === 'password' ? 'Sign in' : step === 'verify' ? 'Second step' : 'Signed in'}
       description={
         step === 'password'
-          ? 'Your ledger is private. Sign in with your password, then a second step.'
+          ? 'Your transactions is private. Sign in with your password, then a second step.'
           : step === 'verify'
             ? 'Prove it is you with your authenticator app, passkey or recovery code.'
             : 'You are in. Nothing else to do.'

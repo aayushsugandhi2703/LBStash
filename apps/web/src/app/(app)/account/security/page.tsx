@@ -4,7 +4,7 @@ import type { z } from 'zod';
 import { type PublicKeyCredentialCreationOptionsJSON, startRegistration } from '@simplewebauthn/browser';
 import type { AllowedIpsRes, AuditRes, RecoveryCodesRes, SessionsRes, TwoFactorEnableStartRes } from '@/contracts';
 import { AccountShell } from '@/components/shell';
-import { Button, CodeInput, ConfirmWell, Empty, ErrorLine, GhostButton, LedgerMath, Loading, SettingsRow, TextLink } from '@/components/ui';
+import { Button, CodeInput, ConfirmWell, Empty, ErrorLine, GhostButton, TallyMath, Loading, SettingsRow, TextLink } from '@/components/ui';
 import { api, errorText, fieldErrors, useApi } from '@/lib/api';
 import { ago, auditLabel, auditPlace, auditWarn, auditWhen, canRemovePasskey, canSavePassword, codeError, type Factors, isCode, type Passkey, passkeyLabel, passkeyMeta, parseIps, passwordCounter, type Session, sessionMeta, shortDate, signInStrong } from '@/features/account';
 import { copyToClipboard, downloadText, useFlash } from '@/lib/browser';
@@ -29,7 +29,7 @@ export default function SecurityPage() {
       description="How you sign in, where, and recent activity. Changes ask for your code."
       label="SECURITY" heading="Sign-in and sessions"
       lead="Two-step sign-in is always on. Passkeys are fastest; the app and recovery codes are backups."
-      summary={<LedgerMath rows={[
+      summary={<TallyMath rows={[
         { k: 'two-step', v: 'on' },
         { k: 'passkeys', v: f ? String(f.passkeys.length) : '—' },
         { k: 'browsers', v: sessions.data ? String(list.length) : '—' },
@@ -331,7 +331,7 @@ function RecoveryRow({ remaining, total, onDone }: { remaining: number; total: n
           <div className={`mono ${s.codes}`}>{codes.map((c) => <span key={c}>{c}</span>)}</div>
           <div className={s.actionsRow} style={{ paddingBottom: 0 }}>
             <TextLink mono onClick={() => void copyToClipboard(codes.join('\n')).then((ok) => ok && flash('all'))}>{flags.all ? 'copied all' : 'copy all'}</TextLink>
-            <TextLink mono onClick={() => downloadText('ledger-recovery-codes.txt', `${codes.join('\n')}\n`, 'text/plain')}>download .txt</TextLink>
+            <TextLink mono onClick={() => downloadText('lbstash-recovery-codes.txt', `${codes.join('\n')}\n`, 'text/plain')}>download .txt</TextLink>
           </div>
         </Well>
       )}

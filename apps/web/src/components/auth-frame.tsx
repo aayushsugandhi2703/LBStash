@@ -21,7 +21,7 @@ export function AuthFrame({
   return (
     <div className="signin">
       <header className="signin-header">
-        <Link href="/sign-in" aria-label="Ledger"><Logo /></Link>
+        <Link href="/sign-in" aria-label="LBStash"><Logo /></Link>
         <div className="signin-header-right">{right}</div>
       </header>
       <div className="signin-body">

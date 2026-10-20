@@ -1,4 +1,4 @@
-"""Telegram test harness: app and workers over a real (RLS-enforced) database, a fake Bot API, fake ledger and auth. Named `telegram_harness` so several services' tests never import the wrong one."""
+"""Telegram test harness: app and workers over a real (RLS-enforced) database, a fake Bot API, fake transactions and auth. Named `telegram_harness` so several services' tests never import the wrong one."""
 
 import base64
 import itertools
@@ -9,8 +9,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from bt.common import Errors, normalize_tag
-from bt.contracts import (
+from lbstash.common import Errors, normalize_tag
+from lbstash.contracts import (
     BalanceCheckDto,
     BalanceChecksRes,
     CategoriesRes,
@@ -21,18 +21,18 @@ from bt.contracts import (
     TransactionRes,
     VerifyTotpRes,
 )
-from bt.contracts.base import iso_ms
-from bt.crypto import FieldCipher
-from bt.db.testing import TempDatabase
-from bt.kit.testing import AppHarness, build_test_app, headers_for
-from bt_telegram.botapi import BotApiError, BotMe, ForceReply, Keyboard
-from bt_telegram.env import Env
-from bt_telegram.routes import make_register
-from bt_telegram.runtime import Runtime, RuntimeOptions, shared_runtime
-from bt_telegram.workers import make_workers
+from lbstash.contracts.base import iso_ms
+from lbstash.crypto import FieldCipher
+from lbstash.db.testing import TempDatabase
+from lbstash.kit.testing import AppHarness, build_test_app, headers_for
+from lbstash_telegram.botapi import BotApiError, BotMe, ForceReply, Keyboard
+from lbstash_telegram.env import Env
+from lbstash_telegram.routes import make_register
+from lbstash_telegram.runtime import Runtime, RuntimeOptions, shared_runtime
+from lbstash_telegram.workers import make_workers
 
 FIELD_KEY = base64.b64encode(os.urandom(32)).decode()
-PUBLIC_URL = 'https://budget.example.com'
+PUBLIC_URL = 'https://lbstash.example.com'
 TZ = 'Asia/Kolkata'
 START = datetime(2026, 10, 18, 13, 12, tzinfo=UTC)
 
@@ -176,8 +176,8 @@ class FakeCategory:
     usage: int
 
 
-class FakeLedger:
-    """The slice of the ledger this service calls: transactions, tagging, pending list, categories."""
+class FakeTransactions:
+    """The slice of the transactions this service calls: transactions, tagging, pending list, categories."""
 
     def __init__(self) -> None:
         self.txs: dict[str, FakeTx] = {}
@@ -211,7 +211,7 @@ class FakeLedger:
 
     def _get(self, user_id: str | None, id_: str) -> FakeTx:
         if self.down:
-            raise Errors.upstream('ledger')
+            raise Errors.upstream('transactions')
         t = self.txs.get(id_)
         if t is None or t.user_id != user_id:
             raise Errors.not_found('Transaction')
@@ -259,24 +259,24 @@ class FakeLedger:
 
     async def pending(self, as_: Any, limit: int = 50) -> PendingRes:
         if self.down:
-            raise Errors.upstream('ledger')
+            raise Errors.upstream('transactions')
         mine = [t for t in self.txs.values() if t.user_id == as_.user_id and t.status == 'pending']
         return PendingRes(count=len(mine), items=[dto(t) for t in mine[:limit]])
 
     async def categories(self, as_: Any, *, sort: str | None = None, limit: int | None = None, **_: Any) -> CategoriesRes:
         if self.down:
-            raise Errors.upstream('ledger')
+            raise Errors.upstream('transactions')
         mine = sorted((c for c in self.cats.values() if c.user_id == as_.user_id), key=lambda c: -c.usage)
         return CategoriesRes(items=[CategoryDto(id=c.id, name=c.name, archived=False) for c in mine[: limit or 200]])
 
     async def balance_checks(self, as_: Any, limit: int = 1) -> BalanceChecksRes:
         if self.down:
-            raise Errors.upstream('ledger')
+            raise Errors.upstream('transactions')
         if self.balance_checked_at is None:
             return BalanceChecksRes(items=[])
         at = iso_ms(self.balance_checked_at)
         check = BalanceCheckDto(
-            id=str(uuid.uuid4()), bank_balance_minor=0, ledger_balance_minor=0, gap_minor=0, source='manual', status='resolved',
+            id=str(uuid.uuid4()), bank_balance_minor=0, transactions_balance_minor=0, gap_minor=0, source='manual', status='resolved',
             checked_at=at, as_of=at, transaction_id=None, grace_ends_at=None,
         )  # fmt: skip
         return BalanceChecksRes(items=[check][:limit])
@@ -342,7 +342,7 @@ class World:
     db: TempDatabase
     app: AppHarness
     bot: FakeBot
-    ledger: FakeLedger
+    transactions: FakeTransactions
     auth: FakeAuth
     clock: Clock
     # waits the service asked for (seconds), recorded instead of slept
@@ -479,7 +479,7 @@ class World:
         if p.status != 201:
             raise AssertionError(f'pairing failed {p.status}')
         await self.say(u, p.body['command'])
-        self.ledger.seed_categories(u.user_id)
+        self.transactions.seed_categories(u.user_id)
         return u
 
     async def sign_in(self, u: TgUser) -> None:
@@ -509,7 +509,7 @@ class World:
 
     def new_tx(self, u: TgUser, **fields: Any) -> FakeTx:
         """A pending debit for the user (no event yet); `occurred_at` defaults to now."""
-        return self.ledger.add(u.user_id, **({'occurred_at': iso_ms(self.clock.now)} | fields))
+        return self.transactions.add(u.user_id, **({'occurred_at': iso_ms(self.clock.now)} | fields))
 
     async def incoming(self, u: TgUser, **fields: Any) -> FakeTx:
         """A new pending debit plus its delivered `transaction.changed` event."""
@@ -539,16 +539,16 @@ def runtime_options(bot: FakeBot, clock: Callable[[], datetime], sleeps: list[fl
 
 
 async def make_world(db: TempDatabase, send_gap_ms: int = 0) -> World:
-    bot, ledger, auth, clock = FakeBot(), FakeLedger(), FakeAuth(), Clock()
+    bot, transactions, auth, clock = FakeBot(), FakeTransactions(), FakeAuth(), Clock()
     # a recent check, so the Sunday balance nudge doesn't add a message to digest tests
-    ledger.balance_checked_at = START
+    transactions.balance_checked_at = START
     sleeps: list[float] = []
     opts = runtime_options(bot, clock, sleeps, send_gap_ms)
     app = await build_test_app(
-        service='telegram', register=make_register(opts), pool=db.pool, clients={'ledger': ledger, 'auth': auth},
+        service='telegram', register=make_register(opts), pool=db.pool, clients={'transactions': transactions, 'auth': auth},
         env={'FIELD_KEY': FIELD_KEY, 'PUBLIC_URL': PUBLIC_URL, 'TELEGRAM_API_BASE': 'http://fake.invalid', 'TELEGRAM_SEND_GAP_MS': 0},
         env_model=Env,
     )  # fmt: skip
     await make_workers(opts)(app.deps)
-    return World(db, app, bot, ledger, auth, clock, sleeps)
+    return World(db, app, bot, transactions, auth, clock, sleeps)
 

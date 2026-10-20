@@ -3,19 +3,19 @@ from pathlib import Path
 
 import pytest
 import pytest_asyncio
-from bt.db.testing import TempDatabase
+from lbstash.db.testing import TempDatabase
 from planning_harness import Harness, make_harness
 
-pytest_plugins = ['bt.kit.pytest_plugin']
+pytest_plugins = ['lbstash.kit.pytest_plugin']
 
 
 @pytest.fixture(scope='session')
-def bt_service() -> str:
+def lbstash_service() -> str:
     return 'planning'
 
 
 @pytest.fixture(scope='session')
-def bt_migrations() -> str:
+def lbstash_migrations() -> str:
     return str(Path(__file__).resolve().parents[1] / 'migrations')
 
 

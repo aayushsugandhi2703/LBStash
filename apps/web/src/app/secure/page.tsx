@@ -195,7 +195,7 @@ export default function SecurePage() {
       glyph="secure"
       title={title}
       description={passkeyRequiredOnly
-        ? 'Create a passkey before you can open your ledger.'
+        ? 'Create a passkey before you can open your transactions.'
         : 'A password alone is not enough. Three quick parts, about 2 minutes.'}
       aside={
         <div className="signin-steps">
@@ -248,7 +248,7 @@ export default function SecurePage() {
             <div className="signin-form signin-part-form">
               <div className="lbl">{passkeyRequiredOnly ? 'REQUIRED · PASSKEY' : 'PART 2 OF 3 · REQUIRED PASSKEY'}</div>
               <h2 className="fig-lg">{passkeyRequiredOnly ? 'Create a passkey to finish signing in.' : 'Create a passkey to secure your account.'}</h2>
-              <p className="cap">A passkey is required to open your ledger. Lost the device? Use your authenticator or a recovery code.</p>
+              <p className="cap">A passkey is required to open your transactions. Lost the device? Use your authenticator or a recovery code.</p>
               {passkeyAdded && <div className="signin-passkey-added"><span aria-hidden="true">✓</span><strong>Passkey added</strong></div>}
               {error && <ErrorLine>{error}</ErrorLine>}
               <div className="signin-actions">
@@ -291,7 +291,7 @@ export default function SecurePage() {
                       const url = URL.createObjectURL(blob);
                       const anchor = document.createElement('a');
                       anchor.href = url;
-                      anchor.download = 'ledger-recovery-codes.txt';
+                      anchor.download = 'lbstash-recovery-codes.txt';
                       anchor.click();
                       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
                     }}>download .txt</button>

@@ -65,5 +65,5 @@ export const AuditEntryDto = z.object({
 });
 export const AuditRes = z.object({ entries: z.array(AuditEntryDto) });
 export const ConfirmEmailRes = z.object({ user: UserDto });
-/** `parts[0]` is auth's own part; then ledger, planning, recurring, ingest, telegram. Secrets are never included. */
+/** `parts[0]` is auth's own part; then transactions, planning, recurring, ingest, telegram. Secrets are never included. */
 export const ExportRes = z.object({ exportedAt: isoDateTime, filename: z.string(), entries: z.number().int(), parts: z.array(ExportPart) });

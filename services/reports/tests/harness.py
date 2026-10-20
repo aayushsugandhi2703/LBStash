@@ -9,8 +9,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-from bt.common import AppError, months_ending_at
-from bt.contracts import (
+from lbstash.common import AppError, months_ending_at
+from lbstash.contracts import (
     AlertsRes,
     BudgetsRes,
     CategoryMonthsRes,
@@ -22,8 +22,8 @@ from bt.contracts import (
     SpendByCategoryRes,
     UnparsedCountRes,
 )
-from bt.kit.testing import AppHarness, build_test_app
-from bt_reports.routes import make_register
+from lbstash.kit.testing import AppHarness, build_test_app
+from lbstash_reports.routes import make_register
 
 
 def R(rupees: int) -> int:
@@ -105,7 +105,7 @@ class Fakes:
     rules: Any = rules
     failing: tuple[str, ...] = ()
     empty: bool = False
-    # Category x month rows the ledger answers with (the spec's by default).
+    # Category x month rows the transactions answers with (the spec's by default).
     cat_months: list[dict[str, Any]] | None = None
     # Seconds every call takes: lets a test see how many are in flight at once (`peak`).
     delay: float = 0
@@ -114,7 +114,7 @@ class Fakes:
     peak: int = 0
 
     def clients(self) -> dict[str, Any]:
-        return {n: _Fake(self, n) for n in ('ledger', 'planning', 'recurring', 'ingest')}
+        return {n: _Fake(self, n) for n in ('transactions', 'planning', 'recurring', 'ingest')}
 
 
 class _Fake:
@@ -143,7 +143,7 @@ class _Fake:
 
 class _IMPL:
     @staticmethod
-    def ledger_month_summary(f: Fakes, _as: Any, month: str) -> MonthSummaryRes:
+    def transactions_month_summary(f: Fakes, _as: Any, month: str) -> MonthSummaryRes:
         if f.empty:
             return MonthSummaryRes.model_validate({
                 'month': '2026-10', 'carriedOverMinor': 0, 'incomeMinor': 0, 'spentMinor': 0, 'availableMinor': 0,
@@ -156,14 +156,14 @@ class _IMPL:
         })  # fmt: skip
 
     @staticmethod
-    def ledger_spend_by_category(f: Fakes, _as: Any, _from: Any, _to: Any) -> SpendByCategoryRes:
+    def transactions_spend_by_category(f: Fakes, _as: Any, _from: Any, _to: Any) -> SpendByCategoryRes:
         spend = [('bills', 1299), ('fun', 1640), ('rent', 20000), ('travel', 1350), ('food', 5420), ('sip', 10000)]
         return SpendByCategoryRes.model_validate({
             'items': [] if f.empty else [{'categoryId': ID[n], 'categoryName': n, 'spentMinor': R(v)} for n, v in spend]
         })  # fmt: skip
 
     @staticmethod
-    def ledger_months(f: Fakes, _as: Any, end: str, count: int) -> MonthsRes:
+    def transactions_months(f: Fakes, _as: Any, end: str, count: int) -> MonthsRes:
         keys = months_ending_at(end, count)
         return MonthsRes.model_validate({
             'items': [] if f.empty else [
@@ -173,13 +173,13 @@ class _IMPL:
         })  # fmt: skip
 
     @staticmethod
-    def ledger_category_months(f: Fakes, _as: Any, end: str, count: int) -> CategoryMonthsRes:
+    def transactions_category_months(f: Fakes, _as: Any, end: str, count: int) -> CategoryMonthsRes:
         keys = months_ending_at(end, count)
         rows = CAT_MONTHS if f.cat_months is None else f.cat_months
         return CategoryMonthsRes.model_validate({'items': [] if f.empty else [c for c in rows if c['month'] in keys]})
 
     @staticmethod
-    def ledger_daily(f: Fakes, _as: Any, _month: str, _exclude: Any = ()) -> DailyRes:
+    def transactions_daily(f: Fakes, _as: Any, _month: str, _exclude: Any = ()) -> DailyRes:
         return DailyRes.model_validate({
             'items': [] if f.empty else [{'day': f'2026-10-{i + 1:02d}', 'spentMinor': R(v)} for i, v in enumerate(DAILY)]
         })  # fmt: skip

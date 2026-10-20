@@ -1,5 +1,5 @@
 'use client';
-import { ErrorLine, LedgerMath, Loading, Segmented } from '@/components/ui';
+import { ErrorLine, TallyMath, Loading, Segmented } from '@/components/ui';
 import { LEVELS } from '@/features/limits';
 import { alertText, money, type Settings } from '@/features/setup';
 import type { useFirstMonth } from './use-first-month';
@@ -27,7 +27,7 @@ export function StepFirstMonth({ f, settings }: { f: Fields; settings: Settings 
         <Segmented label="Alert level" value={String(settings.alertLevel)} options={LEVELS.map((l) => ({ value: String(l.level), label: `${l.level}%` }))} onChange={(v) => void f.setLevel(Number(v) as 70 | 80 | 90)} />
       </div>
       <div className={s.firstMath}>
-        <LedgerMath
+        <TallyMath
           rows={[{ k: 'opening balance', v: money(f.opening.value) }, { k: 'to plan this month', v: money(f.plan.value) }]}
           total={{ k: '= alerts at', v: <span className={s.ink}>{alertText(settings.alertLevel)}</span> }}
         />

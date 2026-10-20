@@ -1,22 +1,22 @@
-# Budget Tracker: the whole stack in one file. One image per service (services/<name>/Dockerfile, apps/web/Dockerfile)
+# LBStash: the whole stack in one file. One image per service (services/<name>/Dockerfile, apps/web/Dockerfile)
 # on a shared Python base (docker/base.Dockerfile).
 #   python3 scripts/gen-secrets.py   # once: writes .env with random secrets
 #   docker compose up --build        # everything: db, services, gateway, web, nginx
 #   docker compose --profile test up -d test-db   # throwaway Postgres for the backend tests (port 5544)
 # Published to the host: `nginx` (ports 80 and 443, plus PUBLIC_PORT for plain http) and, on 127.0.0.1 only, the gateway (GATEWAY_PORT, for scripts/e2e.py).
 # Push to a registry: REGISTRY=registry.example.com/team/ IMAGE_TAG=1.0 docker compose build && docker compose push
-name: budget-tracker
+name: lbstash
 
 x-env: &env
   APP_ENV: ${APP_ENV:-production}
   LOG_LEVEL: ${LOG_LEVEL:-info}
   INTERNAL_SECRET: ${INTERNAL_SECRET:?run python3 scripts/gen-secrets.py}
-  QUEUE_DATABASE_URL: postgres://bt_queue:${DB_PASSWORD_QUEUE}@db:5432/${POSTGRES_DB:-budget}
+  QUEUE_DATABASE_URL: postgres://lbstash_queue:${DB_PASSWORD_QUEUE}@db:5432/${POSTGRES_DB:-lbstash}
   PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8088}
 
 x-build: &build
   context: .
-  additional_contexts: { budget-base: "service:base" }
+  additional_contexts: { lbstash-base: "service:base" }
 
 x-service: &service
   restart: unless-stopped
@@ -33,7 +33,7 @@ volumes:
 services:
   # shared base image (build-only; services build on it)
   base:
-    image: ${REGISTRY:-}budget-base:${IMAGE_TAG:-latest}
+    image: ${REGISTRY:-}lbstash-base:${IMAGE_TAG:-latest}
     build: { context: ., dockerfile: docker/base.Dockerfile }
     scale: 0 # never runs; exists so `service:base` can be a build context for every Python service
 
@@ -43,12 +43,12 @@ services:
     restart: unless-stopped
     networks: [internal]
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-bt_admin}
+      POSTGRES_USER: ${POSTGRES_USER:-lbstash_admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run python3 scripts/gen-secrets.py}
-      POSTGRES_DB: ${POSTGRES_DB:-budget}
+      POSTGRES_DB: ${POSTGRES_DB:-lbstash}
     volumes: ["pgdata:/var/lib/postgresql/data"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bt_admin} -d ${POSTGRES_DB:-budget}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lbstash_admin} -d ${POSTGRES_DB:-lbstash}"]
       interval: 3s
       timeout: 3s
       retries: 30
@@ -56,15 +56,15 @@ services:
   # one-shot: creates a login role + schema per service (idempotent), then exits
   db-init:
     build: { context: ., dockerfile: docker/base.Dockerfile }
-    image: ${REGISTRY:-}budget-base:${IMAGE_TAG:-latest}
+    image: ${REGISTRY:-}lbstash-base:${IMAGE_TAG:-latest}
     networks: [internal]
     depends_on: { db: { condition: service_healthy } }
-    command: ["python", "-m", "bt.db.init"]
+    command: ["python", "-m", "lbstash.db.init"]
     environment:
-      ADMIN_DATABASE_URL: postgres://${POSTGRES_USER:-bt_admin}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-budget}
+      ADMIN_DATABASE_URL: postgres://${POSTGRES_USER:-lbstash_admin}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-lbstash}
       DB_PASSWORD_QUEUE: ${DB_PASSWORD_QUEUE}
       DB_PASSWORD_AUTH: ${DB_PASSWORD_AUTH}
-      DB_PASSWORD_LEDGER: ${DB_PASSWORD_LEDGER}
+      DB_PASSWORD_TRANSACTIONS: ${DB_PASSWORD_TRANSACTIONS}
       DB_PASSWORD_INGEST: ${DB_PASSWORD_INGEST}
       DB_PASSWORD_PLANNING: ${DB_PASSWORD_PLANNING}
       DB_PASSWORD_RECURRING: ${DB_PASSWORD_RECURRING}
@@ -74,10 +74,10 @@ services:
   auth:
     <<: *service
     build: { <<: *build, dockerfile: services/auth/Dockerfile }
-    image: ${REGISTRY:-}budget-auth:${IMAGE_TAG:-latest}
+    image: ${REGISTRY:-}lbstash-auth:${IMAGE_TAG:-latest}
     environment:
       <<: *env
-      DATABASE_URL: postgres://svc_auth:${DB_PASSWORD_AUTH}@db:5432/${POSTGRES_DB:-budget}
+      DATABASE_URL: postgres://svc_auth:${DB_PASSWORD_AUTH}@db:5432/${POSTGRES_DB:-lbstash}
       ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET}
       FIELD_KEY: ${FIELD_KEY}
       REGISTRATION: ${REGISTRATION:-first-only} # one account per install; "open" allows several
@@ -85,59 +85,59 @@ services:
       SMTP_URL: ${SMTP_URL:-}
       MAIL_FROM: ${MAIL_FROM:-}
 
-  ledger:
+  transactions:
     <<: *service
-    build: { <<: *build, dockerfile: services/ledger/Dockerfile }
-    image: ${REGISTRY:-}budget-ledger:${IMAGE_TAG:-latest}
+    build: { <<: *build, dockerfile: services/transactions/Dockerfile }
+    image: ${REGISTRY:-}lbstash-transactions:${IMAGE_TAG:-latest}
     environment:
       <<: *env
-      DATABASE_URL: postgres://svc_ledger:${DB_PASSWORD_LEDGER}@db:5432/${POSTGRES_DB:-budget}
+      DATABASE_URL: postgres://svc_transactions:${DB_PASSWORD_TRANSACTIONS}@db:5432/${POSTGRES_DB:-lbstash}
 
   ingest:
     <<: *service
     build: { <<: *build, dockerfile: services/ingest/Dockerfile }
-    image: ${REGISTRY:-}budget-ingest:${IMAGE_TAG:-latest}
+    image: ${REGISTRY:-}lbstash-ingest:${IMAGE_TAG:-latest}
     environment:
       <<: *env
-      DATABASE_URL: postgres://svc_ingest:${DB_PASSWORD_INGEST}@db:5432/${POSTGRES_DB:-budget}
+      DATABASE_URL: postgres://svc_ingest:${DB_PASSWORD_INGEST}@db:5432/${POSTGRES_DB:-lbstash}
       FIELD_KEY: ${FIELD_KEY}
 
   planning:
     <<: *service
     build: { <<: *build, dockerfile: services/planning/Dockerfile }
-    image: ${REGISTRY:-}budget-planning:${IMAGE_TAG:-latest}
+    image: ${REGISTRY:-}lbstash-planning:${IMAGE_TAG:-latest}
     environment:
       <<: *env
-      DATABASE_URL: postgres://svc_planning:${DB_PASSWORD_PLANNING}@db:5432/${POSTGRES_DB:-budget}
+      DATABASE_URL: postgres://svc_planning:${DB_PASSWORD_PLANNING}@db:5432/${POSTGRES_DB:-lbstash}
 
   recurring:
     <<: *service
     build: { <<: *build, dockerfile: services/recurring/Dockerfile }
-    image: ${REGISTRY:-}budget-recurring:${IMAGE_TAG:-latest}
+    image: ${REGISTRY:-}lbstash-recurring:${IMAGE_TAG:-latest}
     environment:
       <<: *env
-      DATABASE_URL: postgres://svc_recurring:${DB_PASSWORD_RECURRING}@db:5432/${POSTGRES_DB:-budget}
+      DATABASE_URL: postgres://svc_recurring:${DB_PASSWORD_RECURRING}@db:5432/${POSTGRES_DB:-lbstash}
 
   telegram:
     <<: *service
     build: { <<: *build, dockerfile: services/telegram/Dockerfile }
-    image: ${REGISTRY:-}budget-telegram:${IMAGE_TAG:-latest}
+    image: ${REGISTRY:-}lbstash-telegram:${IMAGE_TAG:-latest}
     environment:
       <<: *env
-      DATABASE_URL: postgres://svc_telegram:${DB_PASSWORD_TELEGRAM}@db:5432/${POSTGRES_DB:-budget}
+      DATABASE_URL: postgres://svc_telegram:${DB_PASSWORD_TELEGRAM}@db:5432/${POSTGRES_DB:-lbstash}
       FIELD_KEY: ${FIELD_KEY}
 
   reports:
     <<: *service
     build: { <<: *build, dockerfile: services/reports/Dockerfile }
-    image: ${REGISTRY:-}budget-reports:${IMAGE_TAG:-latest}
+    image: ${REGISTRY:-}lbstash-reports:${IMAGE_TAG:-latest}
     environment:
       <<: *env
 
   gateway:
     <<: *service
     build: { <<: *build, dockerfile: services/gateway/Dockerfile }
-    image: ${REGISTRY:-}budget-gateway:${IMAGE_TAG:-latest}
+    image: ${REGISTRY:-}lbstash-gateway:${IMAGE_TAG:-latest}
     ports: ["127.0.0.1:${GATEWAY_PORT:-3010}:3000"] # loopback only; the public way in is `nginx`
     environment:
       <<: *env
@@ -145,7 +145,7 @@ services:
     depends_on:
       db-init: { condition: service_completed_successfully }
       auth: { condition: service_healthy }
-      ledger: { condition: service_healthy }
+      transactions: { condition: service_healthy }
       ingest: { condition: service_healthy }
       planning: { condition: service_healthy }
       recurring: { condition: service_healthy }
@@ -156,7 +156,7 @@ services:
     restart: unless-stopped
     networks: [internal]
     build: { context: apps/web } # self-contained: Node, not the Python base
-    image: ${REGISTRY:-}budget-web:${IMAGE_TAG:-latest}
+    image: ${REGISTRY:-}lbstash-web:${IMAGE_TAG:-latest}
     environment:
       NODE_ENV: production
     healthcheck:
@@ -220,14 +220,14 @@ services:
     profiles: [test]
     image: postgres:17-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-bt_admin}
+      POSTGRES_USER: ${POSTGRES_USER:-lbstash_admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run python3 scripts/gen-secrets.py}
-      POSTGRES_DB: ${POSTGRES_DB:-budget}
+      POSTGRES_DB: ${POSTGRES_DB:-lbstash}
     ports: ["127.0.0.1:5544:5432"]
     tmpfs: ["/var/lib/postgresql/data"]
     command: ["postgres", "-c", "fsync=off", "-c", "max_connections=300"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bt_admin} -d ${POSTGRES_DB:-budget}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lbstash_admin} -d ${POSTGRES_DB:-lbstash}"]
       interval: 2s
       timeout: 3s
       retries: 20

@@ -44,10 +44,10 @@ export function doneText(f: Pick<Form, 'dir' | 'name' | 'done'>, amountMinor: nu
   if (f.done === 'dismissed') return 'Deleted. The message is gone for good.';
   const sign = listAmount(amountMinor, f.dir).charAt(0);
   const tail = tagged === undefined ? (f.dir === 'debit' ? ' · needs a tag' : '') : tagged ? ` · #${tagged}` : ' · needs a tag';
-  return `Added to the ledger: ${sign}₹${plain(amountMinor)}${f.name.trim() ? ` · ${f.name.trim()}` : ''}${tail}`;
+  return `Added to the transactions: ${sign}₹${plain(amountMinor)}${f.name.trim() ? ` · ${f.name.trim()}` : ''}${tail}`;
 }
 
-/** The aside's ledger-math: waiting − sorted = still to look at. */
+/** The aside's tally-math: waiting − sorted = still to look at. */
 export function tally(waiting: number, dones: readonly Done[]): { waiting: number; sorted: number; left: number } {
   const sorted = dones.filter((d) => d !== '').length;
   return { waiting, sorted, left: Math.max(0, waiting - sorted) };

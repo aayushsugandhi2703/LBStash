@@ -2,9 +2,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { z } from 'zod';
-import type { BalanceChecksRes, DeviceTokenRes, LedgerPageDto, SettingsDto } from '@/contracts';
+import type { BalanceChecksRes, DeviceTokenRes, TransactionPageDto, SettingsDto } from '@/contracts';
 import { AccountShell } from '@/components/shell';
-import { Button, CodeInput, ErrorLine, GhostButton, GhostLink, LedgerMath, Loading, Segmented, SettingsRow, StatusLine, Switch, TextLink } from '@/components/ui';
+import { Button, CodeInput, ErrorLine, GhostButton, GhostLink, TallyMath, Loading, Segmented, SettingsRow, StatusLine, Switch, TextLink } from '@/components/ui';
 import { api, errorText, useApi } from '@/lib/api';
 import { inrSigned } from '@/common';
 import { codeError, isCode } from '@/features/account';
@@ -22,7 +22,7 @@ export default function DevicesPage() {
   const devices = useApi<{ devices: Device[] }>('/devices', { refreshInterval: 15_000 });
   const link = useApi<LinkStatus>('/telegram/link', { refreshInterval: 15_000 });
   const settings = useApi<Settings>('/settings');
-  const ledger = useApi<z.infer<typeof LedgerPageDto>>('/ledger?limit=1');
+  const transactions = useApi<z.infer<typeof TransactionPageDto>>('/transactions?limit=1');
   const checks = useApi<z.infer<typeof BalanceChecksRes>>('/balance-checks?limit=1');
 
   const ingest = ingestState(devices.data?.devices ?? []);
@@ -36,7 +36,7 @@ export default function DevicesPage() {
       description="Where bank messages come in and prompts go out."
       label="DEVICES" heading="Capture and the bot"
       lead="Log payments in Telegram with /350 food. An optional token lets another tool send bank messages in."
-      summary={<LedgerMath rows={[
+      summary={<TallyMath rows={[
         { k: 'token', v: devices.data ? (live ? 'receiving' : ingest.kind === 'none' ? 'no token' : 'not receiving') : '—' },
         { k: 'telegram', v: link.data ? tgShort(tg) : '—' },
         { k: 'balance', v: checks.data ? bank.short : '—' },
@@ -54,14 +54,14 @@ export default function DevicesPage() {
 
       <Section>BANK ACCOUNT AND BALANCE</Section>
       <SettingsRow title="Tracked account" sub="one account is tracked in this version" mono>
-        <span className={`mono ${s.mono13}`}>{ledger.data ? `${inrSigned(ledger.data.balanceMinor)} in the ledger` : '—'}</span>
+        <span className={`mono ${s.mono13}`}>{transactions.data ? `${inrSigned(transactions.data.balanceMinor)} in the transactions` : '—'}</span>
       </SettingsRow>
       <div className={s.lineRow}>
         <span className={s.lead}>
           <Sq kind={bank.kind === 'wait' ? 'wait' : bank.kind === 'none' ? 'wait' : 'ok'} />
           <span><span style={{ display: 'block', fontSize: 'var(--fs-body)', fontWeight: 500 }}>Last balance check</span><span className={`mono ${s.mono11}`} style={{ display: 'block', marginTop: 2, lineHeight: 1.5 }}>{checks.data ? bank.text : checks.error ? 'could not read the last check' : 'loading…'}</span></span>
         </span>
-        <GhostLink href="/ledger?check=1">Check now</GhostLink>
+        <GhostLink href="/transactions?check=1">Check now</GhostLink>
       </div>
       <SettingsRow title="Wait before booking a gap" sub="Wait this long for a late message before booking the gap as Unaccounted.">
         <span className={`mono ${s.mono13}`}>{settings.data ? `${settings.data.reconcileGraceHours} ${settings.data.reconcileGraceHours === 1 ? 'hour' : 'hours'}` : '—'}</span>
@@ -136,7 +136,7 @@ function IphoneBlock({ devices, refresh }: { devices: Device[]; refresh: () => v
         <GhostButton disabled={ing.kind !== 'live' || test === 'waiting'} onClick={() => void sendTest()}>Send a test message</GhostButton>
       </div>
       {test === 'waiting' && <div className={s.line}><StatusLine kind="wait"><span className="mono">waiting for the test message…</span></StatusLine></div>}
-      {test === 'done' && <div className={`rise ${s.line}`}><StatusLine>Test message received and read. It was not added to your ledger.</StatusLine></div>}
+      {test === 'done' && <div className={`rise ${s.line}`}><StatusLine>Test message received and read. It was not added to your transactions.</StatusLine></div>}
       {test === 'error' && <div className={s.line}><ErrorLine>{testError}</ErrorLine></div>}
 
       <div className={s.lineRow}>

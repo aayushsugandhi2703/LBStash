@@ -1,5 +1,5 @@
 import pytest
-from bt_gateway.paths import (
+from lbstash_gateway.paths import (
     bucket_of,
     is_csrf_exempt,
     is_public_path,
@@ -7,15 +7,15 @@ from bt_gateway.paths import (
     query_of,
     resolve_service,
 )
-from bt_gateway.session_cache import SessionCache, SessionState
+from lbstash_gateway.session_cache import SessionCache, SessionState
 
 
 class TestPaths:
     def test_normalises_the_api_prefix_query_and_trailing_slash(self) -> None:
-        assert normalize_path('/api/ledger?month=2026-10') == '/ledger'
-        assert normalize_path('/ledger/') == '/ledger'
+        assert normalize_path('/api/transactions?month=2026-10') == '/transactions'
+        assert normalize_path('/transactions/') == '/transactions'
         assert normalize_path('/api') == '/'
-        assert normalize_path('/apix/ledger') == '/apix/ledger'
+        assert normalize_path('/apix/transactions') == '/apix/transactions'
         assert query_of('/a?b=1&c=2') == '?b=1&c=2'
         assert query_of('/a') == ''
 
@@ -38,7 +38,7 @@ class TestPaths:
 
     def test_longest_prefix_wins_patch_me_is_auth_get_me_is_not_in_the_table(self) -> None:
         assert resolve_service('/me/email', 'POST') == 'auth'
-        assert resolve_service('/balance-checks', 'GET') == 'ledger'
+        assert resolve_service('/balance-checks', 'GET') == 'transactions'
         assert resolve_service('/me', 'PATCH') == 'auth'
         assert resolve_service('/me', 'GET') is None
         assert resolve_service('/settings', 'GET') is None
@@ -50,7 +50,7 @@ class TestPaths:
         assert bucket_of('/auth/reset/request') == 'reset'
         assert bucket_of('/ingest/message') == 'ingest'
         assert bucket_of('/telegram/webhook/x') == 'webhook'
-        assert bucket_of('/ledger') is None
+        assert bucket_of('/transactions') is None
 
 
 class TestSessionCache:

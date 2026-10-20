@@ -2,8 +2,8 @@ import uuid
 
 import pytest
 import pytest_asyncio
-from bt.contracts import BudgetEvaluateJob
-from bt_planning.evaluate import evaluate_budget
+from lbstash.contracts import BudgetEvaluateJob
+from lbstash_planning.evaluate import evaluate_budget
 from planning_harness import Harness, clock, now
 
 OCT = '2026-10'
@@ -28,7 +28,7 @@ async def sample(h: Harness, u: str) -> dict[str, str]:
         ('bills', 1299, 2500),
         ('travel', 1350, 3000),
     ]:
-        h.ledger.set_spend(OCT, name, rs(spent))
+        h.transactions.set_spend(OCT, name, rs(spent))
         r = await h.send(u, 'POST', '/budgets', {'tag': name, 'limitMinor': rs(limit)})
         assert r.status_code == 201
         ids[name] = r.json()['id']
@@ -76,12 +76,12 @@ class TestGetBudgetsTheLimitsPageFigures:
     ) -> None:
         r = await h.get(self.u, '/budgets')
         assert r.json()['month'] == OCT
-        assert h.ledger.last_range == {'from': '2026-09-30T18:30:00.000Z', 'to': '2026-10-31T18:30:00.000Z'}
+        assert h.transactions.last_range == {'from': '2026-09-30T18:30:00.000Z', 'to': '2026-10-31T18:30:00.000Z'}
 
     async def test_a_past_month_is_projected_over_its_full_length_a_future_month_has_no_pace(
         self, h: Harness, ids: dict
     ) -> None:
-        h.ledger.set_spend('2026-09', 'fun', rs(900))
+        h.transactions.set_spend('2026-09', 'fun', rs(900))
         past = by_name((await h.get(self.u, '/budgets?month=2026-09')).json()['items'], 'fun')
         # 30 of 30 days: projection = spend
         subset(past, {'spentMinor': rs(900), 'projectedMinor': rs(900), 'status': 'ok'})
@@ -94,7 +94,7 @@ class TestGetBudgetsTheLimitsPageFigures:
         u = self.u
 
         async def set_level(level: int):
-            return await h.internal(u, 'PATCH', '/internal/settings', {'alertLevel': level}, svc='ledger')
+            return await h.internal(u, 'PATCH', '/internal/settings', {'alertLevel': level}, svc='transactions')
 
         assert (await set_level(90)).json() == {'alertLevel': 90, 'warnOnPace': True}
         items = (await h.get(u, '/budgets')).json()
@@ -110,10 +110,10 @@ class TestGetBudgetsTheLimitsPageFigures:
         self, h: Harness, ids: dict
     ) -> None:
         u = self.u
-        await h.internal(u, 'PATCH', '/internal/settings', {'warnOnPace': False}, svc='ledger')
+        await h.internal(u, 'PATCH', '/internal/settings', {'warnOnPace': False}, svc='transactions')
         food = by_name((await h.get(u, '/budgets')).json()['items'], 'food')
         subset(food, {'status': 'ok', 'projectedMinor': rs(9330)})
-        await h.internal(u, 'PATCH', '/internal/settings', {'warnOnPace': True}, svc='ledger')
+        await h.internal(u, 'PATCH', '/internal/settings', {'warnOnPace': True}, svc='transactions')
 
     async def test_a_per_limit_warn_percentage_overrides_the_user_level(self, h: Harness, ids: dict) -> None:
         u = self.u
@@ -134,7 +134,7 @@ class TestGetBudgetsTheLimitsPageFigures:
         for spent, pct, st in [
             (rs(800) - 1, 79, 'fast'), (rs(800), 80, 'close'), (rs(1000) - 1, 99, 'close'), (rs(1000), 100, 'over'), (rs(1200), 120, 'over'),
         ]:  # fmt: skip
-            h.ledger.set_spend(OCT, 'edge', spent)
+            h.transactions.set_spend(OCT, 'edge', spent)
             subset(await status(), {'pct': pct, 'status': st})
 
 
@@ -145,12 +145,12 @@ class TestPostPatchDeleteBudgets:
         self, h: Harness
     ) -> None:
         u = self.u
-        before = h.ledger.calls['resolve']
+        before = h.transactions.calls['resolve']
         r = await h.send(u, 'POST', '/budgets', {'tag': '#Gym', 'limitMinor': rs(1000)})
         assert r.status_code == 201
         subset(r.json(), {'categoryName': 'gym', 'limitMinor': rs(1000), 'spentMinor': 0, 'pct': 0, 'status': 'ok'})
-        assert h.ledger.calls['resolve'] == before + 1
-        by_id = await h.send(u, 'POST', '/budgets', {'categoryId': h.ledger.cat('pets'), 'limitMinor': rs(500)})
+        assert h.transactions.calls['resolve'] == before + 1
+        by_id = await h.send(u, 'POST', '/budgets', {'categoryId': h.transactions.cat('pets'), 'limitMinor': rs(500)})
         assert by_id.status_code == 201
         dup = await h.send(u, 'POST', '/budgets', {'tag': 'gym', 'limitMinor': rs(2000)})
         assert dup.status_code == 409
@@ -160,7 +160,7 @@ class TestPostPatchDeleteBudgets:
         u = self.u
         h.bus.clear()
         await h.send(u, 'POST', '/budgets', {'tag': 'books', 'limitMinor': rs(300)})
-        cat = h.ledger.cat('books')
+        cat = h.transactions.cat('books')
         assert len(h.bus.jobs) == 1
         job = h.bus.jobs[0]
         assert (job.job, job.queue, job.key) == ('budget.evaluate', 'budget.evaluate', f'{u}:{cat}:{OCT}')
@@ -170,7 +170,7 @@ class TestPostPatchDeleteBudgets:
         self, h: Harness
     ) -> None:
         u = self.u
-        cat = h.ledger.cat('rent')
+        cat = h.transactions.cat('rent')
         await h.send(
             u,
             'PUT',
@@ -218,7 +218,7 @@ class TestPostPatchDeleteBudgets:
 
     async def test_validation(self, h: Harness) -> None:
         u = self.u
-        c = h.ledger.cat('food')
+        c = h.transactions.cat('food')
 
         async def bad(p: dict) -> int:
             return (await h.send(u, 'POST', '/budgets', p)).status_code
@@ -244,7 +244,7 @@ class TestOwnership:
 
     async def test_user_b_cannot_list_change_delete_or_see_alerts_of_user_a(self, h: Harness) -> None:
         a, b = self.a, self.b
-        h.ledger.set_spend(OCT, 'secret', rs(900))
+        h.transactions.set_spend(OCT, 'secret', rs(900))
         made = (await h.send(a, 'POST', '/budgets', {'tag': 'secret', 'limitMinor': rs(1000)})).json()
         await evaluate_budget(h.deps, BudgetEvaluateJob(user_id=a, category_id=made['categoryId'], period_key=OCT), now)
         assert len((await h.get(a, '/alerts')).json()['items']) == 1

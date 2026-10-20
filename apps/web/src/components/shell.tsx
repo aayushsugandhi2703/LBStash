@@ -8,11 +8,11 @@ import { useMe } from '@/lib/me';
 import { Glyph, type IconName, LogoMark, NavIcon } from '@/brand';
 import { IndexList } from './ui';
 
-type Home = 'now' | 'ledger' | 'plan' | 'limits' | 'repeats' | 'trends' | 'credit' | 'acct' | null;
+type Home = 'now' | 'transactions' | 'plan' | 'limits' | 'repeats' | 'trends' | 'credit' | 'acct' | null;
 
 const NAV: { key: Home & string; label: string; href: string; icon: IconName }[] = [
   { key: 'now', label: 'Now', href: '/', icon: 'now' },
-  { key: 'ledger', label: 'Ledger', href: '/ledger', icon: 'ledger' },
+  { key: 'transactions', label: 'Transactions', href: '/transactions', icon: 'transactions' },
   { key: 'plan', label: 'Plan', href: '/plan', icon: 'plan' },
   { key: 'limits', label: 'Limits', href: '/limits', icon: 'limits' },
   { key: 'repeats', label: 'Repeats', href: '/repeats', icon: 'repeats' },
@@ -20,7 +20,7 @@ const NAV: { key: Home & string; label: string; href: string; icon: IconName }[]
 ];
 
 interface ShellProps {
-  /** Which nav item is lit. Child pages light their parent (Needs a look → ledger); Setup lights none. */
+  /** Which nav item is lit. Child pages light their parent (Needs a look → transactions); Setup lights none. */
   home: Home;
   glyph: IconName;
   title: string;
@@ -54,12 +54,12 @@ function Header({ home }: { home: Home }) {
     <header className="hdr">
       <div className="hdr-row">
         <div className="hdr-left">
-          <Link href="/" className="brand-link" aria-label="Ledger home"><LogoMark size={22} /></Link>
+          <Link href="/" className="brand-link" aria-label="LBStash home"><LogoMark size={22} /></Link>
           <nav aria-label="Main" className="nav">
             {NAV.map((n) => (
               <Link key={n.key} href={n.href} className="navlink" aria-current={home === n.key ? 'page' : undefined}>
                 <NavIcon name={n.icon} />{n.label}
-                {n.key === 'ledger' && me && me.untaggedCount > 0 && <span className="badge mono">{me.untaggedCount}</span>}
+                {n.key === 'transactions' && me && me.untaggedCount > 0 && <span className="badge mono">{me.untaggedCount}</span>}
               </Link>
             ))}
           </nav>
@@ -99,7 +99,7 @@ const MENU: { label: string; href: string; hint: string }[] = [
   { label: 'Security', href: '/account/security', hint: 'two-step, passkeys' },
   { label: 'Devices and Telegram', href: '/account/devices', hint: 'bot, token' },
   { label: 'Setup guide', href: '/setup', hint: '3 steps' },
-  { label: 'Needs a look', href: '/ledger/unread', hint: '' },
+  { label: 'Needs a look', href: '/transactions/unread', hint: '' },
 ];
 
 function AccountMenu({ acctPage }: { acctPage: boolean }) {
@@ -140,7 +140,7 @@ function AccountMenu({ acctPage }: { acctPage: boolean }) {
               </span>
             </div>
             {MENU.map((m) => {
-              const hint = m.href === '/ledger/unread' ? (me ? `${me.needsLookCount} message${me.needsLookCount === 1 ? '' : 's'}` : '') : m.hint;
+              const hint = m.href === '/transactions/unread' ? (me ? `${me.needsLookCount} message${me.needsLookCount === 1 ? '' : 's'}` : '') : m.hint;
               return (
                 <Link key={m.href} role="menuitem" href={m.href} className="mi" aria-current={path === m.href ? 'page' : undefined} onClick={() => setOpen(false)}>
                   <span>{m.label}</span><span className="hint mono">{hint}</span>

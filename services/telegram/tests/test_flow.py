@@ -7,10 +7,10 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
-from bt.contracts import dump
-from bt.contracts.base import iso_ms
-from bt_telegram.botapi import BotApiError
-from bt_telegram.prompts import send_prompt
+from lbstash.contracts import dump
+from lbstash.contracts.base import iso_ms
+from lbstash_telegram.botapi import BotApiError
+from lbstash_telegram.prompts import send_prompt
 from telegram_harness import PUBLIC_URL, START, FakeTx, TgUser, World, make_world
 
 
@@ -20,7 +20,7 @@ async def tap_on(w: World, u: TgUser, tx: FakeTx, label: str) -> None:
 
 
 def tags_for(w: World, tx: FakeTx) -> list[dict[str, Any]]:
-    return [c for c in w.ledger.tag_calls if c['id'] == tx.id]
+    return [c for c in w.transactions.tag_calls if c['id'] == tx.id]
 
 
 def labels(w: World, m: Any) -> list[str]:
@@ -28,7 +28,7 @@ def labels(w: World, m: Any) -> list[str]:
 
 
 class TestTheLoop:
-    async def test_sends_a_no_details_prompt_tags_through_the_ledger_with_via_telegram_edits_the_message_and_a_second_tap_says_already_tagged(
+    async def test_sends_a_no_details_prompt_tags_through_the_transactions_with_via_telegram_edits_the_message_and_a_second_tap_says_already_tagged(
         self, w: World
     ) -> None:
         u = await w.signed_in_user()
@@ -43,9 +43,9 @@ class TestTheLoop:
         assert (await w.prompt_row(tx.id))['status'] == 'sent'
 
         await w.tap(u, message_id, msg.keyboard, 'Food')
-        assert len(w.ledger.tag_calls) == 1
-        body = w.ledger.tag_calls[0]['body']
-        assert body['categoryId'] == w.ledger.category(u.user_id, 'food').id
+        assert len(w.transactions.tag_calls) == 1
+        body = w.transactions.tag_calls[0]['body']
+        assert body['categoryId'] == w.transactions.category(u.user_id, 'food').id
         assert body['via'] == 'telegram'
         assert msg.text == 'Money out · Food ✓'
         assert (msg.keyboard or []) == []
@@ -56,14 +56,14 @@ class TestTheLoop:
         token = (await w.prompt_row(tx.id))['token']
         await w.tap_data(u, message_id, f'{token}:c1')
         assert w.bot.last_answer() == 'Already Food'
-        assert len(w.ledger.tag_calls) == 1  # nothing was written again
+        assert len(w.transactions.tag_calls) == 1  # nothing was written again
 
     async def test_a_payment_tagged_in_telegram_at_the_same_moment_as_the_web_first_write_wins_the_tap_says_already_tagged(
         self, w: World
     ) -> None:
         u = await w.signed_in_user()
         tx = await w.incoming(u)
-        w.ledger.tag_elsewhere(tx.id, 'bills')  # web got there first, event not yet delivered
+        w.transactions.tag_elsewhere(tx.id, 'bills')  # web got there first, event not yet delivered
         await tap_on(w, u, tx, 'Food')
         assert w.bot.last_answer() == 'Already Bills'
         assert (await w.message_of(tx))[1].text == 'Money out · Bills ✓'
@@ -129,7 +129,7 @@ class TestHeldPrompts:
     async def test_a_held_prompt_whose_payment_was_tagged_on_the_web_while_waiting_is_never_sent(self, w: World) -> None:
         u = await w.linked_user()
         tx = await w.incoming(u)
-        w.ledger.tag_elsewhere(tx.id, 'food')
+        w.transactions.tag_elsewhere(tx.id, 'food')
         await w.emit_changed(tx, 'updated', 'web')
         assert (await w.prompt_row(tx.id))['status'] == 'tagged'
         await w.sign_in(u)
@@ -162,8 +162,8 @@ class TestSyncTaggedElsewhere:
         a = await w.incoming(u, payee='Zomato')
         b = await w.incoming(u, payee='Zomato')
         c = await w.incoming(u, payee='Other')
-        w.ledger.tag_elsewhere(a.id, 'food')
-        w.ledger.tag_elsewhere(b.id, 'food')
+        w.transactions.tag_elsewhere(a.id, 'food')
+        w.transactions.tag_elsewhere(b.id, 'food')
         await w.emit_changed(a, 'updated', 'web')
         await w.emit_changed(b, 'updated', 'rule')
         ma = (await w.message_of(a))[1]
@@ -185,7 +185,7 @@ class TestSyncTaggedElsewhere:
     async def test_a_deleted_payment_edits_its_message_to_removed(self, w: World) -> None:
         u = await w.signed_in_user()
         tx = await w.incoming(u)
-        del w.ledger.txs[tx.id]
+        del w.transactions.txs[tx.id]
         await w.emit_changed(tx, 'deleted')
         assert (await w.message_of(tx))[1].text == 'Money out · removed'
         assert (await w.prompt_row(tx.id))['status'] == 'expired'
@@ -329,20 +329,20 @@ class TestAlertsNudgesAndTheDigest:
 
         u = await w.signed_in_user()
         w.clock.now = datetime(2026, 10, 18, 15, 30, tzinfo=UTC)  # Sunday 9:00 pm Kolkata, the digest hour
-        w.ledger.balance_checked_at = w.clock.now - timedelta(days=2)
+        w.transactions.balance_checked_at = w.clock.now - timedelta(days=2)
         try:
             await tick()
             assert nudges(u) == []
 
-            w.ledger.balance_checked_at = w.clock.now - timedelta(days=8)
+            w.transactions.balance_checked_at = w.clock.now - timedelta(days=8)
             w.clock.now += timedelta(days=7)  # next Sunday
             await tick()
             assert len(nudges(u)) == 1
-            assert w.bot.buttons(nudges(u)[0]) == [{'text': 'Check balance', 'url': f'{PUBLIC_URL}/ledger?check=1'}]
+            assert w.bot.buttons(nudges(u)[0]) == [{'text': 'Check balance', 'url': f'{PUBLIC_URL}/transactions?check=1'}]
             await tick()
             assert len(nudges(u)) == 1  # once per day
         finally:
-            w.ledger.balance_checked_at = START
+            w.transactions.balance_checked_at = START
 
     async def test_pending_sends_the_count_with_start_and_next_walks_the_rest_oldest_first(self, w: World) -> None:
         u = await w.signed_in_user()
@@ -466,15 +466,15 @@ class TestReveal:
         second = await w.incoming(u)
         assert 'Reveal' not in labels(w, (await w.message_of(second))[1])
 
-        w.ledger.get_calls.clear()
+        w.transactions.get_calls.clear()
         await w.tap_data(u, old_id, reveal_data)
         assert w.bot.last_answer() == 'Reveal is switched off.'
-        assert w.ledger.get_calls == []
+        assert w.transactions.get_calls == []
         assert old.text == 'Money out · 6:42 pm'
 
 
 class TestTypedTags:
-    async def test_new_tag_opens_a_reply_box_the_typed_tag_is_normalised_and_sent_to_the_ledger_invalid_text_is_refused_and_the_box_stays_it_expires_after_2_minutes(
+    async def test_new_tag_opens_a_reply_box_the_typed_tag_is_normalised_and_sent_to_the_transactions_invalid_text_is_refused_and_the_box_stays_it_expires_after_2_minutes(
         self, w: World
     ) -> None:
         u = await w.signed_in_user()
@@ -500,7 +500,7 @@ class TestTypedTags:
         assert w.bot.last_message(u.chat_id).text.startswith('Use the buttons')
         assert tags_for(w, tx2) == []
 
-    async def test_typed_text_that_is_only_html_noise_never_reaches_the_ledger_as_markup(self, w: World) -> None:
+    async def test_typed_text_that_is_only_html_noise_never_reaches_the_transactions_as_markup(self, w: World) -> None:
         u = await w.signed_in_user()
         tx = await w.incoming(u)
         await tap_on(w, u, tx, '＋ New tag')

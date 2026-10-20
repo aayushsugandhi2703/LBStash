@@ -4,14 +4,14 @@ from pathlib import Path
 
 import pytest
 
-pytest_plugins = ['bt.kit.pytest_plugin']
+pytest_plugins = ['lbstash.kit.pytest_plugin']
 
 
 @pytest.fixture(scope='session')
-def bt_service() -> str:
+def lbstash_service() -> str:
     return 'recurring'
 
 
 @pytest.fixture(scope='session')
-def bt_migrations() -> str:
+def lbstash_migrations() -> str:
     return str(Path(__file__).parents[1] / 'migrations')

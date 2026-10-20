@@ -83,7 +83,7 @@ flowchart LR
   subgraph services["Services (FastAPI)"]
     Auth
     Ingest
-    Ledger
+    Transactions
     Planning
     Recurring
     Reports
@@ -96,9 +96,9 @@ flowchart LR
   TG --> Proxy
   Proxy --> Web
   Proxy --> GW
-  GW --> Auth & Ingest & Ledger & Planning & Recurring & Reports & Tele
-  Auth & Ingest & Ledger & Planning & Recurring & Tele --> DB
-  Ledger -.-> Q
+  GW --> Auth & Ingest & Transactions & Planning & Recurring & Reports & Tele
+  Auth & Ingest & Transactions & Planning & Recurring & Tele --> DB
+  Transactions -.-> Q
   Q -.-> Planning
   Q -.-> Tele
 ```
@@ -120,7 +120,7 @@ REST over HTTPS. Browser calls live under `/api`.
 |---|---|
 | Log a payment | Telegram message `/350 food` or `+1500 salary` (webhook), which the telegram service saves with `POST /internal/transactions/manual` |
 | Bank message (optional) | `POST /ingest/message` (device token + nonce) |
-| Ledger | `GET /ledger`, `PATCH /transactions/:id` (tag), `POST /credits`, `POST /balance-check` |
+| Transactions | `GET /transactions`, `PATCH /transactions/:id` (tag), `POST /credits`, `POST /balance-check` |
 | Plan and limits | `PUT /plans/:month`, `GET/POST /budgets`, `GET /alerts` |
 | Repeats | `GET/POST/PATCH/DELETE /recurring` |
 | Reports | `GET /dashboard`, `GET /reports/*` |
@@ -134,7 +134,7 @@ Each service has its own **schema** (a namespace in Postgres) and its own login,
 | Schema | Main tables |
 |---|---|
 | auth | users (incl. `allowed_ips`), sessions, refresh_tokens, auth_factors, login_throttle, audit_log |
-| ledger | transactions, categories, tag_rules, balance_checks |
+| transactions | transactions, categories, tag_rules, balance_checks |
 | ingest | devices, ingest_events (nonces), unparsed_messages |
 | planning | plans, plan_lines, budgets, alerts |
 | recurring | recurring_rules |
@@ -149,13 +149,13 @@ sequenceDiagram
   participant You
   participant Telegram
   participant Bot as Telegram service
-  participant Ledger
+  participant Transactions
   participant Queue
   participant Planning
   You->>Telegram: "/350 food"
   Telegram->>Bot: webhook
-  Bot->>Ledger: save tagged payment
-  Ledger->>Queue: transaction.changed (same DB transaction)
+  Bot->>Transactions: save tagged payment
+  Transactions->>Queue: transaction.changed (same DB transaction)
   Bot->>Telegram: "Money out · ₹350 · Food ✓" + Open Google Pay
   Queue->>Planning: re-check limits
 ```
@@ -167,7 +167,7 @@ Without a tag (`/350`) the row is saved untagged and the queue sends the categor
 
 ### 3.1 Logging a payment
 
-The bot accepts `/<amount>` (money out) and `+<amount>` (money in), up to two decimals, with an optional tag. Checks run in order and anyone who fails gets no reply: webhook secrets, private chat, your Telegram id, an active `/signin` session. Then the tag is validated and the ledger saves one manual row (tagged = confirmed at once; untagged = pending, with category buttons). Your message is deleted and the reply repeats the amount (`Money out · ₹350 · Food ✓`). Money out also gets **Open Google Pay**: Telegram buttons only open web links, so it opens `/pay` on the web app, which hands the phone to Google Pay.
+The bot accepts `/<amount>` (money out) and `+<amount>` (money in), up to two decimals, with an optional tag. Checks run in order and anyone who fails gets no reply: webhook secrets, private chat, your Telegram id, an active `/signin` session. Then the tag is validated and the transactions saves one manual row (tagged = confirmed at once; untagged = pending, with category buttons). Your message is deleted and the reply repeats the amount (`Money out · ₹350 · Food ✓`). Money out also gets **Open Google Pay**: Telegram buttons only open web links, so it opens `/pay` on the web app, which hands the phone to Google Pay.
 
 Each Telegram update is processed once (its update id is stored), so a retry cannot log a payment twice.
 
@@ -217,7 +217,7 @@ Pending payments already count in the balance (amount first, description later).
 
 ### 3.4 Balance check (reconciliation)
 
-You enter your bank balance. `gap = bank - ledger`. If there is a gap, wait a **grace period** (a late SMS may still arrive and merge). If it persists, one **Unaccounted** entry is booked for you to tag or split. This is how the system tolerates lost messages without ever trusting delivery.
+You enter your bank balance. `gap = bank - transactions`. If there is a gap, wait a **grace period** (a late SMS may still arrive and merge). If it persists, one **Unaccounted** entry is booked for you to tag or split. This is how the system tolerates lost messages without ever trusting delivery.
 
 ### 3.5 Limits and alerts (event-driven)
 

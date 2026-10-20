@@ -8,14 +8,13 @@ from typing import Any
 
 import httpx
 from fastapi import FastAPI
-
-from bt.common import COOKIES
-from bt.crypto import TokenError, totp_code, totp_step, verify_access_token
-from bt.db.testing import TempDatabase
-from bt.kit.testing import build_test_app, headers_for
-from bt_auth.env import Env
-from bt_auth.routes import make_routes
-from bt_auth.workers import start_workers
+from lbstash.common import COOKIES
+from lbstash.crypto import TokenError, totp_code, totp_step, verify_access_token
+from lbstash.db.testing import TempDatabase
+from lbstash.kit.testing import build_test_app, headers_for
+from lbstash_auth.env import Env
+from lbstash_auth.routes import make_routes
+from lbstash_auth.workers import start_workers
 
 ACCESS_SECRET = 'a' * 40
 FIELD_KEY = base64.b64encode(os.urandom(32)).decode()
@@ -95,7 +94,7 @@ class Harness:
 
 def _base_env() -> dict[str, Any]:
     return {
-        'ACCESS_TOKEN_SECRET': ACCESS_SECRET, 'FIELD_KEY': FIELD_KEY, 'PUBLIC_URL': ORIGIN, 'WEBAUTHN_RP_NAME': 'Ledger',
+        'ACCESS_TOKEN_SECRET': ACCESS_SECRET, 'FIELD_KEY': FIELD_KEY, 'PUBLIC_URL': ORIGIN, 'WEBAUTHN_RP_NAME': 'LBStash',
         'MAIL_TRANSPORT': 'log', 'REGISTRATION': 'open',
     }  # fmt: skip
 

@@ -16,12 +16,12 @@ class TestPlans:
         assert r.status_code == 200
         assert r.json() == {'month': '2026-12', 'totalMinor': 0, 'lines': [], 'assignedMinor': 0, 'unassignedMinor': 0}
 
-    async def test_50000_with_sip_10000_and_rent_20000_leaves_20000_unassigned_spend_filled_from_the_ledger(
+    async def test_50000_with_sip_10000_and_rent_20000_leaves_20000_unassigned_spend_filled_from_the_transactions(
         self, h: Harness
     ) -> None:
         u = self.u
-        sip, rent = h.ledger.cat('sip'), h.ledger.cat('rent')
-        h.ledger.set_spend('2026-11', 'rent', rs(20000))
+        sip, rent = h.transactions.cat('sip'), h.transactions.cat('rent')
+        h.transactions.set_spend('2026-11', 'rent', rs(20000))
         put = await h.send(
             u, 'PUT', '/plans/2026-11',
             {'totalMinor': rs(50000), 'lines': [{'categoryId': sip, 'allocatedMinor': rs(10000)}, {'categoryId': rent, 'allocatedMinor': rs(20000)}]},
@@ -36,11 +36,11 @@ class TestPlans:
         }  # fmt: skip
         assert (await h.get(u, '/plans/2026-11')).json() == put.json()
         # the spend asked for is the user's calendar month [Nov 1, Dec 1) in Kolkata
-        assert h.ledger.last_range == {'from': '2026-10-31T18:30:00.000Z', 'to': '2026-11-30T18:30:00.000Z'}
+        assert h.transactions.last_range == {'from': '2026-10-31T18:30:00.000Z', 'to': '2026-11-30T18:30:00.000Z'}
 
-    async def test_put_replaces_everything_a_new_tag_creates_its_category_through_the_ledger(self, h: Harness) -> None:
+    async def test_put_replaces_everything_a_new_tag_creates_its_category_through_the_transactions(self, h: Harness) -> None:
         u = self.u
-        before = h.ledger.calls['resolve']
+        before = h.transactions.calls['resolve']
         r = await h.send(
             u,
             'PUT',
@@ -48,7 +48,7 @@ class TestPlans:
             {'totalMinor': rs(50000), 'lines': [{'tag': '#Gym', 'allocatedMinor': rs(1500)}]},
         )
         assert r.status_code == 200
-        assert h.ledger.calls['resolve'] == before + 1
+        assert h.transactions.calls['resolve'] == before + 1
         body = r.json()
         assert len(body['lines']) == 1
         assert body['lines'][0]['categoryName'] == 'gym'
@@ -56,7 +56,7 @@ class TestPlans:
         assert body['unassignedMinor'] == rs(48500)
 
     async def test_over_assigning_is_allowed_and_shows_as_a_negative_unassigned(self, h: Harness) -> None:
-        a = h.ledger.cat('food')
+        a = h.transactions.cat('food')
         r = await h.send(
             self.u,
             'PUT',
@@ -76,7 +76,7 @@ class TestPlans:
         self, h: Harness
     ) -> None:
         u = self.u
-        c = h.ledger.cat('food')
+        c = h.transactions.cat('food')
 
         async def put(body: dict) -> int:
             return (await h.send(u, 'PUT', '/plans/2026-10', body)).status_code
@@ -116,7 +116,7 @@ class TestPlans:
         assert (await h.get(b, '/plans/2026-11')).json()['totalMinor'] == rs(7)
 
     async def test_refuses_a_call_without_a_user(self, h: Harness) -> None:
-        r = await h.client.get('/plans/2026-11', headers=h.as_(None, 'ledger'))
+        r = await h.client.get('/plans/2026-11', headers=h.as_(None, 'transactions'))
         assert r.status_code == 401
 
 
@@ -129,7 +129,7 @@ class TestCreditToThePlanTotalInternal:
             'POST',
             f'/internal/plans/{month}/credit',
             {'transactionId': tx_id, 'amountMinor': amount},
-            svc='ledger',
+            svc='transactions',
         )
 
     async def test_adds_to_the_total_creating_the_plan_if_there_is_none_and_is_idempotent_per_transaction_id(
@@ -187,7 +187,7 @@ class TestCreditToThePlanTotalInternal:
         body = {'transactionId': str(uuid.uuid4()), 'amountMinor': 5}
         proxied = await h.internal(u, 'POST', '/internal/plans/2026-10/credit', body, proxied=True)
         assert proxied.status_code == 403
-        no_user = await h.internal(None, 'POST', '/internal/plans/2026-10/credit', body, svc='ledger')
+        no_user = await h.internal(None, 'POST', '/internal/plans/2026-10/credit', body, svc='transactions')
         assert no_user.status_code == 401
         assert (await self.credit(h, str(uuid.uuid4()), 0)).status_code == 400
         assert (await self.credit(h, 'nope', 5)).status_code == 400

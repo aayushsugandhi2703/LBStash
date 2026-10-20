@@ -3,7 +3,7 @@ import { type CSSProperties, useEffect, useState } from 'react';
 import type { DashboardRes, ReportDailyRes } from '@/contracts';
 import { figure, formatInr, inr, monthName, shortMonth } from '@/common';
 import { AppShell } from '@/components/shell';
-import { Empty, ErrorLine, LedgerMath, Loading, Segmented, StripLink, TextLink, Tip } from '@/components/ui';
+import { Empty, ErrorLine, TallyMath, Loading, Segmented, StripLink, TextLink, Tip } from '@/components/ui';
 import { errorText, useApi } from '@/lib/api';
 import { dayChart, degradedNote, flowGeometry, flowLabel, flowRows, heroSentence, leftStack, nowLinks } from '@/features/now';
 import s from './page.module.css';
@@ -40,7 +40,7 @@ function Aside({ d }: { d: DashboardRes }) {
   return (
     <>
       <div className={s.mathA}>
-        <LedgerMath
+        <TallyMath
           rows={[
             { k: 'carried over', v: figure(b.carriedOver), tone: 'credit' },
             { k: '+ income', v: figure(b.income), tone: 'credit' },
@@ -50,7 +50,7 @@ function Aside({ d }: { d: DashboardRes }) {
         />
       </div>
       <div className={`${s.mathB} opt2`}>
-        <LedgerMath
+        <TallyMath
           rows={[{ k: 'plan left', v: figure(d.safeToSpend.planLeft) }, { k: '÷ days left', v: d.safeToSpend.daysLeft }]}
           total={{ k: '= per day', v: figure(d.safeToSpend.perDay) }}
         />

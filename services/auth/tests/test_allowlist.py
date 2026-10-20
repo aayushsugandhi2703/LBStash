@@ -3,7 +3,7 @@ sign-in, token refresh and the gateway's session check."""
 
 import pytest_asyncio
 from auth_harness import Account, Browser, Harness, make_harness
-from bt_auth.allowlist import allows, normalize_entry
+from lbstash_auth.allowlist import allows, normalize_entry
 
 HOME = '203.0.113.7'
 ELSEWHERE = '198.51.100.9'

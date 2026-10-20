@@ -12,7 +12,7 @@ const link = (over: Partial<LinkStatus> = {}): LinkStatus => ({
   sessionActive: true, sessionSince: '2026-10-18T13:01:00Z', lastSeenAt: null, signInPausedUntil: null, pairingPending: false, heldCount: 0, ...over,
 });
 const check = (over: Partial<BalanceCheck> = {}): BalanceCheck => ({
-  id: 'c1', bankBalanceMinor: 3_759_100, ledgerBalanceMinor: 3_759_100, gapMinor: 0, source: 'manual', status: 'resolved',
+  id: 'c1', bankBalanceMinor: 3_759_100, transactionsBalanceMinor: 3_759_100, gapMinor: 0, source: 'manual', status: 'resolved',
   checkedAt: '2026-10-18T13:20:00Z', asOf: '2026-10-18T13:20:00Z', transactionId: null, graceEndsAt: null, ...over,
 });
 
@@ -78,10 +78,10 @@ describe('balance check line', () => {
     expect(balanceView(undefined, now)).toMatchObject({ short: 'not checked', kind: 'none' });
   });
   it('a gap under one rupee counts as matched', () => {
-    expect(balanceView(check({ gapMinor: 50 }), now)).toEqual({ short: 'matched', kind: 'ok', text: "today 6:50 pm · the bank's number matched the ledger" });
+    expect(balanceView(check({ gapMinor: 50 }), now)).toEqual({ short: 'matched', kind: 'ok', text: "today 6:50 pm · the bank's number matched the transactions" });
   });
   it('an open gap waits; a booked or closed one is finished business', () => {
-    expect(balanceView(check({ gapMinor: -18_000, status: 'open' }), now)).toEqual({ short: 'gap open', kind: 'wait', text: 'today 6:50 pm · the bank is ₹180 lower than the ledger, still open' });
+    expect(balanceView(check({ gapMinor: -18_000, status: 'open' }), now)).toEqual({ short: 'gap open', kind: 'wait', text: 'today 6:50 pm · the bank is ₹180 lower than the transactions, still open' });
     expect(balanceView(check({ gapMinor: -18_000, status: 'booked' }), now).text).toBe('today 6:50 pm · the bank was ₹180 lower; the gap is booked as Unaccounted');
     expect(balanceView(check({ gapMinor: 25_000, status: 'resolved' }), now).text).toBe('today 6:50 pm · the bank was ₹250 higher; the gap is closed');
     expect(balanceView(check({ gapMinor: -18_000, status: 'ignored' }), now)).toMatchObject({ short: 'checked', kind: 'ok' });

@@ -1,4 +1,4 @@
--- telegram service schema ("telegram"), forward-only. Every table with user data: SELECT bt.enable_rls('table');
+-- telegram service schema ("telegram"), forward-only. Every table with user data: SELECT lbstash.enable_rls('table');
 
 -- Per-user settings (Reveal, idle days, digest hour, after-tag). Lives apart from the link so the gateway's GET /settings
 -- works before a bot is saved or linked, and a PATCH survives unlink / re-link.
@@ -10,7 +10,7 @@ CREATE TABLE telegram_settings (
   after_tag text NOT NULL DEFAULT 'edit' CHECK (after_tag IN ('edit', 'delete')),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
-SELECT bt.enable_rls('telegram_settings');
+SELECT lbstash.enable_rls('telegram_settings');
 
 -- The user's own bot: token encrypted (AES-256-GCM, aad = user id), webhook secrets stored only as hashes.
 -- `path_hash` finds the owner from the webhook path; `header_hash` is checked against X-Telegram-Bot-Api-Secret-Token.
@@ -25,7 +25,7 @@ CREATE TABLE telegram_bots (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
-SELECT bt.enable_rls('telegram_bots');
+SELECT lbstash.enable_rls('telegram_bots');
 
 CREATE TABLE telegram_links (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -45,7 +45,7 @@ CREATE TABLE telegram_links (
   awaiting_until timestamptz,
   awaiting_msg_id bigint
 );
-SELECT bt.enable_rls('telegram_links');
+SELECT lbstash.enable_rls('telegram_links');
 
 CREATE TABLE telegram_pairings (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -56,7 +56,7 @@ CREATE TABLE telegram_pairings (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX telegram_pairings_user ON telegram_pairings (user_id);
-SELECT bt.enable_rls('telegram_pairings');
+SELECT lbstash.enable_rls('telegram_pairings');
 
 CREATE TABLE telegram_sessions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -69,9 +69,9 @@ CREATE TABLE telegram_sessions (
 );
 -- one open session per link
 CREATE UNIQUE INDEX telegram_sessions_open ON telegram_sessions (link_id) WHERE ended_at IS NULL;
-SELECT bt.enable_rls('telegram_sessions');
+SELECT lbstash.enable_rls('telegram_sessions');
 
--- One row per message (tag prompt, alert / nudge, digest). `transaction_id` is a ledger id (no foreign key across services).
+-- One row per message (tag prompt, alert / nudge, digest). `transaction_id` is a transactions id (no foreign key across services).
 CREATE TABLE telegram_prompts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   seq bigserial NOT NULL,
@@ -104,4 +104,4 @@ CREATE TABLE telegram_prompts (
 );
 CREATE INDEX telegram_prompts_queue ON telegram_prompts (link_id, status, seq);
 CREATE INDEX telegram_prompts_tx ON telegram_prompts (transaction_id) WHERE transaction_id IS NOT NULL;
-SELECT bt.enable_rls('telegram_prompts');
+SELECT lbstash.enable_rls('telegram_prompts');

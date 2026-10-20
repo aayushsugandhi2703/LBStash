@@ -1,4 +1,4 @@
-"""Planning test harness: the app over a real (RLS-enforced) database, workers on an in-memory bus, fake ledger and auth. Named `planning_harness` so several services' tests never import the wrong one."""
+"""Planning test harness: the app over a real (RLS-enforced) database, workers on an in-memory bus, fake transactions and auth. Named `planning_harness` so several services' tests never import the wrong one."""
 
 import uuid
 from datetime import UTC, datetime
@@ -6,12 +6,12 @@ from types import SimpleNamespace
 from typing import Any
 
 import httpx
-from bt.common import month_key
-from bt.contracts import CategoriesRes, CategoryDto, ResolveCategoryRes, SpendByCategoryItem, SpendByCategoryRes
-from bt.db.testing import TempDatabase
-from bt.kit.testing import AppHarness, build_test_app, headers_for
-from bt_planning.routes import routes_with
-from bt_planning.workers import start_workers
+from lbstash.common import month_key
+from lbstash.contracts import CategoriesRes, CategoryDto, ResolveCategoryRes, SpendByCategoryItem, SpendByCategoryRes
+from lbstash.db.testing import TempDatabase
+from lbstash.kit.testing import AppHarness, build_test_app, headers_for
+from lbstash_planning.routes import routes_with
+from lbstash_planning.workers import start_workers
 
 TZ = 'Asia/Kolkata'
 
@@ -35,8 +35,8 @@ clock = FrozenClock()
 now = clock
 
 
-class FakeLedger:
-    """The slice of the ledger planning talks to: categories, spend per category per month, resolve-by-tag."""
+class FakeTransactions:
+    """The slice of the transactions planning talks to: categories, spend per category per month, resolve-by-tag."""
 
     def __init__(self) -> None:
         self.cats: dict[str, str] = {}
@@ -90,9 +90,9 @@ class FakeAuth:
 
 
 class Harness:
-    def __init__(self, db: TempDatabase, ledger: FakeLedger, auth: FakeAuth, app: AppHarness) -> None:
+    def __init__(self, db: TempDatabase, transactions: FakeTransactions, auth: FakeAuth, app: AppHarness) -> None:
         self.db = db
-        self.ledger = ledger
+        self.transactions = transactions
         self.auth = auth
         self.app = app
         self.deps = app.deps
@@ -134,9 +134,9 @@ class Harness:
 
 
 async def make_harness(db: TempDatabase) -> Harness:
-    ledger, auth = FakeLedger(), FakeAuth()
+    transactions, auth = FakeTransactions(), FakeAuth()
     app = await build_test_app(
-        service='planning', register=routes_with(now), pool=db.pool, clients={'ledger': ledger, 'auth': auth}
+        service='planning', register=routes_with(now), pool=db.pool, clients={'transactions': transactions, 'auth': auth}
     )
     await start_workers(app.deps, now)
-    return Harness(db, ledger, auth, app)
+    return Harness(db, transactions, auth, app)

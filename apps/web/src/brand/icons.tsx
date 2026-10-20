@@ -3,7 +3,7 @@ import type { SVGProps } from 'react';
 /** 24-unit line icons: nav links (16px) and the big pale glyph in each aside. One map, used by both. */
 const ICONS = {
   now: 'M20 12a8 8 0 1 0-16 0a8 8 0 1 0 16 0Z M11 12a1 1 0 1 0 2 0a1 1 0 1 0-2 0Z',
-  ledger: 'M5 7h14 M5 12h14 M5 17h9',
+  transactions: 'M5 7h14 M5 12h14 M5 17h9',
   plan: 'M4 4h7v7H4Z M13 4h7v7h-7Z M4 13h7v7H4Z M13 13h7v7h-7Z',
   limits: 'M4 10h16v4H4Z M15 5v14',
   repeats: 'M19 12a7 7 0 1 1-2.1-5 M19 4v4h-4',

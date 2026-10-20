@@ -8,12 +8,12 @@ from typing import Any
 import psycopg
 import pytest
 import pytest_asyncio
-from bt.common import AppError, normalize_tag
-from bt_recurring.posting import make_tz_resolver, post_due_rules
-from bt_recurring.routes import make_routes
-from bt_recurring.workers import make_workers
+from lbstash.common import AppError, normalize_tag
+from lbstash_recurring.posting import make_tz_resolver, post_due_rules
+from lbstash_recurring.routes import make_routes
+from lbstash_recurring.workers import make_workers
 
-# a mutable clock and fake ledger / auth
+# a mutable clock and fake transactions / auth
 STATE = SimpleNamespace(now=datetime.fromisoformat('2026-10-18T10:00:00+05:30'))
 
 
@@ -29,8 +29,8 @@ def uid_of(as_: Any) -> str:
     return as_['user_id'] if isinstance(as_, dict) else as_.user_id
 
 
-class FakeLedger:
-    """Stands in for the ledger client: records posts, dedupes on `rec:<ruleId>:<dueDate>`, can fail or link on demand."""
+class FakeTransactions:
+    """Stands in for the transactions client: records posts, dedupes on `rec:<ruleId>:<dueDate>`, can fail or link on demand."""
 
     def __init__(self) -> None:
         self.posts: list[dict[str, Any]] = []
@@ -64,7 +64,7 @@ class FakeLedger:
     async def post_recurring(self, as_: Any, body: dict[str, Any]) -> SimpleNamespace:
         if self.fail_next > 0:
             self.fail_next -= 1
-            raise AppError('upstream_failed', 'ledger down')
+            raise AppError('upstream_failed', 'transactions down')
         self.posts.append({'as': as_, 'body': body})
         key = f'rec:{body["ruleId"]}:{body["dueDate"]}'
         prior = self.seen.get(key)
@@ -82,7 +82,7 @@ class FakeAuth:
         return SimpleNamespace(user=SimpleNamespace(id=uid_of(as_), timezone=ZONES.get(uid_of(as_), 'Asia/Kolkata')))
 
 
-ledger = FakeLedger()
+transactions = FakeTransactions()
 
 
 class Env(SimpleNamespace):
@@ -91,10 +91,10 @@ class Env(SimpleNamespace):
 
 @pytest_asyncio.fixture(loop_scope='session')
 async def t(db, app_factory):
-    """App + workers on a clean table, frozen clock and a fresh fake ledger."""
-    h = await app_factory(register=make_routes(clock), pool=db.pool, clients={'ledger': ledger, 'auth': FakeAuth()})
+    """App + workers on a clean table, frozen clock and a fresh fake transactions."""
+    h = await app_factory(register=make_routes(clock), pool=db.pool, clients={'transactions': transactions, 'auth': FakeAuth()})
     await make_workers(clock)(h.deps)
-    ledger.reset()
+    transactions.reset()
     set_now('2026-10-18T10:00:00+05:30')
     async with db.pool.system_tx() as tx:
         await tx.execute('DELETE FROM recurring_rules')
@@ -140,13 +140,13 @@ async def tick(t: Env) -> dict[str, int]:
 
 
 def posted(rule_id: str | None = None) -> list[str]:
-    return [p['body']['dueDate'] for p in ledger.posts if rule_id is None or p['body']['ruleId'] == rule_id]
+    return [p['body']['dueDate'] for p in transactions.posts if rule_id is None or p['body']['ruleId'] == rule_id]
 
 
 class TestAPI:
     async def test_creates_lists_with_category_names_and_totals_the_committed_amount_the_repeats_page_numbers(self, t):
         u = new_user()
-        cats = {n: ledger.add_cat(u, n).id for n in ['rent', 'sip', 'bills', 'fun']}
+        cats = {n: transactions.add_cat(u, n).id for n in ['rent', 'sip', 'bills', 'fun']}
         rules = [
             {'name': 'Rent', 'categoryId': cats['rent'], 'amountMinor': 2000000, 'schedule': {'kind': 'monthly', 'day': 1}, 'note': 'to landlord'},
             {'name': 'Nifty 50 index fund', 'categoryId': cats['sip'], 'amountMinor': 1000000, 'schedule': {'kind': 'monthly', 'day': 5}, 'note': 'sip'},
@@ -176,7 +176,7 @@ class TestAPI:
         assert paused.json()['rule']['paused'] is True and paused.json()['rule']['active'] is False
         assert (await call(t, u, 'GET', '/recurring')).json()['committedMinor'] == 1077900
 
-    async def test_a_new_tag_becomes_a_category_through_the_ledger(self, t):
+    async def test_a_new_tag_becomes_a_category_through_the_transactions(self, t):
         u = new_user()
         res = await call(t, u, 'POST', '/recurring', {'name': 'Gym', 'tag': '#Fitness', 'amountMinor': 150000, 'schedule': {'kind': 'weekly', 'weekday': 1}})
         assert res.status_code == 201
@@ -185,7 +185,7 @@ class TestAPI:
 
     async def test_validates_input(self, t):
         u = new_user()
-        cat = ledger.add_cat(u, 'rent').id
+        cat = transactions.add_cat(u, 'rent').id
 
         async def bad(over: dict[str, Any], field: str | None = None) -> None:
             payload = {k: v for k, v in {**rent(cat), **over}.items() if v is not ...}
@@ -215,7 +215,7 @@ class TestAPI:
 
     async def test_start_date_the_first_payment_can_be_today_or_later_ends_on_is_kept(self, t):
         u = new_user()
-        cat = ledger.add_cat(u, 'rent').id
+        cat = transactions.add_cat(u, 'rent').id
         a = await call(t, u, 'POST', '/recurring', rent(cat, schedule={'kind': 'monthly', 'day': 18}))
         assert a.json()['rule']['nextDue'] == '2026-10-18'  # due today
         b = await call(t, u, 'POST', '/recurring', rent(cat, startsOn='2026-12-01', endsOn='2027-03-01'))
@@ -223,7 +223,7 @@ class TestAPI:
 
     async def test_edit_applies_from_the_next_occurrence_and_keeps_the_rows_already_posted_untouched(self, t):
         u = new_user()
-        cat = ledger.add_cat(u, 'rent').id
+        cat = transactions.add_cat(u, 'rent').id
         created = (await call(t, u, 'POST', '/recurring', rent(cat))).json()['rule']
         edited = await call(t, u, 'PATCH', f'/recurring/{created["id"]}', {'amountMinor': 2200000, 'name': 'Rent (new lease)', 'matchHint': 'landlord', 'note': None})
         assert edited.status_code == 200
@@ -234,17 +234,17 @@ class TestAPI:
         # a new day moves the next due date (never before today)
         moved = await call(t, u, 'PATCH', f'/recurring/{created["id"]}', {'schedule': {'kind': 'monthly', 'day': 20}})
         assert moved.json()['rule']['nextDue'] == '2026-10-20'
-        # the new amount is what the cron hands to the ledger
+        # the new amount is what the cron hands to the transactions
         set_now('2026-10-20T09:00:00+05:30')
         await tick(t)
-        assert [[p['body']['amountMinor'], p['body']['dueDate'], p['body']['matchHint']] for p in ledger.posts] == [[2200000, '2026-10-20', 'landlord']]
+        assert [[p['body']['amountMinor'], p['body']['dueDate'], p['body']['matchHint']] for p in transactions.posts] == [[2200000, '2026-10-20', 'landlord']]
         # schedule change after the occurrence was handled can't re-post it
         again = await call(t, u, 'PATCH', f'/recurring/{created["id"]}', {'schedule': {'kind': 'monthly', 'day': 19}})
         assert again.json()['rule']['nextDue'] == '2026-11-19'
 
     async def test_skip_one_occurrence_moves_on_without_posting_skip_on_an_ended_rule_is_refused(self, t):
         u = new_user()
-        cat = ledger.add_cat(u, 'rent').id
+        cat = transactions.add_cat(u, 'rent').id
         r = (await call(t, u, 'POST', '/recurring', rent(cat, endsOn='2026-12-01'))).json()['rule']
         s1 = await call(t, u, 'PATCH', f'/recurring/{r["id"]}', {'skipNext': True})
         assert s1.json()['rule']['nextDue'] == '2026-12-01'
@@ -252,17 +252,17 @@ class TestAPI:
         assert s2.json()['rule']['nextDue'] == '2027-01-01' and s2.json()['rule']['active'] is False
         assert s2.json()['committedMinor'] == 0
         assert (await call(t, u, 'PATCH', f'/recurring/{r["id"]}', {'skipNext': True})).status_code == 422
-        assert ledger.posts == []
+        assert transactions.posts == []
 
     async def test_resume_never_back_posts_what_was_missed_while_paused(self, t):
         u = new_user()
         seeded = await seed(t, u, next_due='2026-07-31', paused=True, day=31)
         await tick(t)
-        assert ledger.posts == []
+        assert transactions.posts == []
         res = await call(t, u, 'PATCH', f'/recurring/{seeded.id}', {'paused': False})
         assert res.json()['rule']['nextDue'] == '2026-10-31'
         await tick(t)
-        assert ledger.posts == []
+        assert transactions.posts == []
 
     async def test_a_patch_that_does_not_change_paused_keeps_a_running_rules_backlog(self, t):
         # a running rule that is behind is catching up; `paused: false` on it is not a resume and must not skip its backlog
@@ -275,7 +275,7 @@ class TestAPI:
 
     async def test_ends_on_and_note_can_be_cleared_with_null_and_are_kept_when_absent(self, t):
         u = new_user()
-        cat = ledger.add_cat(u, 'rent').id
+        cat = transactions.add_cat(u, 'rent').id
         r = (await call(t, u, 'POST', '/recurring', rent(cat, endsOn='2027-03-01', note='to landlord'))).json()['rule']
         kept = await call(t, u, 'PATCH', f'/recurring/{r["id"]}', {'amountMinor': 2100000})
         assert kept.json()['rule']['endsOn'] == '2027-03-01' and kept.json()['rule']['note'] == 'to landlord'
@@ -284,7 +284,7 @@ class TestAPI:
 
     async def test_delete_removes_the_rule_and_returns_the_new_total_unknown_id_is_404(self, t):
         u = new_user()
-        cat = ledger.add_cat(u, 'rent').id
+        cat = transactions.add_cat(u, 'rent').id
         a = (await call(t, u, 'POST', '/recurring', rent(cat))).json()['rule']
         await call(t, u, 'POST', '/recurring', rent(cat, name='SIP', amountMinor=1000000))
         d = await call(t, u, 'DELETE', f'/recurring/{a["id"]}')
@@ -295,7 +295,7 @@ class TestAPI:
 
     async def test_is_scoped_to_the_token_user_nobody_sees_edits_deletes_or_exports_another_users_rules(self, t):
         a, b = new_user(), new_user()
-        cat_a = ledger.add_cat(a, 'rent').id
+        cat_a = transactions.add_cat(a, 'rent').id
         mine = (await call(t, a, 'POST', '/recurring', rent(cat_a))).json()['rule']
         assert (await call(t, b, 'GET', '/recurring')).json() == {'items': [], 'committedMinor': 0}
         assert (await call(t, b, 'PATCH', f'/recurring/{mine["id"]}', {'amountMinor': 1})).status_code == 404
@@ -342,14 +342,14 @@ class TestPostingCron:
         u = new_user()
         r = await seed(t, u, next_due='2026-10-18', day=18, amount=2000000, name='Rent', hint='landlord')
         assert await tick(t) == {'handled': 1, 'failed': 0}
-        assert len(ledger.posts) == 1
-        assert ledger.posts[0]['as'] == {'user_id': u, 'tz': 'Asia/Kolkata'}
-        assert ledger.posts[0]['body'] == {
+        assert len(transactions.posts) == 1
+        assert transactions.posts[0]['as'] == {'user_id': u, 'tz': 'Asia/Kolkata'}
+        assert transactions.posts[0]['body'] == {
             'ruleId': r.id, 'name': 'Rent', 'categoryId': r.category_id, 'amountMinor': 2000000, 'dueDate': '2026-10-18', 'matchHint': 'landlord',
         }  # fmt: skip
         assert await next_due_of(t, u, r.id) == '2026-11-18'
         await tick(t)
-        assert len(ledger.posts) == 1
+        assert len(transactions.posts) == 1
 
     async def test_two_ticks_at_the_same_moment_post_once_row_lock(self, t):
         import asyncio
@@ -357,7 +357,7 @@ class TestPostingCron:
         u = new_user()
         r = await seed(t, u, next_due='2026-10-18', day=18)
         await asyncio.gather(tick(t), tick(t))
-        assert len(ledger.posts) == 1
+        assert len(transactions.posts) == 1
         assert await next_due_of(t, u, r.id) == '2026-11-18'
 
     async def test_nothing_is_posted_before_the_due_date_for_paused_rules_or_after_the_end_date(self, t):
@@ -366,7 +366,7 @@ class TestPostingCron:
         paused = await seed(t, u, next_due='2026-10-01', day=1, paused=True)
         ended = await seed(t, u, next_due='2026-10-01', day=1, ends_on='2026-09-30')
         await tick(t)
-        assert ledger.posts == []
+        assert transactions.posts == []
         assert await next_due_of(t, u, future.id) == '2026-10-19'
         assert await next_due_of(t, u, paused.id) == '2026-10-01'
         assert await next_due_of(t, u, ended.id) == '2026-10-01'
@@ -375,11 +375,11 @@ class TestPostingCron:
         u = new_user()
         r = await seed(t, u, next_due='2026-10-18', day=18, ends_on='2026-10-18')
         await tick(t)
-        assert len(ledger.posts) == 1
+        assert len(transactions.posts) == 1
         assert await next_due_of(t, u, r.id) == '2026-11-18'
         set_now('2026-12-01T10:00:00+05:30')
         await tick(t)
-        assert len(ledger.posts) == 1
+        assert len(transactions.posts) == 1
 
     async def test_catches_up_missed_occurrences_one_by_one_with_the_short_month_clamp_without_double_posting(self, t):
         u = new_user()
@@ -388,7 +388,7 @@ class TestPostingCron:
         assert posted() == ['2026-07-31', '2026-08-31', '2026-09-30']
         assert await next_due_of(t, u, r.id) == '2026-10-31'
         await tick(t)
-        assert len(ledger.posts) == 3
+        assert len(transactions.posts) == 3
         assert len(set(posted())) == 3
 
     async def test_weekly_and_yearly_rules_advance_correctly(self, t):
@@ -404,33 +404,33 @@ class TestPostingCron:
     async def test_a_linked_capture_still_advances_the_rule(self, t):
         u = new_user()
         r = await seed(t, u, next_due='2026-10-18', day=18)
-        ledger.link_keys.add(f'rec:{r.id}:2026-10-18')
+        transactions.link_keys.add(f'rec:{r.id}:2026-10-18')
         await tick(t)
         assert await next_due_of(t, u, r.id) == '2026-11-18'
 
-    async def test_a_failed_ledger_call_leaves_next_due_unchanged_the_next_tick_retries_and_succeeds(self, t):
+    async def test_a_failed_transactions_call_leaves_next_due_unchanged_the_next_tick_retries_and_succeeds(self, t):
         u = new_user()
         r = await seed(t, u, next_due='2026-10-18', day=18)
-        ledger.fail_next = 1
+        transactions.fail_next = 1
         assert await tick(t) == {'handled': 0, 'failed': 1}
         assert await next_due_of(t, u, r.id) == '2026-10-18'
         assert await tick(t) == {'handled': 1, 'failed': 0}
         assert await next_due_of(t, u, r.id) == '2026-11-18'
-        assert len(ledger.posts) == 1
+        assert len(transactions.posts) == 1
 
     async def test_one_failing_rule_does_not_block_the_others(self, t):
         u = new_user()
         a = await seed(t, u, next_due='2026-10-10', day=10, name='A')
         b = await seed(t, u, next_due='2026-10-11', day=11, name='B')
-        ledger.fail_next = 1  # A is tried first
+        transactions.fail_next = 1  # A is tried first
         assert await tick(t) == {'handled': 1, 'failed': 1}
         assert await next_due_of(t, u, a.id) == '2026-10-10'
         assert await next_due_of(t, u, b.id) == '2026-11-11'
 
-    async def test_a_crash_after_the_ledger_call_but_before_the_commit_is_safe_the_retry_gets_already_posted_and_advances(self, t):
+    async def test_a_crash_after_the_transactions_call_but_before_the_commit_is_safe_the_retry_gets_already_posted_and_advances(self, t):
         u = new_user()
         r = await seed(t, u, next_due='2026-10-18', day=18)
-        ledger.seen[f'rec:{r.id}:2026-10-18'] = 'posted'  # the ledger already has it
+        transactions.seen[f'rec:{r.id}:2026-10-18'] = 'posted'  # the transactions already has it
         await tick(t)
         assert posted() == ['2026-10-18']  # one call, outcome already_posted
         assert await next_due_of(t, u, r.id) == '2026-11-18'
@@ -443,12 +443,12 @@ class TestPostingCron:
         a = await seed(t, nz, next_due='2026-10-18', day=18)
         b = await seed(t, la, next_due='2026-10-18', day=18)
         await tick(t)
-        assert [p['body']['ruleId'] for p in ledger.posts] == [a.id]
-        assert ledger.posts[0]['as']['tz'] == 'Pacific/Auckland'
+        assert [p['body']['ruleId'] for p in transactions.posts] == [a.id]
+        assert transactions.posts[0]['as']['tz'] == 'Pacific/Auckland'
         assert await next_due_of(t, la, b.id) == '2026-10-18'
         set_now('2026-10-18T08:00:00+00:00')  # now Oct 18 in LA too
         await tick(t)
-        assert [p['body']['ruleId'] for p in ledger.posts] == [a.id, b.id]
+        assert [p['body']['ruleId'] for p in transactions.posts] == [a.id, b.id]
 
     async def test_falls_back_to_the_default_zone_when_auth_cannot_be_reached(self, t):
         u = new_user()
@@ -458,9 +458,9 @@ class TestPostingCron:
             async def me(self, as_: Any) -> None:
                 raise RuntimeError('down')
 
-        broken = dataclasses.replace(t.deps, clients=SimpleNamespace(ledger=ledger, auth=Broken()))
+        broken = dataclasses.replace(t.deps, clients=SimpleNamespace(transactions=transactions, auth=Broken()))
         await post_due_rules(broken, clock, make_tz_resolver(broken, clock, 0))
-        assert ledger.posts[0]['as']['tz'] == 'Asia/Kolkata'
+        assert transactions.posts[0]['as']['tz'] == 'Asia/Kolkata'
         assert await next_due_of(t, u, r.id) == '2026-11-18'
 
     async def test_an_unknown_zone_from_auth_falls_back_to_the_default_zone(self, t):

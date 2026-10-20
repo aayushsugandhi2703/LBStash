@@ -16,7 +16,7 @@ def hexs(n: int = 24) -> str:
 
 generated = {
     "POSTGRES_PASSWORD": hexs(), "DB_PASSWORD_QUEUE": hexs(),
-    "DB_PASSWORD_AUTH": hexs(), "DB_PASSWORD_LEDGER": hexs(), "DB_PASSWORD_INGEST": hexs(), "DB_PASSWORD_PLANNING": hexs(),
+    "DB_PASSWORD_AUTH": hexs(), "DB_PASSWORD_TRANSACTIONS": hexs(), "DB_PASSWORD_INGEST": hexs(), "DB_PASSWORD_PLANNING": hexs(),
     "DB_PASSWORD_RECURRING": hexs(), "DB_PASSWORD_TELEGRAM": hexs(),
     "INTERNAL_SECRET": hexs(32), "ACCESS_TOKEN_SECRET": hexs(32), "FIELD_KEY": base64.b64encode(secrets.token_bytes(32)).decode(),
 }

@@ -155,7 +155,7 @@ describe('export file', () => {
     expect(formatBytes(2 * 1024 * 1024)).toBe('2.0 MB');
   });
   it('builds one JSON document and describes it', () => {
-    const f = buildExportFile({ exportedAt: '2026-10-18T13:20:00Z', filename: 'ledger-export-2026-10-18.json', entries: 18, parts: [{ service: 'auth', tables: {} }] });
+    const f = buildExportFile({ exportedAt: '2026-10-18T13:20:00Z', filename: 'lbstash-export-2026-10-18.json', entries: 18, parts: [{ service: 'auth', tables: {} }] });
     expect(JSON.parse(f.text)).toEqual({ exportedAt: '2026-10-18T13:20:00Z', entries: 18, parts: [{ service: 'auth', tables: {} }] });
     expect(f.text.endsWith('\n')).toBe(true);
     expect(f.bytes).toBe(new TextEncoder().encode(f.text).length);

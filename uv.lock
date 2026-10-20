@@ -2,22 +2,22 @@ version = 1
 revision = 5
 requires-python = ">=3.12"
 resolution-markers = [
-    "python_full_version >= '3.14'",
     "python_full_version < '3.14'",
+    "python_full_version >= '3.14'",
 ]
 
 [manifest]
 members = [
-    "bt",
-    "bt-auth",
-    "bt-gateway",
-    "bt-ingest",
-    "bt-ledger",
-    "bt-planning",
-    "bt-recurring",
-    "bt-reports",
-    "bt-telegram",
-    "budget-tracker",
+    "lbstash",
+    "lbstash-auth",
+    "lbstash-gateway",
+    "lbstash-ingest",
+    "lbstash-planning",
+    "lbstash-recurring",
+    "lbstash-reports",
+    "lbstash-telegram",
+    "lbstash-transactions",
+    "lbstash-workspace",
 ]
 
 [[package]]
@@ -113,170 +113,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/a9/02/0bfc59e781c89acf64c31c388aade9d9d1c1ea38aa1ba1292fe07f607fe9/argon2_cffi_bindings-26.1.0-cp315-cp315t-win32.whl", hash = "sha256:df612391feca41c44d20118f3b88d1b86419465cd1f5496859f715ca60ec2210", size = 24875, upload-time = "2026-08-20T07:33:12.616Z" },
     { url = "https://files.pythonhosted.org/packages/61/c7/c3e46068cddffccecb8ad94d71135e9bf62bbc789589e7dfadc7c6f59214/argon2_cffi_bindings-26.1.0-cp315-cp315t-win_amd64.whl", hash = "sha256:1a0a29ed86960e44eaace7e081bdfab4f08b012fd96ec8edba71e2ad020939e4", size = 26655, upload-time = "2026-08-20T07:33:13.521Z" },
     { url = "https://files.pythonhosted.org/packages/f4/ca/18b9c8c45fecf34b9100ec6d7946057f14a158f2eaa20ea123a3e82351cb/argon2_cffi_bindings-26.1.0-cp315-cp315t-win_arm64.whl", hash = "sha256:d157ddfab1e8b21f2f1dedda9c09645d98b5ed0b667b0626be600a345d426440", size = 25376, upload-time = "2026-08-20T07:33:14.491Z" },
-]
-
-[[package]]
-name = "bt"
-version = "0.1.0"
-source = { editable = "packages/bt" }
-dependencies = [
-    { name = "argon2-cffi" },
-    { name = "croniter" },
-    { name = "cryptography" },
-    { name = "fastapi" },
-    { name = "httpx" },
-    { name = "psycopg", extra = ["binary", "pool"] },
-    { name = "pydantic" },
-    { name = "pyjwt" },
-    { name = "uvicorn", extra = ["standard"] },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "argon2-cffi", specifier = ">=23.1" },
-    { name = "croniter", specifier = ">=3.0" },
-    { name = "cryptography", specifier = ">=43" },
-    { name = "fastapi", specifier = ">=0.115" },
-    { name = "httpx", specifier = ">=0.27" },
-    { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2" },
-    { name = "pydantic", specifier = ">=2.9" },
-    { name = "pyjwt", specifier = ">=2.9" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.32" },
-]
-
-[[package]]
-name = "bt-auth"
-version = "0.1.0"
-source = { editable = "services/auth" }
-dependencies = [
-    { name = "aiosmtplib" },
-    { name = "bt" },
-    { name = "webauthn" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "aiosmtplib", specifier = ">=3.0" },
-    { name = "bt", editable = "packages/bt" },
-    { name = "webauthn", specifier = ">=2.5" },
-]
-
-[[package]]
-name = "bt-gateway"
-version = "0.1.0"
-source = { editable = "services/gateway" }
-dependencies = [
-    { name = "bt" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "bt", editable = "packages/bt" }]
-
-[[package]]
-name = "bt-ingest"
-version = "0.1.0"
-source = { editable = "services/ingest" }
-dependencies = [
-    { name = "bt" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "bt", editable = "packages/bt" }]
-
-[[package]]
-name = "bt-ledger"
-version = "0.1.0"
-source = { editable = "services/ledger" }
-dependencies = [
-    { name = "bt" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "bt", editable = "packages/bt" }]
-
-[[package]]
-name = "bt-planning"
-version = "0.1.0"
-source = { editable = "services/planning" }
-dependencies = [
-    { name = "bt" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "bt", editable = "packages/bt" }]
-
-[[package]]
-name = "bt-recurring"
-version = "0.1.0"
-source = { editable = "services/recurring" }
-dependencies = [
-    { name = "bt" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "bt", editable = "packages/bt" }]
-
-[[package]]
-name = "bt-reports"
-version = "0.1.0"
-source = { editable = "services/reports" }
-dependencies = [
-    { name = "bt" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "bt", editable = "packages/bt" }]
-
-[[package]]
-name = "bt-telegram"
-version = "0.1.0"
-source = { editable = "services/telegram" }
-dependencies = [
-    { name = "bt" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "bt", editable = "packages/bt" }]
-
-[[package]]
-name = "budget-tracker"
-version = "0.1.0"
-source = { virtual = "." }
-
-[package.dev-dependencies]
-dev = [
-    { name = "bt" },
-    { name = "bt-auth" },
-    { name = "bt-gateway" },
-    { name = "bt-ingest" },
-    { name = "bt-ledger" },
-    { name = "bt-planning" },
-    { name = "bt-recurring" },
-    { name = "bt-reports" },
-    { name = "bt-telegram" },
-    { name = "cbor2" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "bt", editable = "packages/bt" },
-    { name = "bt-auth", editable = "services/auth" },
-    { name = "bt-gateway", editable = "services/gateway" },
-    { name = "bt-ingest", editable = "services/ingest" },
-    { name = "bt-ledger", editable = "services/ledger" },
-    { name = "bt-planning", editable = "services/planning" },
-    { name = "bt-recurring", editable = "services/recurring" },
-    { name = "bt-reports", editable = "services/reports" },
-    { name = "bt-telegram", editable = "services/telegram" },
-    { name = "cbor2", specifier = ">=5.6" },
-    { name = "pytest", specifier = ">=8.3" },
-    { name = "pytest-asyncio", specifier = ">=0.25" },
-    { name = "ruff", specifier = ">=0.8" },
 ]
 
 [[package]]
@@ -678,6 +514,170 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/01/e1/2069291243c926a2ff1cd706c7f3eeb9b62144bf60f77c9fb9ff2fb26bd3/iniconfig-2.3.1.tar.gz", hash = "sha256:67f4b9c50da0dedf52af349e7749a80a9057a5031199791b906c3bb3ae878960", size = 21209, upload-time = "2026-10-06T22:48:38.076Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/56/43/4ca9e49d27a1fcf6bece6f6aec0ea46bb9112489b93d4b688fb415457bdb/iniconfig-2.3.1-py3-none-any.whl", hash = "sha256:9121e2c1fdb355232495be3194c8dfe87ccc2d5dee45947b78e68f499790d7a7", size = 7552, upload-time = "2026-10-06T22:48:36.959Z" },
+]
+
+[[package]]
+name = "lbstash"
+version = "0.1.0"
+source = { editable = "packages/lbstash" }
+dependencies = [
+    { name = "argon2-cffi" },
+    { name = "croniter" },
+    { name = "cryptography" },
+    { name = "fastapi" },
+    { name = "httpx" },
+    { name = "psycopg", extra = ["binary", "pool"] },
+    { name = "pydantic" },
+    { name = "pyjwt" },
+    { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "argon2-cffi", specifier = ">=23.1" },
+    { name = "croniter", specifier = ">=3.0" },
+    { name = "cryptography", specifier = ">=43" },
+    { name = "fastapi", specifier = ">=0.115" },
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2" },
+    { name = "pydantic", specifier = ">=2.9" },
+    { name = "pyjwt", specifier = ">=2.9" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.32" },
+]
+
+[[package]]
+name = "lbstash-auth"
+version = "0.1.0"
+source = { editable = "services/auth" }
+dependencies = [
+    { name = "aiosmtplib" },
+    { name = "lbstash" },
+    { name = "webauthn" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aiosmtplib", specifier = ">=3.0" },
+    { name = "lbstash", editable = "packages/lbstash" },
+    { name = "webauthn", specifier = ">=2.5" },
+]
+
+[[package]]
+name = "lbstash-gateway"
+version = "0.1.0"
+source = { editable = "services/gateway" }
+dependencies = [
+    { name = "lbstash" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "lbstash", editable = "packages/lbstash" }]
+
+[[package]]
+name = "lbstash-ingest"
+version = "0.1.0"
+source = { editable = "services/ingest" }
+dependencies = [
+    { name = "lbstash" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "lbstash", editable = "packages/lbstash" }]
+
+[[package]]
+name = "lbstash-planning"
+version = "0.1.0"
+source = { editable = "services/planning" }
+dependencies = [
+    { name = "lbstash" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "lbstash", editable = "packages/lbstash" }]
+
+[[package]]
+name = "lbstash-recurring"
+version = "0.1.0"
+source = { editable = "services/recurring" }
+dependencies = [
+    { name = "lbstash" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "lbstash", editable = "packages/lbstash" }]
+
+[[package]]
+name = "lbstash-reports"
+version = "0.1.0"
+source = { editable = "services/reports" }
+dependencies = [
+    { name = "lbstash" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "lbstash", editable = "packages/lbstash" }]
+
+[[package]]
+name = "lbstash-telegram"
+version = "0.1.0"
+source = { editable = "services/telegram" }
+dependencies = [
+    { name = "lbstash" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "lbstash", editable = "packages/lbstash" }]
+
+[[package]]
+name = "lbstash-transactions"
+version = "0.1.0"
+source = { editable = "services/transactions" }
+dependencies = [
+    { name = "lbstash" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "lbstash", editable = "packages/lbstash" }]
+
+[[package]]
+name = "lbstash-workspace"
+version = "0.1.0"
+source = { virtual = "." }
+
+[package.dev-dependencies]
+dev = [
+    { name = "cbor2" },
+    { name = "lbstash" },
+    { name = "lbstash-auth" },
+    { name = "lbstash-gateway" },
+    { name = "lbstash-ingest" },
+    { name = "lbstash-planning" },
+    { name = "lbstash-recurring" },
+    { name = "lbstash-reports" },
+    { name = "lbstash-telegram" },
+    { name = "lbstash-transactions" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "cbor2", specifier = ">=5.6" },
+    { name = "lbstash", editable = "packages/lbstash" },
+    { name = "lbstash-auth", editable = "services/auth" },
+    { name = "lbstash-gateway", editable = "services/gateway" },
+    { name = "lbstash-ingest", editable = "services/ingest" },
+    { name = "lbstash-planning", editable = "services/planning" },
+    { name = "lbstash-recurring", editable = "services/recurring" },
+    { name = "lbstash-reports", editable = "services/reports" },
+    { name = "lbstash-telegram", editable = "services/telegram" },
+    { name = "lbstash-transactions", editable = "services/transactions" },
+    { name = "pytest", specifier = ">=8.3" },
+    { name = "pytest-asyncio", specifier = ">=0.25" },
+    { name = "ruff", specifier = ">=0.8" },
 ]
 
 [[package]]

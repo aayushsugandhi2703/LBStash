@@ -5,7 +5,7 @@ import type { z } from 'zod';
 import type { BalanceCheckRes } from '@/contracts';
 import { api, errorText } from '@/lib/api';
 import { inrSigned } from '@/common';
-import { checkStage } from '@/features/ledger';
+import { checkStage } from '@/features/transactions';
 import { gapSentence, graceText } from '@/features/now';
 import { useAmountField } from '@/lib/use-amount-field';
 import { Button, ErrorLine, StatusLine, TextLink } from './ui';
@@ -13,8 +13,8 @@ import s from './check-panel.module.css';
 
 type CheckResult = z.infer<typeof BalanceCheckRes>;
 
-/** "Compare with your bank's balance" (ui-spec 02-ledger): the bank's number against the ledger's. */
-export function CheckPanel({ ledgerMinor, onChanged, listBelow }: { ledgerMinor: number; onChanged: () => void; listBelow?: boolean }) {
+/** "Compare with your bank's balance" (ui-spec 02-transactions): the bank's number against the transactions's. */
+export function CheckPanel({ transactionsMinor, onChanged, listBelow }: { transactionsMinor: number; onChanged: () => void; listBelow?: boolean }) {
   const id = useId();
   const field = useAmountField('', { decimals: true });
   const [result, setResult] = useState<CheckResult | null>(null);
@@ -47,9 +47,9 @@ export function CheckPanel({ ledgerMinor, onChanged, listBelow }: { ledgerMinor:
         <input id={id} className={`${s.input} mono`} placeholder="0" {...field.inputProps} onChange={(e) => { field.inputProps.onChange(e); setResult(null); setError(''); }} />
         <Button type="submit" disabled={bank === null || busy}>Check</Button>
       </div>
-      <div className={`mono lbl ${s.caption}`} style={{ textTransform: 'none' }}>the ledger says {inrSigned(ledgerMinor)}</div>
+      <div className={`mono lbl ${s.caption}`} style={{ textTransform: 'none' }}>the transactions says {inrSigned(transactionsMinor)}</div>
       {error && <ErrorLine>{error}</ErrorLine>}
-      {result && stage === 'match' && <div className={s.result}><StatusLine>Matches the ledger. Nothing to book.</StatusLine></div>}
+      {result && stage === 'match' && <div className={s.result}><StatusLine>Matches the transactions. Nothing to book.</StatusLine></div>}
       {result && stage === 'gap' && !waiting && (
         <div className={s.result} role="status">
           <div className={s.gap}><span className={s.sq} aria-hidden="true" /><span>{gapSentence(result.check)}</span></div>
@@ -71,7 +71,7 @@ export function CheckPanel({ ledgerMinor, onChanged, listBelow }: { ledgerMinor:
       {result && stage === 'booked' && (
         <div className={s.result}>
           <StatusLine>
-            Booked as Unaccounted. Tag it, or split it, {listBelow ? 'in the list below' : <Link className="link" href="/ledger">in the Ledger</Link>}.
+            Booked as Unaccounted. Tag it, or split it, {listBelow ? 'in the list below' : <Link className="link" href="/transactions">in the Transactions</Link>}.
           </StatusLine>
         </div>
       )}

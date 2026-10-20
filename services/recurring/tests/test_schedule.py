@@ -1,5 +1,5 @@
-from bt.contracts import MonthlySchedule, WeeklySchedule, YearlySchedule
-from bt_recurring.schedule import first_occurrence, is_real_date, next_occurrence
+from lbstash.contracts import MonthlySchedule, WeeklySchedule, YearlySchedule
+from lbstash_recurring.schedule import first_occurrence, is_real_date, next_occurrence
 
 
 def monthly(day: int) -> MonthlySchedule:

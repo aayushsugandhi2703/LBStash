@@ -3,8 +3,8 @@ import uuid
 from datetime import UTC, datetime
 
 import pytest
-from bt.contracts import BudgetEvaluateJob
-from bt_planning.evaluate import evaluate_budget
+from lbstash.contracts import BudgetEvaluateJob
+from lbstash_planning.evaluate import evaluate_budget
 from planning_harness import Harness, clock, now
 
 OCT, NOV = '2026-10', '2026-11'
@@ -47,18 +47,18 @@ class TestBudgetEvaluate:
     ) -> None:
         u = str(uuid.uuid4())
         _, cat = await limit(h, u, 'food', 5000)  # the Phase 8 test: a 5,000 Food limit
-        h.ledger.set_spend(OCT, 'food', rs(4000) - 1)
+        h.transactions.set_spend(OCT, 'food', rs(4000) - 1)
         assert await evaluate(h, u, cat) == 'skipped'
         assert (await alerts_of(h, u))['items'] == []
 
-        h.ledger.set_spend(OCT, 'food', rs(4000))  # exactly 80%
+        h.transactions.set_spend(OCT, 'food', rs(4000))  # exactly 80%
         assert await evaluate(h, u, cat) == 'fired'
         assert [a['level'] for a in (await alerts_of(h, u))['items']] == ['alert']
 
-        h.ledger.set_spend(OCT, 'food', rs(5000) - 1)  # 99.99%: still just the alert
+        h.transactions.set_spend(OCT, 'food', rs(5000) - 1)  # 99.99%: still just the alert
         assert await evaluate(h, u, cat) == 'skipped'
 
-        h.ledger.set_spend(OCT, 'food', rs(5000))  # exactly 100%
+        h.transactions.set_spend(OCT, 'food', rs(5000))  # exactly 100%
         assert await evaluate(h, u, cat) == 'fired'
         items = (await alerts_of(h, u))['items']
         assert sorted(a['level'] for a in items) == ['alert', 'exceeded']
@@ -76,7 +76,7 @@ class TestBudgetEvaluate:
     async def test_jumping_straight_past_100_sends_one_exceeded_not_two_messages(self, h: Harness) -> None:
         u = str(uuid.uuid4())
         _, cat = await limit(h, u, 'fun', 1000)
-        h.ledger.set_spend(OCT, 'fun', rs(1500))
+        h.transactions.set_spend(OCT, 'fun', rs(1500))
         await evaluate(h, u, cat)
         assert levels(h) == ['exceeded']
 
@@ -85,13 +85,13 @@ class TestBudgetEvaluate:
     ) -> None:
         u = str(uuid.uuid4())
         _, cat = await limit(h, u, 'food', 1000)
-        h.ledger.set_spend(OCT, 'food', rs(900))
+        h.transactions.set_spend(OCT, 'food', rs(900))
         assert await evaluate(h, u, cat) == 'fired'
         for _ in range(3):
             assert await evaluate(h, u, cat) == 'skipped'
-        h.ledger.set_spend(OCT, 'food', rs(100))  # a debit was deleted
+        h.transactions.set_spend(OCT, 'food', rs(100))  # a debit was deleted
         await evaluate(h, u, cat)
-        h.ledger.set_spend(OCT, 'food', rs(900))  # and it came back
+        h.transactions.set_spend(OCT, 'food', rs(900))  # and it came back
         assert await evaluate(h, u, cat) == 'skipped'
         assert len(h.bus.events_of('alert.created')) == 1
         assert len((await alerts_of(h, u))['items']) == 1
@@ -101,7 +101,7 @@ class TestBudgetEvaluate:
     ) -> None:
         u = str(uuid.uuid4())
         _, cat = await limit(h, u, 'rent', 1000)
-        h.ledger.set_spend(OCT, 'rent', rs(850))
+        h.transactions.set_spend(OCT, 'rent', rs(850))
         out = await asyncio.gather(*(evaluate(h, u, cat) for _ in range(3)))
         assert out.count('fired') == 1
         assert len(h.bus.events_of('alert.created')) == 1
@@ -110,7 +110,7 @@ class TestBudgetEvaluate:
     async def test_a_raised_limit_re_arms_the_alert_levels_still_reached_stay_fired(self, h: Harness) -> None:
         u = str(uuid.uuid4())
         id_, cat = await limit(h, u, 'food', 1000)
-        h.ledger.set_spend(OCT, 'food', rs(850))
+        h.transactions.set_spend(OCT, 'food', rs(850))
         await evaluate(h, u, cat)
         assert len((await alerts_of(h, u))['items']) == 1
 
@@ -119,7 +119,7 @@ class TestBudgetEvaluate:
         assert (await alerts_of(h, u))['items'] == []
         assert await evaluate(h, u, cat) == 'skipped'  # nothing reached yet
 
-        h.ledger.set_spend(OCT, 'food', rs(1700))  # 85% of the new limit
+        h.transactions.set_spend(OCT, 'food', rs(1700))  # 85% of the new limit
         assert await evaluate(h, u, cat) == 'fired'
         assert levels(h) == ['alert', 'alert']
 
@@ -129,12 +129,12 @@ class TestBudgetEvaluate:
         assert await evaluate(h, u, cat) == 'skipped'
 
         # exceeded then raised above the spend: exceeded re-arms, alert stays
-        h.ledger.set_spend(OCT, 'food', rs(2100))
+        h.transactions.set_spend(OCT, 'food', rs(2100))
         await evaluate(h, u, cat)
         assert sorted(a['level'] for a in (await alerts_of(h, u))['items']) == ['alert', 'exceeded']
         await h.send(u, 'PATCH', f'/budgets/{id_}', {'limitMinor': rs(2500)})  # 84%
         assert [a['level'] for a in (await alerts_of(h, u))['items']] == ['alert']
-        h.ledger.set_spend(OCT, 'food', rs(2500))
+        h.transactions.set_spend(OCT, 'food', rs(2500))
         assert await evaluate(h, u, cat) == 'fired'
         assert levels(h)[-1] == 'exceeded'
 
@@ -143,9 +143,9 @@ class TestBudgetEvaluate:
     ) -> None:
         u = str(uuid.uuid4())
         id_, cat = await limit(h, u, 'food', 1000)
-        h.ledger.set_spend(OCT, 'food', rs(900))
+        h.transactions.set_spend(OCT, 'food', rs(900))
         await evaluate(h, u, cat)
-        h.ledger.set_spend(OCT, 'food', rs(100))
+        h.transactions.set_spend(OCT, 'food', rs(100))
         await h.send(u, 'PATCH', f'/budgets/{id_}', {'limitMinor': rs(900)})
         await h.send(u, 'PATCH', f'/budgets/{id_}', {'warnPct': None})
         assert len((await alerts_of(h, u))['items']) == 1
@@ -156,7 +156,7 @@ class TestBudgetEvaluate:
         # re-arming must happen on POST too, not only on PATCH
         u = str(uuid.uuid4())
         id_, cat = await limit(h, u, 'food', 1000)
-        h.ledger.set_spend(OCT, 'food', rs(850))
+        h.transactions.set_spend(OCT, 'food', rs(850))
         await evaluate(h, u, cat)
         await h.send(u, 'PATCH', f'/budgets/{id_}', {'active': False})
         assert len((await alerts_of(h, u))['items']) == 1
@@ -171,16 +171,16 @@ class TestBudgetEvaluate:
         back = await h.send(u, 'POST', '/budgets', {'tag': 'food', 'limitMinor': rs(2000)})
         assert (back.status_code, back.json()['id']) == (201, id_)
         assert (await alerts_of(h, u))['items'] == []
-        h.ledger.set_spend(OCT, 'food', rs(1700))
+        h.transactions.set_spend(OCT, 'food', rs(1700))
         assert await evaluate(h, u, cat) == 'fired'
         assert levels(h) == ['alert', 'alert']
 
     async def test_fires_again_in_the_next_period_and_only_the_current_period_fires(self, h: Harness) -> None:
         u = str(uuid.uuid4())
         _, cat = await limit(h, u, 'food', 1000)
-        h.ledger.set_spend(OCT, 'food', rs(900))
+        h.transactions.set_spend(OCT, 'food', rs(900))
         await evaluate(h, u, cat)
-        h.ledger.set_spend(NOV, 'food', rs(900))
+        h.transactions.set_spend(NOV, 'food', rs(900))
         assert await evaluate(h, u, cat, NOV) == 'skipped'  # it is still October
         assert await evaluate(h, u, cat, '2026-09') == 'skipped'
         clock.at = datetime(2026, 11, 5, 6, 30, tzinfo=UTC)
@@ -191,14 +191,14 @@ class TestBudgetEvaluate:
     async def test_the_month_turns_over_at_midnight_in_the_users_zone_not_utc(self, h: Harness) -> None:
         u = str(uuid.uuid4())
         _, cat = await limit(h, u, 'food', 1000)
-        h.ledger.set_spend(NOV, 'food', rs(900))
+        h.transactions.set_spend(NOV, 'food', rs(900))
         clock.at = datetime(2026, 10, 31, 19, 0, tzinfo=UTC)  # 00:30 on Nov 1 in Kolkata
         assert await evaluate(h, u, cat, NOV) == 'fired'
 
     async def test_the_zone_comes_from_the_last_request_and_from_auth_when_none_was_saved(self, h: Harness) -> None:
         u = str(uuid.uuid4())
         _, cat = await limit(h, u, 'food', 1000)  # the request saved its zone
-        h.ledger.set_spend(NOV, 'food', rs(900))
+        h.transactions.set_spend(NOV, 'food', rs(900))
         clock.at = datetime(2026, 10, 31, 19, 0, tzinfo=UTC)  # still October in UTC, November in Kolkata
         before = h.auth.calls
         assert await evaluate(h, u, cat, NOV) == 'fired'
@@ -213,7 +213,7 @@ class TestBudgetEvaluate:
     async def test_an_inactive_or_deleted_limit_is_not_evaluated(self, h: Harness) -> None:
         u = str(uuid.uuid4())
         id_, cat = await limit(h, u, 'food', 1000)
-        h.ledger.set_spend(OCT, 'food', rs(900))
+        h.transactions.set_spend(OCT, 'food', rs(900))
         await h.send(u, 'PATCH', f'/budgets/{id_}', {'active': False})
         assert await evaluate(h, u, cat) == 'skipped'
         await h.send(u, 'DELETE', f'/budgets/{id_}')
@@ -225,8 +225,8 @@ class TestBudgetEvaluate:
     ) -> None:
         u = str(uuid.uuid4())
         id_, cat = await limit(h, u, 'food', 1000)
-        h.ledger.set_spend(OCT, 'food', rs(900))
-        spend_once = h.ledger.spend_by_category
+        h.transactions.set_spend(OCT, 'food', rs(900))
+        spend_once = h.transactions.spend_by_category
 
         async def edited_mid_job(*a: str) -> object:
             r = await spend_once(*a)
@@ -235,14 +235,14 @@ class TestBudgetEvaluate:
             )  # an edit lands mid-job
             return r
 
-        monkeypatch.setattr(h.ledger, 'spend_by_category', edited_mid_job)
+        monkeypatch.setattr(h.transactions, 'spend_by_category', edited_mid_job)
         assert await evaluate(h, u, cat) == 'skipped'
         assert h.bus.events_of('alert.created') == []
 
     async def test_a_per_limit_warn_percentage_and_the_user_alert_level_decide_the_level(self, h: Harness) -> None:
         u = str(uuid.uuid4())
         id_, cat = await limit(h, u, 'food', 1000)
-        h.ledger.set_spend(OCT, 'food', rs(750))
+        h.transactions.set_spend(OCT, 'food', rs(750))
         await h.send(u, 'PATCH', f'/budgets/{id_}', {'warnPct': 90})
         assert await evaluate(h, u, cat) == 'skipped'
         await h.send(u, 'PATCH', f'/budgets/{id_}', {'warnPct': 75})
@@ -250,8 +250,8 @@ class TestBudgetEvaluate:
         # user level 70 on another limit
         v = str(uuid.uuid4())
         _, other_cat = await limit(h, v, 'food', 1000)
-        h.ledger.set_spend(OCT, 'food', rs(700))
-        await h.internal(v, 'PATCH', '/internal/settings', {'alertLevel': 70}, svc='ledger')
+        h.transactions.set_spend(OCT, 'food', rs(700))
+        await h.internal(v, 'PATCH', '/internal/settings', {'alertLevel': 70}, svc='transactions')
         assert await evaluate(h, v, other_cat) == 'fired'
 
     async def test_lowering_the_alert_level_queues_an_evaluation_for_every_active_limit(self, h: Harness) -> None:
@@ -260,11 +260,11 @@ class TestBudgetEvaluate:
         b_id, _ = await limit(h, u, 'fun', 1000)
         await h.send(u, 'PATCH', f'/budgets/{b_id}', {'active': False})
         h.bus.clear()
-        await h.internal(u, 'PATCH', '/internal/settings', {'alertLevel': 70}, svc='ledger')
+        await h.internal(u, 'PATCH', '/internal/settings', {'alertLevel': 70}, svc='transactions')
         assert [j.payload.category_id for j in h.bus.jobs] == [a_cat]
         h.bus.clear()
         await h.internal(
-            u, 'PATCH', '/internal/settings', {'alertLevel': 70}, svc='ledger'
+            u, 'PATCH', '/internal/settings', {'alertLevel': 70}, svc='transactions'
         )  # unchanged: nothing queued
         assert h.bus.jobs == []
 
@@ -315,7 +315,7 @@ class TestTransactionChangedBudgetEvaluateAlertCreated:
         h.bus.clear()
         await self.emit(h, tx_changed(u, [None]))
         await self.emit(h, tx_changed(u, []))
-        await self.emit(h, tx_changed(u, [h.ledger.cat('no limit here')]))
+        await self.emit(h, tx_changed(u, [h.transactions.cat('no limit here')]))
         await h.bus.drain()
         assert h.bus.jobs == []
 
@@ -332,7 +332,7 @@ class TestTransactionChangedBudgetEvaluateAlertCreated:
             sent.extend(levels(h))
             h.bus.events.clear()
 
-        h.ledger.set_spend(OCT, 'food', rs(4200))
+        h.transactions.set_spend(OCT, 'food', rs(4200))
         h.bus.clear()
         await self.emit(h, tx_changed(u, [cat]))
         await round_()
@@ -340,7 +340,7 @@ class TestTransactionChangedBudgetEvaluateAlertCreated:
         await self.emit(h, tx_changed(u, [cat]))
         await round_()
         assert sent == ['alert']
-        h.ledger.set_spend(OCT, 'food', rs(5100))
+        h.transactions.set_spend(OCT, 'food', rs(5100))
         await self.emit(h, tx_changed(u, [cat]))
         await round_()
         await self.emit(h, tx_changed(u, [cat]))
@@ -360,9 +360,9 @@ class TestGetAlertsAndPostAlertsIdRead:
     async def test_newest_first_unread_count_mark_read_once(self, h: Harness) -> None:
         u = str(uuid.uuid4())
         _, cat = await limit(h, u, 'food', 1000)
-        h.ledger.set_spend(OCT, 'food', rs(850))
+        h.transactions.set_spend(OCT, 'food', rs(850))
         await evaluate(h, u, cat)
-        h.ledger.set_spend(OCT, 'food', rs(1000))
+        h.transactions.set_spend(OCT, 'food', rs(1000))
         await evaluate(h, u, cat)
         a = await alerts_of(h, u)
         assert a['unreadCount'] == 2
@@ -380,13 +380,13 @@ class TestGetAlertsAndPostAlertsIdRead:
         assert (await h.send(u, 'POST', f'/alerts/{uuid.uuid4()}/read')).status_code == 404
         assert (await h.send(u, 'POST', '/alerts/nope/read')).status_code == 400
 
-    async def test_keeps_the_category_name_it_had_when_it_fired_without_calling_the_ledger_on_read(
+    async def test_keeps_the_category_name_it_had_when_it_fired_without_calling_the_transactions_on_read(
         self, h: Harness
     ) -> None:
         u = str(uuid.uuid4())
         _, cat = await limit(h, u, 'snap', 1000)
-        h.ledger.set_spend(OCT, 'snap', rs(900))
+        h.transactions.set_spend(OCT, 'snap', rs(900))
         await evaluate(h, u, cat)
-        before = h.ledger.calls['categories']
+        before = h.transactions.calls['categories']
         assert (await alerts_of(h, u))['items'][0]['categoryName'] == 'snap'
-        assert h.ledger.calls['categories'] == before
+        assert h.transactions.calls['categories'] == before

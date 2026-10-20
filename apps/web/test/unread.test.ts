@@ -29,10 +29,10 @@ describe('needs a look', () => {
     expect(canAdd(125_000)).toBe(true);
   });
   it('done lines', () => {
-    expect(doneText({ dir: 'debit', name: 'Amazon Pay', done: 'added' }, 125_000)).toBe('Added to the ledger: −₹1,250 · Amazon Pay · needs a tag');
-    expect(doneText({ dir: 'credit', name: '', done: 'added' }, 5_000_000)).toBe('Added to the ledger: +₹50,000');
-    expect(doneText({ dir: 'debit', name: 'Amazon Pay', done: 'added' }, 125_000, 'shopping')).toBe('Added to the ledger: −₹1,250 · Amazon Pay · #shopping');
-    expect(doneText({ dir: 'credit', name: '', done: 'added' }, 100, null)).toBe('Added to the ledger: +₹1 · needs a tag');
+    expect(doneText({ dir: 'debit', name: 'Amazon Pay', done: 'added' }, 125_000)).toBe('Added to the transactions: −₹1,250 · Amazon Pay · needs a tag');
+    expect(doneText({ dir: 'credit', name: '', done: 'added' }, 5_000_000)).toBe('Added to the transactions: +₹50,000');
+    expect(doneText({ dir: 'debit', name: 'Amazon Pay', done: 'added' }, 125_000, 'shopping')).toBe('Added to the transactions: −₹1,250 · Amazon Pay · #shopping');
+    expect(doneText({ dir: 'credit', name: '', done: 'added' }, 100, null)).toBe('Added to the transactions: +₹1 · needs a tag');
     expect(doneText({ dir: 'debit', name: '', done: 'dismissed' }, 0)).toBe('Deleted. The message is gone for good.');
   });
   it('counts waiting − sorted = still to look at', () => {

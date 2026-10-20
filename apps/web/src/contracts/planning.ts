@@ -7,7 +7,7 @@ export const PlanLineDto = z.object({ categoryId: uuid, categoryName: z.string()
 export const PlanDto = z.object({ month: monthKey, totalMinor: paise, lines: z.array(PlanLineDto) });
 export type PlanDto = z.infer<typeof PlanDto>;
 
-/** `GET /plans/:month` (public and internal): plan with spend per line filled in from the ledger. */
+/** `GET /plans/:month` (public and internal): plan with spend per line filled in from the transactions. */
 export const PlanWithSpendDto = PlanDto.extend({
   lines: z.array(PlanLineDto.extend({ spentMinor: paise })),
   assignedMinor: paise,

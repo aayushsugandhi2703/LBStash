@@ -3,7 +3,7 @@
 import json
 import uuid
 
-from bt_telegram.workers import sweep
+from lbstash_telegram.workers import sweep
 from telegram_harness import PUBLIC_URL, World
 
 DEFAULTS = {'allowReveal': True, 'sessionIdleDays': 30, 'digestMode': 'daily', 'digestHour': 21, 'afterTag': 'line'}

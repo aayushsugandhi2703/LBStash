@@ -23,7 +23,7 @@ from datetime import UTC, datetime
 from zoneinfo import ZoneInfo
 
 import httpx
-from bt.kit.softauth import SoftAuthenticator
+from lbstash.kit.softauth import SoftAuthenticator
 
 BASE = os.environ.get("GATEWAY", "http://127.0.0.1:3010")
 PROXY = os.environ.get("PROXY")
@@ -65,8 +65,8 @@ def call(method: str, path: str, body=None, *, headers: dict | None = None, cook
         h["content-type"] = "application/json"
     if cookies and jar:
         h["cookie"] = "; ".join(f"{k}={v}" for k, v in jar.items())
-    if method != "GET" and jar.get("bt_csrf") and "x-csrf-token" not in h:
-        h["x-csrf-token"] = urllib.parse.unquote(jar["bt_csrf"])
+    if method != "GET" and jar.get("lbstash_csrf") and "x-csrf-token" not in h:
+        h["x-csrf-token"] = urllib.parse.unquote(jar["lbstash_csrf"])
     res = http.request(method, BASE + path, headers=h, content=json.dumps(body) if body is not None else None)
     for c in res.headers.get_list("set-cookie"):
         kv = c.split(";", 1)[0]
@@ -145,7 +145,7 @@ eq("no session -> 401", call("GET", "/me").status, 401)
 # sign-up and mandatory setup (README 10.7, 15.1)
 reg = ok("POST", "/auth/register", {"email": email, "password": password, "name": "E2E", "timezone": tz})
 eq("register gives a setup-limited session", reg["setup"]["complete"], False)
-eq("limited session cannot reach the ledger", call("GET", "/ledger").status, 403)
+eq("limited session cannot reach the transactions", call("GET", "/transactions").status, 403)
 secret = ok("POST", "/auth/2fa/enable", {})["secret"]
 ok("POST", "/auth/2fa/enable/confirm", {"code": code()})
 public_url = os.environ.get("PUBLIC_URL") or sys.exit("set PUBLIC_URL to the stack's PUBLIC_URL (the passkey origin)")
@@ -160,7 +160,7 @@ eq("/me composed", [me["email"], me["timezone"], me["untaggedCount"]], [email, t
 # settings composed from three services
 ok("PATCH", "/settings", {"openingBalanceMinor": 10_000_000, "alertLevel": 80, "reconcileGraceHours": 0})
 st = ok("GET", "/settings")
-eq("settings merged (ledger + planning + telegram)",
+eq("settings merged (transactions + planning + telegram)",
    [st["openingBalanceMinor"], st["alertLevel"], st["reconcileGraceHours"], st["currency"], isinstance(st["allowReveal"], bool)],
    [10_000_000, 80, 0, "INR", True])
 
@@ -179,8 +179,8 @@ eq("unreadable -> 422", ingest(token, "debited something odd without any amount"
 eq("empty text (sender run by hand) -> device test 200", ingest(token, "").status, 200)
 eq("/unparsed shows 1 open", ok("GET", "/unparsed")["open"], 1)
 
-# ledger, tagging, payee memory (README 10.2)
-led = ok("GET", "/ledger?limit=20")
+# transactions, tagging, payee memory (README 10.2)
+led = ok("GET", "/transactions?limit=20")
 eq("one pending payment, counted as Needs a tag", [len(led["items"]), led["counts"]["needsTag"]], [1, 1])
 eq("balance counts the pending debit", led["balanceMinor"], 10_000_000 - 45_000)
 tx = led["items"][0]
@@ -189,7 +189,7 @@ eq("tag creates the category and confirms", [tagged["transaction"]["categoryName
 again = ok("PATCH", f"/transactions/{tx['id']}", {"tag": "travel"})
 eq("first write wins", [again["changed"], again["transaction"]["categoryName"]], [False, "food"])
 ingest(token, f"Rs.320.00 debited from a/c XX1234 on {msg_date} to VPA ramesh@okaxis (UPI Ref 223456789012)")
-led = ok("GET", "/ledger?limit=20")
+led = ok("GET", "/transactions?limit=20")
 eq("payee memory auto-tags the next payment",
    len([i for i in led["items"] if i["status"] == "confirmed" and i["categoryName"] == "food"]), 2)
 
@@ -200,7 +200,7 @@ eq("credit raised the plan total", cr["planTotalMinor"], 5_000_000)
 ok("PUT", f"/plans/{month}", {"totalMinor": 5_000_000, "lines": [{"tag": "food", "allocatedMinor": 800_000}, {"tag": "rent", "allocatedMinor": 2_000_000}]})
 plan = ok("GET", f"/plans/{month}")
 eq("plan: assigned / unassigned", [plan["assignedMinor"], plan["unassignedMinor"]], [2_800_000, 2_200_000])
-eq("plan: food spent comes from the ledger", next((l["spentMinor"] for l in plan["lines"] if l["categoryName"] == "food"), None), 77_000)
+eq("plan: food spent comes from the transactions", next((l["spentMinor"] for l in plan["lines"] if l["categoryName"] == "food"), None), 77_000)
 
 # budgets and alerts (README 10.5)
 log(bool(ok("POST", "/budgets", {"tag": "food", "limitMinor": 100_000, "period": "monthly"})), "limit created for food (₹1,000)")
@@ -229,11 +229,11 @@ log(call("GET", f"/reports/daily?month={month}").status == 200, "reports/daily a
 log(call("GET", "/reports/category-matrix?range=6").status == 200, "reports/category-matrix answers")
 
 # balance check → Unaccounted (README 3.6, 10.9)
-ledger_now = dash["balance"]["available"]
-bc = ok("POST", "/balance-check", {"bankBalanceMinor": ledger_now - 18_000})
+transactions_now = dash["balance"]["available"]
+bc = ok("POST", "/balance-check", {"bankBalanceMinor": transactions_now - 18_000})
 eq("check finds a ₹180 gap", bc["check"]["gapMinor"], -18_000)
 def unaccounted():
-    page = ok("GET", "/ledger?src=unaccounted")
+    page = ok("GET", "/transactions?src=unaccounted")
     return page if page["items"] else None
 
 
@@ -242,7 +242,7 @@ log(bool(un), "grace 0 → one Unaccounted entry booked (job ran)")
 if un:
     u0 = un["items"][0]
     eq("Unaccounted is a debit of ₹180", [u0["type"], u0["amountMinor"], u0["source"]], ["debit", 18_000, "unaccounted"])
-    eq("balance now matches the bank", ok("GET", "/ledger")["balanceMinor"], ledger_now - 18_000)
+    eq("balance now matches the bank", ok("GET", "/transactions")["balanceMinor"], transactions_now - 18_000)
     split = ok("POST", f"/transactions/{u0['id']}/split", {"parts": [{"amountMinor": 10_000, "tag": "food"}, {"amountMinor": 8_000}]})
     log(bool(split), "split 100 + 80 (parts add up)")
 
@@ -265,7 +265,7 @@ l1 = ok("POST", "/auth/login", {"email": email, "password": password})
 wait_step()
 l2 = ok("POST", "/auth/2fa/verify", {"twoFactorToken": l1["twoFactorToken"], "code": code()})
 eq("login: password then authenticator", l2["user"]["email"], email)
-eq("and the data is all still there", ok("GET", "/ledger")["matching"] > 0, True)
+eq("and the data is all still there", ok("GET", "/transactions")["matching"] > 0, True)
 
 # passkey sign-in (the software authenticator enrolled above)
 ok("POST", "/auth/logout", {})

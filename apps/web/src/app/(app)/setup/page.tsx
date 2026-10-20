@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { AppShell } from '@/components/shell';
-import { Button, ErrorLine, IndexList, LedgerMath } from '@/components/ui';
+import { Button, ErrorLine, IndexList, TallyMath } from '@/components/ui';
 import { api, errorText, useApi } from '@/lib/api';
 import { useToday } from '@/lib/me';
 import { fromPaise } from '@/common';
@@ -16,7 +16,7 @@ import { useFirstMonth } from './use-first-month';
 import s from './page.module.css';
 
 /** The furthest step reached is a per-browser convenience: it only decides whether steps 2 and 3 read done. */
-const REACHED_KEY = 'ledger.setup.reached';
+const REACHED_KEY = 'transactions.setup.reached';
 
 function readReached(): Step {
   try { return clampStep(Number(window.localStorage.getItem(REACHED_KEY) ?? 1)); } catch { return 1; }
@@ -94,7 +94,7 @@ export default function SetupPage() {
         }))}
       />
       <div className={`opt2 ${s.arith}`}>
-        <LedgerMath
+        <TallyMath
           rows={[{ k: 'account secured', v: 'yes', tone: 'credit' }, { k: 'steps done', v: `${states.count} of 3` }]}
           total={{ k: '= still to do', v: <span className={s.ink}>{states.left}</span> }}
         />

@@ -1,9 +1,9 @@
 import re
 import uuid
 
-from bt.contracts import BudgetEvaluateJob, RetentionSweepJob, sweep_queue
-from bt.queue.memory import RecordedJob
-from bt_planning.evaluate import evaluate_budget
+from lbstash.contracts import BudgetEvaluateJob, RetentionSweepJob, sweep_queue
+from lbstash.queue.memory import RecordedJob
+from lbstash_planning.evaluate import evaluate_budget
 from planning_harness import Harness, now
 
 
@@ -41,7 +41,7 @@ class TestExportAccountDeletionRetention:
 
     async def seed(self, h: Harness) -> None:
         for who in (self.u, self.other):
-            h.ledger.set_spend('2026-10', 'food', rs(900))
+            h.transactions.set_spend('2026-10', 'food', rs(900))
             await h.send(
                 who,
                 'PUT',
@@ -59,7 +59,7 @@ class TestExportAccountDeletionRetention:
                 'POST',
                 '/internal/plans/2026-10/credit',
                 {'transactionId': str(uuid.uuid4()), 'amountMinor': 5},
-                svc='ledger',
+                svc='transactions',
             )
 
     async def test_export_carries_only_the_callers_rows_in_every_table(self, h: Harness) -> None:
@@ -101,7 +101,7 @@ class TestExportAccountDeletionRetention:
             "UPDATE planning.alerts SET sent_at = now() - interval '13 months' WHERE user_id = $1", [other]
         )
         keep = (await h.send(other, 'POST', '/budgets', {'tag': 'fun', 'limitMinor': rs(10)})).json()
-        h.ledger.set_spend('2026-10', 'fun', rs(10))
+        h.transactions.set_spend('2026-10', 'fun', rs(10))
         await evaluate_budget(
             h.deps, BudgetEvaluateJob(user_id=other, category_id=keep['categoryId'], period_key='2026-10'), now
         )

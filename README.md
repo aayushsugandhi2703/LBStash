@@ -1,4 +1,4 @@
-# Budget Tracker
+# LBStash
 
 A private budget tracker run from a Telegram chat. Send `/350 food` when you spend, `+1500 salary` when money comes in. It is saved, tagged and shown in the web app. Amounts are in ₹.
 
@@ -17,7 +17,7 @@ A payment you forget to log shows up in the balance check as "Unaccounted", for 
 | Web app | Everything, plus hand-added credits |
 | Bank-message token (optional) | Another tool posting bank SMS text to `/ingest/message` |
 
-**Web pages:** Now · Ledger · Plan · Limits · Repeats · Trends · Add credit · Needs a look · Account (profile, security, devices) · Setup guide
+**Web pages:** Now · Transactions · Plan · Limits · Repeats · Trends · Add credit · Needs a look · Account (profile, security, devices) · Setup guide
 
 ## Architecture
 
@@ -32,17 +32,17 @@ flowchart LR
   Proxy -->|"/api, /ingest, /telegram/webhook"| Gateway
   Gateway --> Auth
   Gateway --> Ingest
-  Gateway --> Ledger
+  Gateway --> Transactions
   Gateway --> Planning
   Gateway --> Recurring
   Gateway --> Reports
   Gateway --> Tg["telegram service"]
-  Ingest -->|save parsed payment| Ledger
-  Ledger -.->|events via outbox| Q[("Job queue<br/>in Postgres")]
+  Ingest -->|save parsed payment| Transactions
+  Transactions -.->|events via outbox| Q[("Job queue<br/>in Postgres")]
   Q -.-> Planning
   Q -.-> Tg
-  Recurring -->|post due payments| Ledger
-  Auth & Ingest & Ledger & Planning & Recurring & Tg --> DB[("PostgreSQL<br/>one schema + login role per service")]
+  Recurring -->|post due payments| Transactions
+  Auth & Ingest & Transactions & Planning & Recurring & Tg --> DB[("PostgreSQL<br/>one schema + login role per service")]
 ```
 
 | Service | Job |
@@ -51,7 +51,7 @@ flowchart LR
 | gateway | Only door to the backend: login, CSRF, rate limits, security headers, forwards by path |
 | auth | Users, sessions, 2FA, passkeys, recovery codes, optional allowed addresses, audit log, export, account deletion |
 | ingest | Optional bank-message route: device tokens, OTP guard, message reader |
-| ledger | Transactions, categories, tag rules, credits, balance checks |
+| transactions | Transactions, categories, tag rules, credits, balance checks |
 | planning | Monthly plans, limits, alerts |
 | recurring | Repeating payments and the cron that posts them |
 | reports | Dashboard and trend views, built on read (stores nothing) |
@@ -65,7 +65,7 @@ flowchart LR
 - **Events:** `transaction.changed`, `credit.added`, `alert.created`, `unparsed.created`, `account.deleted` (every service purges that user), `audit.record`.
 - **Derived, not stored:** balance, spend, pace and trends are worked out when read.
 - **Money:** whole paise as integers, never floats. Months and "today" use your time zone.
-- **Shared code:** `packages/bt` (money, crypto, contracts, DB, queue, clients). More: [ARCHITECTURE](docs/ARCHITECTURE.md), [COLOURS](docs/COLOURS.md). Logo, icons and name: `apps/web/src/brand` (SVGs in `apps/web/public/brand`).
+- **Shared code:** `packages/lbstash` (money, crypto, contracts, DB, queue, clients). More: [ARCHITECTURE](docs/ARCHITECTURE.md), [COLOURS](docs/COLOURS.md). Logo, icons and name: `apps/web/src/brand` (SVGs in `apps/web/public/brand`).
 - **Deploy:** one image per service on a shared base. `db-init` creates roles and schemas, then services, gateway and nginx start.
 
 ### One logged payment
@@ -75,13 +75,13 @@ sequenceDiagram
   participant You
   participant Telegram
   participant Bot as telegram service
-  participant Ledger
+  participant Transactions
   participant Q as Queue
   participant Planning
   You->>Telegram: "/350 food"
   Telegram->>Bot: webhook (secret header, your id, signed-in session)
-  Bot->>Ledger: save manual transaction with tag "food"
-  Ledger->>Q: transaction.changed (same DB transaction)
+  Bot->>Transactions: save manual transaction with tag "food"
+  Transactions->>Q: transaction.changed (same DB transaction)
   Bot->>Telegram: delete your message, reply "Money out · ₹350 · Food ✓" + Open Google Pay
   Q->>Planning: re-check limits, raise alert once if crossed
   Note over You,Telegram: With no tag ("/350") the bot sends category buttons and tagging is one tap
@@ -142,10 +142,10 @@ Stop with `docker compose down` (add `-v` to wipe the database).
 ```bash
 uv sync                                      # Python environment
 docker compose --profile test up -d test-db  # throwaway Postgres
-export TEST_DATABASE_URL=postgres://bt_admin:<POSTGRES_PASSWORD from .env>@127.0.0.1:5544/budget
+export TEST_DATABASE_URL=postgres://lbstash_admin:<POSTGRES_PASSWORD from .env>@127.0.0.1:5544/lbstash
 uv run pytest services/auth/tests            # backend tests, one service at a time
 cd apps/web && npm install && npm test       # web tests
 uv run python scripts/e2e.py                 # end-to-end against the running stack
 ```
 
-Backend tests run one service at a time (each has its own `conftest.py`); `ledger` has no tests yet. `scripts/e2e.py` needs `PUBLIC_URL` and `REGISTRATION=open` (see the script header).
+Backend tests run one service at a time (each has its own `conftest.py`); `transactions` has no tests yet. `scripts/e2e.py` needs `PUBLIC_URL` and `REGISTRATION=open` (see the script header).

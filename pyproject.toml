@@ -1,9 +1,9 @@
 # Python workspace for the backend (uv). The web app (apps/web) stays TypeScript and has its own package.json.
 #   uv sync                      # creates .venv with every package below
 #   uv run pytest                # all backend tests (needs Postgres: docker compose -f docker/compose.test.yml up -d)
-#   uv run pytest services/ledger
+#   uv run pytest services/transactions
 [project]
-name = "budget-tracker"
+name = "lbstash-workspace"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = []
@@ -12,18 +12,18 @@ dependencies = []
 package = false
 
 [tool.uv.workspace]
-members = ["packages/bt", "services/*"]
+members = ["packages/lbstash", "services/*"]
 
 [tool.uv.sources]
-bt = { workspace = true }
-bt-auth = { workspace = true }
-bt-gateway = { workspace = true }
-bt-ledger = { workspace = true }
-bt-ingest = { workspace = true }
-bt-planning = { workspace = true }
-bt-recurring = { workspace = true }
-bt-reports = { workspace = true }
-bt-telegram = { workspace = true }
+lbstash = { workspace = true }
+lbstash-auth = { workspace = true }
+lbstash-gateway = { workspace = true }
+lbstash-transactions = { workspace = true }
+lbstash-ingest = { workspace = true }
+lbstash-planning = { workspace = true }
+lbstash-recurring = { workspace = true }
+lbstash-reports = { workspace = true }
+lbstash-telegram = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -31,15 +31,15 @@ dev = [
   "pytest-asyncio>=0.25",
   "ruff>=0.8",
   "cbor2>=5.6",
-  "bt",
-  "bt-auth", "bt-gateway", "bt-ledger", "bt-ingest", "bt-planning", "bt-recurring", "bt-reports", "bt-telegram",
+  "lbstash",
+  "lbstash-auth", "lbstash-gateway", "lbstash-transactions", "lbstash-ingest", "lbstash-planning", "lbstash-recurring", "lbstash-reports", "lbstash-telegram",
 ]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
-testpaths = ["packages/bt/tests", "services"]
+testpaths = ["packages/lbstash/tests", "services"]
 python_files = ["test_*.py"]
 addopts = "-p no:cacheprovider"
 

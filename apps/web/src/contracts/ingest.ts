@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { isoDateTime, paise, positivePaise, TxType, uuid } from './common';
-import { TransactionRes } from './ledger';
+import { TransactionRes } from './transactions';
 
 
 export const DeviceDto = z.object({

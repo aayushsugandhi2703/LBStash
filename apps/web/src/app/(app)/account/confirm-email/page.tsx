@@ -10,7 +10,7 @@ import { LineStatus } from '../parts';
 
 type State = { kind: 'working' } | { kind: 'done'; email: string } | { kind: 'failed'; message: string };
 
-/** Where the link in the "Confirm your new Ledger email" message lands: the token in the address is sent once. */
+/** Where the link in the "Confirm your new LBStash email" message lands: the token in the address is sent once. */
 export default function ConfirmEmailPage() {
   const { mutate: mutateMe } = useMe();
   const [state, setState] = useState<State>({ kind: 'working' });

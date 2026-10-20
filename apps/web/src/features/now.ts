@@ -139,9 +139,9 @@ export function nowLinks(attention: AttentionItem[]): NowLink[] {
     });
   }
   for (const a of attention) {
-    if (a.kind === 'untagged') out.push({ key: 'untagged', tag: 'TAG', href: '/ledger?cat=needs-tag', text: `${plural(a.count, 'payment needs', 'payments need')} a tag` });
-    else if (a.kind === 'needs_look') out.push({ key: 'look', tag: 'LOOK', href: '/ledger/unread', text: `${plural(a.count, 'message', 'messages')} could not be read` });
-    else if (a.kind === 'unaccounted') out.push({ key: 'unaccounted', tag: 'GAP', href: '/ledger?src=unaccounted', text: `${plural(a.count, 'gap', 'gaps')} from a balance check still to tag` });
+    if (a.kind === 'untagged') out.push({ key: 'untagged', tag: 'TAG', href: '/transactions?cat=needs-tag', text: `${plural(a.count, 'payment needs', 'payments need')} a tag` });
+    else if (a.kind === 'needs_look') out.push({ key: 'look', tag: 'LOOK', href: '/transactions/unread', text: `${plural(a.count, 'message', 'messages')} could not be read` });
+    else if (a.kind === 'unaccounted') out.push({ key: 'unaccounted', tag: 'GAP', href: '/transactions?src=unaccounted', text: `${plural(a.count, 'gap', 'gaps')} from a balance check still to tag` });
     else if (a.kind === 'recurring') out.push({ key: 'next', tag: 'NEXT', href: '/repeats', text: `${a.name} ${inr(a.amount)} on ${nextDue(a.due)}` });
   }
   return out;
@@ -171,7 +171,7 @@ export function graceText(ms: number): string {
 /** The yellow "gap" sentence (spec 02): bank lower = money left unexplained, bank higher = money arrived unexplained. */
 export function gapSentence(check: Pick<BalanceCheckDto, 'gapMinor' | 'checkedAt' | 'graceEndsAt'>): string {
   const amount = inr(Math.abs(check.gapMinor));
-  const lead = check.gapMinor < 0 ? `${amount} left your account and no message explains it.` : `${amount} more is in your account than the ledger says, and no message explains it.`;
+  const lead = check.gapMinor < 0 ? `${amount} left your account and no message explains it.` : `${amount} more is in your account than the transactions says, and no message explains it.`;
   const wait = check.graceEndsAt ? graceText(new Date(check.graceEndsAt).getTime() - new Date(check.checkedAt).getTime()) : null;
   return `${lead} It is booked as an Unaccounted entry${wait ? ` after ${wait}` : ' soon'}, unless the missing message arrives first.`;
 }

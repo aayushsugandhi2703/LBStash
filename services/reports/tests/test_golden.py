@@ -5,10 +5,10 @@ import math
 from datetime import datetime
 
 import pytest
-from bt.kit.testing import AppHarness, build_test_app
-from bt_reports.common import avg
-from bt_reports.routes import make_register
 from harness import CAT_MONTHS, DAILY, ID, Fakes, R, get, rent_paused, rules, setup, uid
+from lbstash.kit.testing import AppHarness, build_test_app
+from lbstash_reports.common import avg
+from lbstash_reports.routes import make_register
 
 ME = uid()
 
@@ -35,7 +35,7 @@ class TestDashboardNow:
                 {'kind': 'needs_look', 'count': 2},
                 {'kind': 'recurring', 'name': 'Rent', 'amount': 2000000, 'due': '2026-11-01'},
             ],
-            # the ledger answers in UTC milliseconds (07:12 +05:30 is 01:42Z)
+            # the transactions answers in UTC milliseconds (07:12 +05:30 is 01:42Z)
             'lastCapturedAt': '2026-10-18T01:42:00.000Z',
             'untaggedCount': 1, 'unaccountedCount': 0, 'needsLookCount': 2, 'alertBadgeCount': 1, 'degraded': [],
         }  # fmt: skip
@@ -82,12 +82,12 @@ class TestDashboardVariations:
         assert res['flow'] == [{'name': 'Still available', 'amount': 0}]
         assert res['attention'] == []
 
-    async def test_optional_neighbours_failing_degrade_the_page_the_ledger_failing_fails_it(self):
+    async def test_optional_neighbours_failing_degrade_the_page_the_transactions_failing_fails_it(self):
         app, _ = await setup(Fakes(failing=('ingest',)))
         res = await get(app, ME, '/dashboard')
         assert res.status_code == 200
         assert res.json()['needsLookCount'] == 0 and res.json()['degraded'] == ['ingest']
-        down, _ = await setup(Fakes(failing=('ledger',)))
+        down, _ = await setup(Fakes(failing=('transactions',)))
         assert (await get(down, ME, '/dashboard')).status_code == 502
 
     async def test_every_optional_part_failing_is_listed_sorted_and_zeroed(self):
@@ -227,8 +227,8 @@ class TestOwnershipAndPlumbing:
                 assert c.as_.tz == tz, f'{c.client}.{c.method}'
             touched = {f'{c.client}.{c.method}' for c in fakes.calls}
             for m in (
-                'ledger.month_summary', 'ledger.spend_by_category', 'planning.plan', 'planning.budgets', 'planning.alerts',
-                'recurring.list', 'ingest.unparsed_count', 'ledger.daily', 'ledger.months', 'ledger.category_months',
+                'transactions.month_summary', 'transactions.spend_by_category', 'planning.plan', 'planning.budgets', 'planning.alerts',
+                'recurring.list', 'ingest.unparsed_count', 'transactions.daily', 'transactions.months', 'transactions.category_months',
             ):  # fmt: skip
                 assert m in touched, m
 

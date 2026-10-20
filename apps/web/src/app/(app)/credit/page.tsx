@@ -4,12 +4,12 @@ import Link from 'next/link';
 import type { z } from 'zod';
 import type { CreditRes, CreditsRes, PlanWithSpendDto } from '@/contracts';
 import { AppShell } from '@/components/shell';
-import { Button, Chip, ErrorLine, Field, LedgerMath, Loading, Segmented, Switch, TextLink } from '@/components/ui';
+import { Button, Chip, ErrorLine, Field, TallyMath, Loading, Segmented, Switch, TextLink } from '@/components/ui';
 import { api, errorText, fieldErrors, useApi } from '@/lib/api';
 import { addRupees, groupIndian, inr, listAmount, monthDay, plain } from '@/common';
 import { useToday } from '@/lib/me';
 import { cleanTag, creditBody, creditMath, creditTags, type DateChoice, dateText, defaultPickDate, QUICK_ADDS, resolveDate, withTag } from '@/features/credit';
-import { rowName } from '@/features/ledger';
+import { rowName } from '@/features/transactions';
 import { useAmountField } from '@/lib/use-amount-field';
 import s from './page.module.css';
 
@@ -79,13 +79,13 @@ export default function CreditPage() {
   const aside = (
     <>
       <div className={s.mathA}>
-        <LedgerMath
+        <TallyMath
           rows={[{ k: 'balance now', v: figure(balance) }, { k: '+ this credit', v: plain(credit), tone: 'credit' }]}
           total={{ k: '= new balance', v: <span style={{ color: 'var(--ink)' }}>{figure(math.newBalanceMinor)}</span> }}
         />
       </div>
       <div className={`${s.mathB} opt2`}>
-        <LedgerMath
+        <TallyMath
           rows={[{ k: 'money to plan', v: figure(planTotal) }, { k: '+ added to plan', v: plain(math.planAddMinor), tone: 'credit' }]}
           total={{ k: '= new plan', v: figure(math.newPlanMinor) }}
         />

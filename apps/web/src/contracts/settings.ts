@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import { LedgerSettings } from './ledger';
+import { TransactionSettings } from './transactions';
 import { PlanningSettings } from './planning';
 import { TelegramSettings } from './telegram';
 
 
 /** `GET|PATCH /settings` is composed by the gateway. */
-export const SettingsDto = LedgerSettings.extend(PlanningSettings.shape).extend(TelegramSettings.shape).extend({ currency: z.literal('INR') });
+export const SettingsDto = TransactionSettings.extend(PlanningSettings.shape).extend(TelegramSettings.shape).extend({ currency: z.literal('INR') });
 export type SettingsDto = z.infer<typeof SettingsDto>;
 
 /** `GET /me`: what the shared header needs. Composed by the gateway. */

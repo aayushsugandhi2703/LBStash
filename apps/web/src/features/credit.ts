@@ -40,7 +40,7 @@ interface CreditMath {
   newPlanMinor: number | null;
   planAddMinor: number;
 }
-/** The two ledger-math blocks in the aside. Unknown figures stay null so the page shows "—" instead of a made-up 0. */
+/** The two tally-math blocks in the aside. Unknown figures stay null so the page shows "—" instead of a made-up 0. */
 export function creditMath(i: { balanceMinor: number | null; planMinor: number | null; creditMinor: number; addToPlan: boolean }): CreditMath {
   const planAddMinor = i.addToPlan ? i.creditMinor : 0;
   return {

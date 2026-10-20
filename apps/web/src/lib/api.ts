@@ -17,7 +17,7 @@ let refreshing: Promise<boolean> | null = null;
 /** One refresh at a time; every request that hit 401 waits for the same one. */
 function refreshSession(): Promise<boolean> {
   refreshing ??= fetch(`${BASE}/auth/refresh`, {
-    method: 'POST', credentials: 'same-origin', headers: { 'x-csrf-token': decodeURIComponent(cookie('bt_csrf') ?? '') },
+    method: 'POST', credentials: 'same-origin', headers: { 'x-csrf-token': decodeURIComponent(cookie('lbstash_csrf') ?? '') },
   }).then((r) => r.ok).catch(() => false).finally(() => { refreshing = null; });
   return refreshing;
 }
@@ -34,7 +34,7 @@ async function send<T>(method: string, path: string, body: unknown, retry: boole
       method, credentials: 'same-origin',
       headers: {
         ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
-        ...(mutating ? { 'x-csrf-token': decodeURIComponent(cookie('bt_csrf') ?? '') } : {}),
+        ...(mutating ? { 'x-csrf-token': decodeURIComponent(cookie('lbstash_csrf') ?? '') } : {}),
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });

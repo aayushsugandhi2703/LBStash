@@ -2,9 +2,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { z } from 'zod';
-import type { AuditRes, LedgerPageDto } from '@/contracts';
+import type { AuditRes, TransactionPageDto } from '@/contracts';
 import { AccountShell } from '@/components/shell';
-import { Button, CodeInput, ErrorLine, GhostButton, LedgerMath, Loading, SettingsRow, TextLink } from '@/components/ui';
+import { Button, CodeInput, ErrorLine, GhostButton, TallyMath, Loading, SettingsRow, TextLink } from '@/components/ui';
 import { api, errorText, fieldErrors, useApi } from '@/lib/api';
 import { useMe } from '@/lib/me';
 import { buildExportFile, canDelete, codeError, exportLine, type ExportResult, isCode, isEmail, nameDirty, profileSummary, shortDate } from '@/features/account';
@@ -21,7 +21,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const { data: me, error: meError, mutate: mutateMe, isLoading } = useMe();
   const audit = useApi<z.infer<typeof AuditRes>>(`/audit?limit=${AUDIT_LIMIT}`);
-  const ledger = useApi<z.infer<typeof LedgerPageDto>>('/ledger?limit=1');
+  const transactions = useApi<z.infer<typeof TransactionPageDto>>('/transactions?limit=1');
 
   const [name, setName] = useState('');
   const [savedName, setSavedName] = useState('');
@@ -115,7 +115,7 @@ export default function ProfilePage() {
   }
 
   const sum = profileSummary(audit.data?.entries ?? [], AUDIT_LIMIT);
-  const kept = ledger.data ? String(ledger.data.counts.all) : '—';
+  const kept = transactions.data ? String(transactions.data.counts.all) : '—';
   const dirty = nameDirty(name, savedName);
   const pending = emailSent || me?.pendingEmail || '';
 
@@ -125,7 +125,7 @@ export default function ProfilePage() {
       description="Your profile and data. Sign-in is under Security."
       label="PROFILE" heading="Your account"
       lead="Sensitive changes ask for your authenticator code."
-      summary={<LedgerMath rows={[{ k: 'member since', v: audit.data ? sum.memberSince : '—' }, { k: 'entries kept', v: kept }, { k: 'last export', v: audit.data ? sum.lastExport : '—' }]} total={{ k: '= your data', v: 'yours' }} />}
+      summary={<TallyMath rows={[{ k: 'member since', v: audit.data ? sum.memberSince : '—' }, { k: 'entries kept', v: kept }, { k: 'last export', v: audit.data ? sum.lastExport : '—' }]} total={{ k: '= your data', v: 'yours' }} />}
     >
       {isLoading && !me && <Loading />}
       {meError && !me && <LoadError retry={() => void mutateMe()} />}
@@ -192,7 +192,7 @@ export default function ProfilePage() {
             </div>
           )}
 
-          <SettingsRow title="Delete account" sub="Deletes your ledger, tokens, passkeys and Telegram link after 7 days. Sign in before then to cancel. After that it is final.">
+          <SettingsRow title="Delete account" sub="Deletes your transactions, tokens, passkeys and Telegram link after 7 days. Sign in before then to cancel. After that it is final.">
             <GhostButton bad onClick={() => toggleAsk('delete')} disabled={Boolean(me.deleteAfter)}>{ask === 'delete' ? 'Cancel' : 'Delete account'}</GhostButton>
           </SettingsRow>
           {ask === 'delete' && !me.deleteAfter && (

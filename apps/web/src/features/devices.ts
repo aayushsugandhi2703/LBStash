@@ -62,11 +62,11 @@ export function sessionLead(l: LinkStatus, now: Date = new Date()): string {
 
 /** Aside word and row text for the last balance check. */
 export function balanceView(c: BalanceCheck | undefined, now: Date = new Date()): { short: string; kind: 'ok' | 'wait' | 'none'; text: string } {
-  if (!c) return { short: 'not checked', kind: 'none', text: 'no check yet · compare with your bank from the Ledger' };
+  if (!c) return { short: 'not checked', kind: 'none', text: 'no check yet · compare with your bank from the Transactions' };
   const when = usedText(c.checkedAt, now);
-  if (Math.abs(c.gapMinor) < 100) return { short: 'matched', kind: 'ok', text: `${when} · the bank's number matched the ledger` };
+  if (Math.abs(c.gapMinor) < 100) return { short: 'matched', kind: 'ok', text: `${when} · the bank's number matched the transactions` };
   const diff = `${inr(Math.abs(c.gapMinor))} ${c.gapMinor < 0 ? 'lower' : 'higher'}`;
   if (c.status === 'booked' || c.status === 'resolved') return { short: 'checked', kind: 'ok', text: `${when} · the bank was ${diff}; the gap is ${c.status === 'booked' ? 'booked as Unaccounted' : 'closed'}` };
   if (c.status === 'ignored') return { short: 'checked', kind: 'ok', text: `${when} · the bank was ${diff}; you left the gap as it is` };
-  return { short: 'gap open', kind: 'wait', text: `${when} · the bank is ${diff} than the ledger, still open` };
+  return { short: 'gap open', kind: 'wait', text: `${when} · the bank is ${diff} than the transactions, still open` };
 }

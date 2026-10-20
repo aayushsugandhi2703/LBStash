@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta
 from typing import ClassVar
 
 import pytest
-from bt_ingest.parser import (
+from lbstash_ingest.parser import (
     TEMPLATES,
     TEMPLATES_VERSION,
     Ignored,
@@ -80,7 +80,7 @@ class TestDedupeKey:
 
     def test_hash_input_format_is_stable(self):
         # sha256("debit|45000|ramesh|<ms // 300000>|captured|"), first 40 hex digits: keys already stored must still match
-        from bt.crypto import sha256_hex
+        from lbstash.crypto import sha256_hex
 
         bucket = int(_AT.timestamp() * 1000) // 300_000
         expected = 'h:' + sha256_hex(f'debit|45000|ramesh|{bucket}|captured|')[:40]

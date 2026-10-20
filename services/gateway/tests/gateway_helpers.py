@@ -9,21 +9,21 @@ from http.cookiejar import DefaultCookiePolicy
 from typing import Any
 
 import httpx
-from bt.clients import create_clients
-from bt.common import create_logger
-from bt.crypto import InternalClaims, sign_access_token, verify_internal_token
-from bt.kit import create_app, make_deps
-from bt.kit.testing import TEST_SECRET, test_env_values
-from bt.queue import InMemoryBus
-from bt_gateway.env import Env
-from bt_gateway.routes import make_register
+from lbstash.clients import create_clients
+from lbstash.common import create_logger
+from lbstash.crypto import InternalClaims, sign_access_token, verify_internal_token
+from lbstash.kit import create_app, make_deps
+from lbstash.kit.testing import TEST_SECRET, test_env_values
+from lbstash.queue import InMemoryBus
+from lbstash_gateway.env import Env
+from lbstash_gateway.routes import make_register
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
 
 ACCESS_SECRET = 'test-access-secret-test-access-secret!!'
 USER = '8f14e45f-ceea-467a-9575-0a3b1f3f0c11'
-NAMES = ('auth', 'ledger', 'ingest', 'planning', 'recurring', 'reports', 'telegram')
+NAMES = ('auth', 'transactions', 'ingest', 'planning', 'recurring', 'reports', 'telegram')
 
 
 @dataclass
@@ -84,7 +84,7 @@ class FakeService:
 
 
 class Fakes(dict[str, FakeService]):
-    """The seven services by name (`fakes['ledger']`, `fakes.ledger`)."""
+    """The seven services by name (`fakes['transactions']`, `fakes.transactions`)."""
 
     def __getattr__(self, name: str) -> FakeService:
         return self[name]
@@ -165,7 +165,7 @@ def login(sub: str = USER, sid: str | None = None, tz: str = 'Asia/Kolkata', ttl
     sid = sid or str(uuid.uuid4())
     csrf = f'csrf-{uuid.uuid4()}'
     jwt = sign_access_token(ACCESS_SECRET, sub=sub, sid=sid, tz=tz, ttl_seconds=ttl)
-    cookie = f'bt_access={jwt}; bt_csrf={csrf}'
+    cookie = f'lbstash_access={jwt}; lbstash_csrf={csrf}'
     return Login(sid, cookie, csrf, {'cookie': cookie, 'x-csrf-token': csrf})
 
 

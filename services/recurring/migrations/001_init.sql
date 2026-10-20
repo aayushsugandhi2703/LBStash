@@ -4,7 +4,7 @@ CREATE TABLE recurring_rules (
   user_id         uuid NOT NULL,
   name            text NOT NULL CHECK (length(name) BETWEEN 1 AND 80),
   note            text CHECK (note IS NULL OR length(note) <= 120),
-  -- ledger category id (another service's row: no foreign key across schemas)
+  -- transactions category id (another service's row: no foreign key across schemas)
   category_id     uuid NOT NULL,
   amount_minor    bigint NOT NULL CHECK (amount_minor > 0),
   kind            text NOT NULL CHECK (kind IN ('monthly', 'weekly', 'yearly')),
@@ -12,7 +12,7 @@ CREATE TABLE recurring_rules (
   weekday         smallint CHECK (weekday BETWEEN 0 AND 6),
   month_of_year   smallint CHECK (month_of_year BETWEEN 1 AND 12),
   next_due        date NOT NULL,
-  -- last occurrence handled (handed to the ledger, or skipped by the user); next_due is always after it
+  -- last occurrence handled (handed to the transactions, or skipped by the user); next_due is always after it
   last_handled_due date,
   paused          boolean NOT NULL DEFAULT false,
   ends_on         date,
@@ -28,4 +28,4 @@ CREATE TABLE recurring_rules (
 CREATE INDEX recurring_rules_user ON recurring_rules (user_id, next_due);
 -- the cron scan: due, running rules across all users
 CREATE INDEX recurring_rules_due ON recurring_rules (next_due) WHERE NOT paused;
-SELECT bt.enable_rls('recurring_rules');
+SELECT lbstash.enable_rls('recurring_rules');
