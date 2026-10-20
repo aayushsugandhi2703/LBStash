@@ -74,13 +74,13 @@ variable "ssh_ingress_cidrs" {
 # ---------------------------------------------------------------
 
 variable "shape" {
-  description = "VM type. E4.Flex = AMD, paid (covered by the 30-day trial credit). A1.Flex = ARM, free up to 2 CPU / 12 GB, often out of capacity. E2.1.Micro = free but far too small for this app."
+  description = "VM type. E5.Flex = AMD, paid (covered by the 30-day trial credit; E4.Flex had no capacity in Mumbai). A1.Flex = ARM, free up to 2 CPU / 12 GB, often out of capacity. E2.1.Micro = free but far too small for this app."
   type        = string
-  default     = "VM.Standard.E4.Flex"
+  default     = "VM.Standard.E5.Flex"
 }
 
 variable "ocpus" {
-  description = "CPUs (Flex shapes). On E4.Flex 1 OCPU = 2 vCPU. On A1.Flex the free total is 2."
+  description = "CPUs (Flex shapes). On E5.Flex 1 OCPU = 2 vCPU. On A1.Flex the free total is 2."
   type        = number
   default     = 1
 }

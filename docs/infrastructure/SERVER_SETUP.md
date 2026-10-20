@@ -14,7 +14,7 @@ You need: the Oracle setup from `infra/terraform/policies.txt`, `~/.oci/config` 
 3. **Build the server.** GitHub > Actions > **Terraform** > Run workflow > `apply`.
    Copy the `public_ip` from the run summary.
 
-The server is an AMD VM, `VM.Standard.E4.Flex` with 1 OCPU (2 vCPU) and 4 GB RAM, Ubuntu 24.04, with a public IP. It is **paid**, but the 30-day Free Trial credit ($300) covers it (roughly $23 a month). Do not upgrade the Oracle account to Pay-As-You-Go while using it.
+The server is an AMD VM, `VM.Standard.E5.Flex` with 1 OCPU (2 vCPU) and 4 GB RAM, Ubuntu 24.04, with a public IP. It is **paid**, but the 30-day Free Trial credit ($300) covers it (roughly $23 a month). Do not upgrade the Oracle account to Pay-As-You-Go while using it.
 
 **Before day 30 of the trial**, move to a free server, or it stops: set `shape = "VM.Standard.A1.Flex"` (free up to 2 CPU and 12 GB) in `infra/terraform/variables.tf` and run the workflow. If Oracle answers "Out of host capacity", run it with **retry_minutes** set to `300`: it retries every minute until there is space. Back up the database first.
 

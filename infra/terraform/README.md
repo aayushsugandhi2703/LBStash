@@ -10,7 +10,7 @@ Login comes from `~/.oci/config`. No secrets live in this folder.
 |---|---|---|
 | Networking | VCN, internet gateway, route table, public subnet | VPC |
 | Networking | Firewall (NSG): ports 22, 80, 443 | Security group |
-| Compute | AMD VM (E4.Flex, 1 OCPU = 2 vCPU, 4 GB), Ubuntu 24.04, public IP | EC2 |
+| Compute | AMD VM (E5.Flex, 1 OCPU = 2 vCPU, 4 GB), Ubuntu 24.04, public IP | EC2 |
 | Block Volume | 100 GB boot disk | EBS |
 | Object Storage | Private bucket `lbstash-backups` | S3 |
 
