@@ -45,6 +45,6 @@ terraform plan
 terraform apply
 ```
 
-The SSH public keys that may log in are in `ssh_public_keys` in `variables.tf` (public keys are not secret).
+If you also run it on GitHub, keep `extra_ssh_public_keys` the same in both places.
 
 Delete everything: `terraform destroy`.

@@ -86,7 +86,7 @@ module "compute" {
   boot_volume_gb            = var.boot_volume_gb
   ubuntu_version            = var.ubuntu_version
   availability_domain_index = var.availability_domain_index
-  ssh_public_key            = join("\n", var.ssh_public_keys)
+  ssh_public_key            = join("\n", concat([trimspace(file(pathexpand(var.ssh_public_key_path)))], var.extra_ssh_public_keys))
 }
 
 # ---------------------------------------------------------------
