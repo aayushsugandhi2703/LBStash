@@ -1,0 +1,68 @@
+#cloud-config
+# First-boot setup. Runs once, when the VM starts for the first time.
+
+# ---------------------------------------------------------------
+# Updates
+# ---------------------------------------------------------------
+
+package_update: true
+package_upgrade: true
+
+# ---------------------------------------------------------------
+# Software to install
+# ---------------------------------------------------------------
+
+packages:
+  - docker.io            # runs the app containers
+  - docker-compose-v2    # adds the `docker compose` command
+  - git
+  - iptables-persistent  # keeps firewall rules after a reboot
+  - fail2ban             # bans IPs that keep guessing SSH logins
+
+# ---------------------------------------------------------------
+# Config files
+# ---------------------------------------------------------------
+
+write_files:
+  # SSH: keys only, no root login
+  - path: /etc/ssh/sshd_config.d/99-lbstash.conf
+    content: |
+      PasswordAuthentication no
+      PermitRootLogin no
+      KbdInteractiveAuthentication no
+
+  # Firewall: block all incoming traffic except SSH (22), http (80), https (443)
+  - path: /etc/lbstash/iptables.rules
+    content: |
+      *filter
+      :INPUT DROP [0:0]
+      :FORWARD ACCEPT [0:0]
+      :OUTPUT ACCEPT [0:0]
+      -A INPUT -i lo -j ACCEPT
+      -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+      -A INPUT -p icmp -j ACCEPT
+      -A INPUT -p tcp -m conntrack --ctstate NEW --dport 22 -j ACCEPT
+      -A INPUT -p tcp -m conntrack --ctstate NEW --dport 80 -j ACCEPT
+      -A INPUT -p tcp -m conntrack --ctstate NEW --dport 443 -j ACCEPT
+      COMMIT
+
+# ---------------------------------------------------------------
+# Start everything
+# ---------------------------------------------------------------
+
+runcmd:
+  # 1. Firewall: use our rules and keep them after a reboot
+  - cp /etc/lbstash/iptables.rules /etc/iptables/rules.v4
+  - netfilter-persistent reload
+
+  # 2. Docker: start on every boot, allow the `ubuntu` user to run it
+  #    The restart is needed because the firewall reload above cleared Docker's rules
+  - systemctl enable docker
+  - systemctl restart docker
+  - usermod -aG docker ubuntu
+
+  # 3. fail2ban: Ubuntu's default setup already watches SSH
+  - systemctl enable --now fail2ban
+
+  # 4. SSH: apply the settings from the config file above
+  - systemctl restart ssh

@@ -1,6 +1,6 @@
 # Architecture: modular microservices
 
-The README says *what* the product does; this file says *where the code lives*. Where they differ, this file wins (listed at the end).
+The README says *what* the product does and how to deploy it; this file says *where the code lives*.
 
 ## Services
 
@@ -14,7 +14,7 @@ The README says *what* the product does; this file says *where the code lives*. 
 | **recurring** | 3005 | `recurring` | recurring rules and the posting cron | transactions |
 | **reports** | 3006 | none | dashboard, daily, months, category matrix: read models composed from other services, nothing stored | transactions, planning, recurring, ingest |
 | **telegram** | 3007 | `telegram` | links, pairings, bot sessions, prompts, bot token (encrypted), webhook handling, digest | transactions, auth |
-| **web** | 3000 (container) | – | Next.js app, 16 screens from `docs/ui-spec/` | gateway only |
+| **web** | 3000 (container) | – | Next.js app | gateway only |
 
 Every backend service is Python 3.12 + FastAPI. The web app is the only TypeScript. Services share one library, `backend/packages/lbstash` (import `lbstash.*`), and nothing else:
 
@@ -94,12 +94,13 @@ Typed in `lbstash.clients`; payloads in `lbstash.contracts`. Paths are the contr
 - `frontend/Dockerfile` is self-contained (Node 24, Next.js standalone build, context `frontend`).
 - `docker-compose.yml` is the only compose file: `db` → `db-init` → services → `gateway` → `nginx`, plus `web`. `docker compose up --build` starts it all. On the host: `nginx` (80 and 443, plus plain http on `PUBLIC_PORT`, default 8088) and the gateway on `127.0.0.1` only (`GATEWAY_PORT`, default 3010, used by `infra/scripts/e2e.py`). Images are `${REGISTRY}lbstash-<name>:${IMAGE_TAG}`, so `docker compose build && docker compose push` publishes them all.
 - The `test` profile adds `test-db`: throwaway Postgres on `127.0.0.1:5544` (`docker compose --profile test up -d test-db`).
+- Hosting: `infra/terraform` builds a free Oracle Cloud VM (network, firewall, VM, backup bucket) that runs this compose file. See its README and the README's Deployment section.
 
-## Where this differs from the README
+## Where this differs from the original plan
 
-| README | Built as | Why |
+| Planned | Built as | Why |
 |---|---|---|
-| One deployable API, many modules (7.3, 8) | Eight services plus web | the requested modular microservice architecture |
+| One deployable API, many modules | Eight services plus web | the requested modular microservice architecture |
 | One shared `user_settings` table | Each field lives with the service that uses it; the gateway composes `/settings` | data ownership |
-| Worker container (7.3, 16) | Each service runs its own consumers and cron | no cross-service worker to deploy; same queue (the `queue` schema in Postgres, `lbstash.queue`) |
+| Worker container | Each service runs its own consumers and cron | no cross-service worker to deploy; same queue (the `queue` schema in Postgres, `lbstash.queue`) |
 | Telegram bot token in a secret manager | Encrypted in the telegram schema (AES-256-GCM, `FIELD_KEY`); `FIELD_KEY` comes from the environment / secret store | the Setup guide has the user save the bot token in the app |

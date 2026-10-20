@@ -17,7 +17,7 @@ You can also log from the web app, or (optionally) let another tool post bank SM
 |---|---|---|---|
 | **Backend** | 8 small services that own the data and rules | Python 3.12, FastAPI, PostgreSQL 17 | `backend/` |
 | **Frontend** | The web app you use in the browser | Next.js (TypeScript) | `frontend/` |
-| **Infra** | Runs and protects everything | Docker Compose, nginx, certbot / Cloudflare | `infra/`, `docker-compose.yml` |
+| **Infra** | Runs and protects everything | Docker Compose, nginx, certbot / Cloudflare, Terraform (Oracle Cloud) | `infra/`, `docker-compose.yml` |
 
 ```mermaid
 flowchart LR
@@ -62,6 +62,7 @@ lbstash/
 ├── infra/
 │   ├── docker/base.Dockerfile   shared Python base image
 │   ├── nginx/                   public entry: templates/, snippets/, certbot/, entrypoint.sh
+│   ├── terraform/               builds the Oracle Cloud server (see its README): modules/, policies.txt
 │   └── scripts/                 gen-secrets.py (makes .env), e2e.py (end-to-end test)
 │
 ├── docs/                        ARCHITECTURE, SYSTEM_DESIGN, SERVICE_GUIDE, COLOURS, BRAND
@@ -100,7 +101,8 @@ A Next.js app with these pages: Now · Transactions · Plan · Limits · Repeats
 - **nginx** is the only public entry. `/` goes to the web app; `/api`, `/ingest`, `/telegram/webhook` go to the gateway. Nothing else is exposed.
 - **Docker images:** one per service on a shared, slimmed Python base (built from `backend/`; the web image from `frontend/`) (about 240MB each; web about 225MB). The 8 Python images share the same base layers, so together they take roughly one image of disk.
 - **Start order:** `db-init` creates roles and schemas, then the services, gateway, web and nginx start.
-- **https:** Cloudflare Tunnel or Let's Encrypt (see below).
+- **https:** Cloudflare Tunnel or Let's Encrypt (see [Deployment](#deployment)).
+- **Server:** a free Oracle Cloud VM, built with [Terraform](infra/terraform/README.md).
 
 ## Security
 
@@ -113,27 +115,42 @@ A Next.js app with these pages: Now · Transactions · Plan · Limits · Repeats
 - **Never collected:** bank logins, UPI PINs, card numbers, OTPs. The app never moves money.
 - **Yours:** export any time, delete your account (7-day grace), append-only audit log, logs hold ids only.
 
-## Run it
+## Deployment
 
-You need Docker.
+Pick one. Each needs a `.env`: run `python3 infra/scripts/gen-secrets.py`, then **back up `FIELD_KEY`** from it.
+
+### Oracle Cloud (free)
+
+An always-on server for about ₹0/month. [Terraform](infra/terraform/README.md) builds it.
+
+1. `cd infra/terraform && terraform apply`. It prints the server's IP.
+2. Point your domain at that IP (Cloudflare proxy on, SSL/TLS **Full (strict)**).
+3. SSH in (command printed in step 1), clone this repo and make the `.env`.
+4. In `.env`, set `DOMAIN`, `PUBLIC_URL=https://<domain>` and `LETSENCRYPT_EMAIL`.
+5. `docker compose up -d --build`
+
+### Cloudflare Tunnel
+
+No public IP or open ports needed.
+
+1. In Cloudflare, create a tunnel (Network > Tunnels) to `http://nginx:80`. Copy its token.
+2. In `.env`, set `TUNNEL_TOKEN`, `COMPOSE_PROFILES=tunnel` and `PUBLIC_URL=https://<domain>`.
+3. `docker compose up -d --build`
+
+### Locally with Docker
+
+For trying it, and for development and tests.
 
 ```bash
-python3 infra/scripts/gen-secrets.py   # once: writes .env with random secrets
-docker compose up --build        # db, services, gateway, web, nginx
+python3 infra/scripts/gen-secrets.py
+docker compose up --build
 ```
 
-Open http://localhost:8088 and create your account. **Back up `FIELD_KEY` from `.env`**: encrypted data cannot be read without it. Then follow the in-app **Setup guide** to connect your Telegram bot. For the Google Pay button, set `PUBLIC_URL` to an address your phone can reach.
+Open http://localhost:8088. Stop with `docker compose down` (`-v` also wipes the database).
 
-Stop with `docker compose down` (add `-v` to wipe the database).
+Telegram needs https, so use Oracle Cloud or Cloudflare Tunnel for the bot.
 
-### Put it on a domain (https)
-
-Set `PUBLIC_URL=https://your-domain` in `.env` (or use `DOMAIN`). Telegram needs https, so save the bot token once the site is live. Pick one:
-
-- **Cloudflare Tunnel** (home machine, no open ports): create a tunnel to `http://nginx:80`, put the token in `.env` as `TUNNEL_TOKEN`, set `COMPOSE_PROFILES=tunnel`, run `docker compose up -d`.
-- **Let's Encrypt** (public IP): point the A record at the machine, open ports 80 and 443, set `LETSENCRYPT_EMAIL`, run `docker compose up -d`. Try `LETSENCRYPT_STAGING=1` first.
-
-### Develop and test
+**Run the tests** (optional):
 
 ```bash
 docker compose --profile test up -d test-db  # throwaway Postgres (run from the top folder)

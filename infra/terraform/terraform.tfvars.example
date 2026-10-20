@@ -1,0 +1,28 @@
+# Copy this file to terraform.tfvars and fill it in.
+# terraform.tfvars is git-ignored, so your IDs stay private.
+
+# ---------------------------------------------------------------
+# Required
+# ---------------------------------------------------------------
+
+tenancy_ocid     = "ocid1.tenancy.oc1..xxxx"     # Profile icon > Tenancy > OCID
+compartment_ocid = "ocid1.compartment.oc1..xxxx" # Identity & Security > Compartments > LBStash
+
+# ---------------------------------------------------------------
+# Common
+# ---------------------------------------------------------------
+
+region = "ap-mumbai-1" # your home region
+
+# Make the key first: ssh-keygen -t ed25519 -f ~/.ssh/lbstash_oci -C lbstash-oci
+ssh_public_key_path = "~/.ssh/lbstash_oci.pub"
+
+# ---------------------------------------------------------------
+# Optional
+# ---------------------------------------------------------------
+
+# Allow SSH only from your own IP:
+# ssh_ingress_cidrs = ["203.0.113.7/32"]
+
+# Cloudflare Tunnel mode, open no web ports:
+# web_ingress_cidrs = []

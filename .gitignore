@@ -1,21 +1,58 @@
+# ---------------------------------------------------------------
+# Secrets
+# ---------------------------------------------------------------
+# Real passwords and settings (the .env.example template is kept)
+.env
+.env.*
+!.env.example
+
+# Private keys
+*.pem
+*.key
+*.private
+id_rsa*
+id_ed25519*
+lbstash_oci*
+
+# ---------------------------------------------------------------
+# Terraform
+# ---------------------------------------------------------------
+# Downloaded plugins
+.terraform/
+
+# State and saved plans (can hold secrets)
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+
+# Your own values (the .example file is kept)
+*.tfvars
+
+# .terraform.lock.hcl is kept on purpose: it pins plugin versions
+
+# ---------------------------------------------------------------
+# HTTPS certificates
+# ---------------------------------------------------------------
+infra/nginx/certbot/certs/
+infra/nginx/certbot/webroot/
+
+# ---------------------------------------------------------------
+# Build output and caches
+# ---------------------------------------------------------------
 node_modules
 dist
 .next
 *.tsbuildinfo
-.env
-.env.*
-!.env.example
-coverage
-.DS_Store
 .venv
 __pycache__
 *.pyc
+coverage
 .pytest_cache
 .ruff_cache
 
-# nginx certificates and ACME webroot
-infra/nginx/certbot/certs/
-infra/nginx/certbot/webroot/
-
-# local notes for the assistant, never pushed
+# ---------------------------------------------------------------
+# Computer and assistant files
+# ---------------------------------------------------------------
+.DS_Store
 .context/

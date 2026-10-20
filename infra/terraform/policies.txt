@@ -1,0 +1,22 @@
+# Create these by hand in the OCI console (Identity & Security > Policies > Create policy).
+# Compartment: root. If it says "group not found", remove 'Default'/ from the lines.
+
+# ---------------------------------------------------------------
+# 1. Terraform user
+# ---------------------------------------------------------------
+
+Allow group 'Default'/'LBStash-terrafrom-admins' to manage virtual-network-family in compartment LBStash
+Allow group 'Default'/'LBStash-terrafrom-admins' to manage instance-family in compartment LBStash
+Allow group 'Default'/'LBStash-terrafrom-admins' to manage volume-family in compartment LBStash
+Allow group 'Default'/'LBStash-terrafrom-admins' to manage object-family in compartment LBStash
+Allow group 'Default'/'LBStash-terrafrom-admins' to read objectstorage-namespaces in tenancy
+
+# ---------------------------------------------------------------
+# 2. The VM
+# ---------------------------------------------------------------
+# First make a dynamic group (Domains > Default > Dynamic groups) named lbstash-vm
+# with this rule, using your LBStash compartment OCID:
+#   ALL {instance.compartment.id = 'ocid1.compartment.oc1..xxxx'}
+# Then create this policy:
+
+Allow dynamic-group 'Default'/'lbstash-vm' to manage objects in compartment LBStash where target.bucket.name='lbstash-backups'

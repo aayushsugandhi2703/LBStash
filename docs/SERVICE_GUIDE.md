@@ -41,9 +41,9 @@ def register(app: FastAPI, deps: Deps) -> None:
 - Input is validated by FastAPI against pydantic models from `lbstash.contracts` (put new shared models there, in your own service's file).
   A failure answers `400 validation_failed` with `details` per field.
 - Raise `Errors.*` from `lbstash.common`; never craft error JSON by hand.
-- Every mutating endpoint returns the updated row **and** the figures the page shows beside it (README 11). Always serialise with
+- Every mutating endpoint returns the updated row **and** the figures the page shows beside it. Always serialise with
   `lbstash.contracts.dump(model)` or return the model with `response_model` (by alias, camelCase on the wire).
-- Public routes are mounted on the README paths (`/budgets`, `/transactions`, …). Routes only other services call live under `/internal/`
+- Public routes are mounted on the paths the web app calls (`/budgets`, `/transactions`, …). Routes only other services call live under `/internal/`
   (the app refuses any request the gateway forwarded from outside).
 
 ## Database
@@ -58,7 +58,7 @@ async with deps.as_user(ctx) as tx:
   `bigint` columns come back as `int`, `date` columns as `'YYYY-MM-DD'` strings, `uuid` as `str`, `timestamptz` as aware UTC `datetime`.
 - Parameterised SQL only, with `$1, $2 …` placeholders (the wrapper rewrites them). Schema is the default `search_path`, so use
   unqualified table names.
-- Add the constraints the README lists (unique keys, `amount_minor > 0`, …) in the migration.
+- Add the constraints the service needs (unique keys, `amount_minor > 0`, …) in the migration.
 
 ## Calling other services
 
@@ -79,14 +79,14 @@ make handlers idempotent (unique keys, "first write wins").
 - HTTP tests: `app_factory(register=register, pool=db.pool, clients={"transactions": FakeTransactions()})` gives a harness with an `httpx` client over
   ASGI and `headers_for(user_id)`. Messages go to an `InMemoryBus` (`bus.events_of("…")`, `await bus.drain()`).
 - Run only your own tests (from `backend/`): `uv run pytest services/<name>`.
-- Cover: happy path, validation, ownership (user A cannot see user B), idempotency, and each edge case the README lists for your area.
+- Cover: happy path, validation, ownership (user A cannot see user B), idempotency, and each edge case in your area.
 - End to end: `docker compose up -d --build` (with `REGISTRATION=open`), then
   `cd backend && uv run python ../infra/scripts/e2e.py`.
 
 ## Definition of done
 
-- [ ] Every endpoint in README section 9/11 that belongs to you exists, validated, with the response shape the page needs (read `docs/ui-spec/*/SKILL.md` for the page).
-- [ ] Migration has the constraints, indexes, RLS (`lbstash.enable_rls`) and revokes the README lists.
+- [ ] Every endpoint the web app needs from your service exists, validated, with the response shape the page needs.
+- [ ] Migration has the constraints, indexes, RLS (`lbstash.enable_rls`) and revokes.
 - [ ] Idempotent consumers; outbox used for every write that triggers work.
 - [ ] No amounts, payees, message text, tokens or e-mail addresses in logs.
 - [ ] Money is integer paise; time-zone aware month logic uses `lbstash.common`.
