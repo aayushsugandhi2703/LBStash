@@ -1,4 +1,4 @@
-"""Every message text. Amounts, payees and balances appear only in `reveal_text` (after Reveal) and `typed_saved` (echoing what the user typed). Dynamic text is HTML-escaped (parse_mode HTML)."""
+"""Every message text. Amounts, payees and balances appear only in `reveal_text` (after Reveal), `typed_saved` (echoing what the user typed) and `tally_gap` (the answer to /tally). Dynamic text is HTML-escaped (parse_mode HTML)."""
 
 from datetime import datetime
 from typing import Literal
@@ -11,6 +11,10 @@ from .store import Direction, PromptRow
 
 def _n(n: int, one: str, many: str) -> str:
     return f'{n} {one if n == 1 else many}'
+
+
+def _inr(minor: int) -> str:
+    return escape_html(format_inr(minor, symbol=True))
 
 
 class T:
@@ -29,9 +33,21 @@ class T:
     plan_question = "Add to this month's plan?"
     plan_yes = "Added to this month's plan."
     plan_no = 'OK, not added.'
-    help = 'Use the buttons on a prompt, or send /300 for money out and +1500 for money in. Add a tag after it to file it at once, like /300 food. Also /pending, /signout, /unlink.'
+    help = (
+        'Commands\n'
+        '/number tag · log money out\n'
+        '+number tag · log money in\n'
+        '/pending · payments needing tags\n'
+        '/tally number · check bank balance\n'
+        '/signin · sign in with code\n'
+        '/signout · end this session\n'
+        '/unlink · disconnect this bot\n'
+        '/help · show this list'
+    )
     bad_amount = 'Send an amount like /300 or +1500 (up to 2 decimals).'
     nothing_pending = 'Nothing needs a tag.'
+    tally_usage = 'Send your bank balance, like /tally 12500.'
+    tally_matches = 'Balanced ✓ Your bank and tracked balance match.'
     last_one = 'That was the last one.'
     later = 'OK, it stays pending.'
     reveal_off = 'Reveal is switched off.'
@@ -74,6 +90,15 @@ class T:
         amount = escape_html(format_inr(amount_minor, symbol=True))
         kind = dir_label(direction)
         return f'{kind} · {amount} · {escape_html(display_tag(tag))} ✓' if tag else f'{kind} · {amount} saved. Tag it below.'
+
+    @staticmethod
+    def tally_gap(bank_minor: int, tracked_minor: int, gap_minor: int, booked: bool, when: str | None) -> str:
+        """Result of /tally: the three amounts, then where the untagged difference goes."""
+        direction = 'less than tracked' if gap_minor < 0 else 'more than tracked'
+        head = f'Bank {_inr(bank_minor)}\nTracked {_inr(tracked_minor)}\nUntagged {_inr(abs(gap_minor))} ({direction})'
+        if booked:
+            return f'{head}\nAdded to /pending. Tag it there.'
+        return f'{head}\nIt lands in /pending {"after " + when if when else "soon"} unless a bank message explains it.'
 
     @staticmethod
     def digest(n: int) -> str:

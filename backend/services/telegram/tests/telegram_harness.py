@@ -12,6 +12,7 @@ from typing import Any
 from lbstash.common import Errors, normalize_tag
 from lbstash.contracts import (
     BalanceCheckDto,
+    BalanceCheckRes,
     BalanceChecksRes,
     CategoriesRes,
     CategoryDto,
@@ -268,6 +269,20 @@ class FakeTransactions:
             raise Errors.upstream('transactions')
         mine = sorted((c for c in self.cats.values() if c.user_id == as_.user_id), key=lambda c: -c.usage)
         return CategoriesRes(items=[CategoryDto(id=c.id, name=c.name, archived=False) for c in mine[: limit or 200]])
+
+    async def balance_check(self, as_: Any, bank_balance_minor: int) -> BalanceCheckRes:
+        """Tracked balance = credits - debits of this user's rows; a gap leaves an open check."""
+        if self.down:
+            raise Errors.upstream('transactions')
+        tracked = sum(t.amount_minor * (1 if t.type == 'credit' else -1) for t in self.txs.values() if t.user_id == as_.user_id)
+        gap = bank_balance_minor - tracked
+        at = iso_ms(self.balance_checked_at or datetime.now(UTC))
+        check = BalanceCheckDto(
+            id=str(uuid.uuid4()), bank_balance_minor=bank_balance_minor, transactions_balance_minor=tracked, gap_minor=gap, source='manual',
+            status='resolved' if abs(gap) < 100 else 'open', checked_at=at, as_of=at, transaction_id=None,
+            grace_ends_at=None if abs(gap) < 100 else at,
+        )  # fmt: skip
+        return BalanceCheckRes(check=check, matches=abs(gap) < 100, transactions_balance_minor=tracked, transaction=None)
 
     async def balance_checks(self, as_: Any, limit: int = 1) -> BalanceChecksRes:
         if self.down:

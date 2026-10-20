@@ -15,7 +15,7 @@ from lbstash.crypto import safe_equal, sha256_hex
 
 from .botapi import ForceReply, Keyboard
 from .link import is_owner, pairing_hash, unlink
-from .messages import T, header_text, pay_keyboard, plan_keyboard, reveal_text, tag_keyboard
+from .messages import T, header_text, pay_keyboard, plan_keyboard, reveal_text, tag_keyboard, when_label
 from .prompts import enqueue_sync, release_held, resend_oldest_pending, send_pending_summary, show_final
 from .runtime import Runtime, quietly
 from .store import (
@@ -180,6 +180,8 @@ async def _handle_message(cx: Cx, msg: TgMessage) -> None:
         return await _say(cx, T.already_linked)
     if name == 'signin':
         return await _start_signin(cx)
+    if name == 'help':  # static text, so it works signed out too
+        return await _say(cx, T.help)
 
     waiting_for_code = cx.link.signin_until is not None and cx.link.signin_until > now
     if waiting_for_code and cmd is None:
@@ -205,6 +207,8 @@ async def _handle_message(cx: Cx, msg: TgMessage) -> None:
         if (await rt.deps.clients.transactions.pending(cx.as_, 1)).count == 0:
             return await _say(cx, T.nothing_pending)
         return await send_pending_summary(rt, cx.user_id, cx.link)
+    if name == 'tally':
+        return await _tally(cx, cmd[1] if cmd else '')
     amount = _AMOUNT.fullmatch(text)
     if amount:
         return await _record_amount(cx, msg.message_id, amount[1], amount[2], amount[3])
@@ -234,6 +238,25 @@ async def _record_amount(cx: Cx, message_id: int, sign: str, amount: str, tag_te
     saved = T.typed_saved(minor, direction, res.transaction.category_name)
     keyboard = pay_keyboard(f'{rt.deps.env.PUBLIC_URL.rstrip("/")}/pay') if sign == '/' else None
     await _say(cx, saved, keyboard)
+
+
+async def _tally(cx: Cx, arg: str) -> None:
+    """`/tally 12500`: compare the real bank balance with the tracked one. A gap becomes an untagged entry in /pending, the same as the web's Check balance."""
+    rt = cx.rt
+    m = re.fullmatch(r'₹?\s*(\d{1,3}(?:,\d{2,3})*|\d+)(\.\d{1,2})?', arg)
+    if not m:
+        return await _say(cx, T.tally_usage)
+    bank = int(Decimal(m[1].replace(',', '') + (m[2] or '')) * 100)
+    try:
+        res = await rt.deps.clients.transactions.balance_check(cx.as_, bank)
+    except Exception as e:  # noqa: BLE001  (the user gets a retry line, the log gets the code)
+        rt.deps.log.warning('tally failed', code=e.code if isinstance(e, AppError) else 'error')
+        return await _say(cx, T.failed)
+    c = res.check
+    if res.matches:
+        return await _say(cx, T.tally_matches)
+    when = when_label(c.grace_ends_at, rt.clock(), cx.bot.tz) if c.grace_ends_at else None
+    await _say(cx, T.tally_gap(c.bank_balance_minor, c.transactions_balance_minor, c.gap_minor, c.status == 'booked', when))
 
 
 async def _start_signin(cx: Cx) -> None:

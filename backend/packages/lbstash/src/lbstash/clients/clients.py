@@ -7,6 +7,7 @@ from typing import Any, Literal, Protocol, Self
 
 from lbstash.contracts import (
     AlertsRes,
+    BalanceCheckRes,
     BalanceChecksRes,
     BudgetsRes,
     CategoriesRes,
@@ -109,6 +110,12 @@ class TransactionsClient(ServiceClient):
     async def balance_checks(self, as_: Any, limit: int = 1) -> BalanceChecksRes:
         """Newest first (public route, composed by other services)."""
         return await self.request(as_, 'GET', '/balance-checks', query={'limit': limit}, model=BalanceChecksRes)
+
+    async def balance_check(self, as_: Any, bank_balance_minor: int) -> BalanceCheckRes:
+        """Compare a bank balance with the tracked one (public route, composed by other services)."""
+        return await self.request(
+            as_, 'POST', '/balance-check', body={'bankBalanceMinor': bank_balance_minor}, model=BalanceCheckRes
+        )
 
     async def settings(self, as_: Any) -> TransactionSettings:
         return await self.request(as_, 'GET', '/internal/settings', model=TransactionSettings)

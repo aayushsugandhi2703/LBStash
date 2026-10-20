@@ -344,6 +344,24 @@ class TestAlertsNudgesAndTheDigest:
         finally:
             w.transactions.balance_checked_at = START
 
+    async def test_help_lists_every_command(self, w: World) -> None:
+        u = await w.signed_in_user()
+        await w.say(u, '/help')
+        text = w.bot.last_message(u.chat_id).text
+        for cmd in ['/number tag', '+number tag', '/pending', '/tally', '/signin', '/signout', '/unlink', '/help']:
+            assert cmd in text
+
+    async def test_tally_reports_the_untagged_gap_or_a_match(self, w: World) -> None:
+        u = await w.signed_in_user()
+        w.transactions.add(u.user_id, '2026-10-18T08:00:00.000Z', type='credit', amount_minor=500_000, payee=None)
+        await w.say(u, '/tally 5,000')
+        assert w.bot.last_message(u.chat_id).text == 'Balanced ✓ Your bank and tracked balance match.'
+        await w.say(u, '/tally 4200.50')
+        text = w.bot.last_message(u.chat_id).text
+        assert text.startswith('Bank ₹4,200.50\nTracked ₹5,000\nUntagged ₹799.50 (less than tracked)')
+        await w.say(u, '/tally')
+        assert 'like /tally 12500' in w.bot.last_message(u.chat_id).text
+
     async def test_pending_sends_the_count_with_start_and_next_walks_the_rest_oldest_first(self, w: World) -> None:
         u = await w.signed_in_user()
         a = await w.incoming(u, payee='a', occurred_at='2026-10-18T08:00:00.000Z')
