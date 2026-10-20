@@ -60,9 +60,9 @@ write_files:
 # ---------------------------------------------------------------
 
 runcmd:
-  # 1. Firewall: use our rules and keep them after a reboot
+  # 1. Firewall: replace Oracle's rules with ours (iptables-restore wipes the old ones; a plain reload would only add ours after them)
   - cp /etc/lbstash/iptables.rules /etc/iptables/rules.v4
-  - netfilter-persistent reload
+  - iptables-restore < /etc/iptables/rules.v4
 
   # 2. Docker: start on every boot, allow the `ubuntu` user to run it
   #    The restart is needed because the firewall reload above cleared Docker's rules
