@@ -215,9 +215,10 @@ jobs:
           docker image prune -f
           REMOTE
 
+      # The free micro VM is slow: allow up to 10 minutes for everything to start.
       - name: Check the app is up
         run: |
-          ssh vm 'port=$(grep -E "^PUBLIC_PORT=" ~/lbstash/.env | cut -d= -f2); curl -fsS --retry 30 --retry-delay 3 --retry-connrefused -o /dev/null "http://127.0.0.1:${port:-8088}/"'
+          ssh vm 'port=$(grep -E "^PUBLIC_PORT=" ~/lbstash/.env | cut -d= -f2); curl -fsS --retry 120 --retry-delay 5 --retry-connrefused -o /dev/null "http://127.0.0.1:${port:-8088}/"'
           ssh vm 'cd ~/lbstash && docker compose ps'
 
   # ---------------------------------------------------------------
