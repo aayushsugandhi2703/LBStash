@@ -114,6 +114,7 @@ jobs:
           INTERNAL_SECRET: build-only
           POSTGRES_PASSWORD: build-only
         with:
+          source: . # build from the checked-out folder; the default (the Git address) cannot read ../infra/docker/base.Dockerfile
           files: docker-compose.yml
           push: true
           targets: |
