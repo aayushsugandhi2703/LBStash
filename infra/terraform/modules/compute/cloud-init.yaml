@@ -16,6 +16,7 @@ packages:
   - docker.io            # runs the app containers
   - docker-compose-v2    # adds the `docker compose` command
   - git
+  - rsync                # lets GitHub Actions copy files here
   - iptables-persistent  # keeps firewall rules after a reboot
   - fail2ban             # bans IPs that keep guessing SSH logins
 

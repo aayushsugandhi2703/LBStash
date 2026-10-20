@@ -9,7 +9,17 @@
 # ---------------------------------------------------------------
 
 terraform {
-  required_version = ">= 1.5"
+  required_version = ">= 1.12"
+
+  # State lives in an Object Storage bucket, so your Mac and GitHub Actions share it.
+  # Create the bucket by hand first (see README). The namespace is an ID, not a secret.
+  backend "oci" {
+    bucket              = "lbstash-tfstate"
+    namespace           = "bmlo47nyjjzu"
+    region              = "ap-mumbai-1"
+    key                 = "terraform.tfstate"
+    config_file_profile = "DEFAULT"
+  }
 
   required_providers {
     oci = {
@@ -76,7 +86,7 @@ module "compute" {
   boot_volume_gb            = var.boot_volume_gb
   ubuntu_version            = var.ubuntu_version
   availability_domain_index = var.availability_domain_index
-  ssh_public_key            = file(pathexpand(var.ssh_public_key_path)) # reads the key file
+  ssh_public_key            = join("\n", concat([trimspace(file(pathexpand(var.ssh_public_key_path)))], var.extra_ssh_public_keys))
 }
 
 # ---------------------------------------------------------------

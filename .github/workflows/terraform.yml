@@ -1,0 +1,121 @@
+# Runs Terraform for the Oracle Cloud server.
+#   Pull request that touches infra/terraform  -> check and plan only
+#   Actions tab > Terraform > Run workflow     -> plan, apply or destroy
+# Setup (secrets, state bucket): see "Automatic deploy" in the README.
+
+name: Terraform
+
+on:
+  pull_request:
+    paths:
+      - infra/terraform/**
+      - .github/workflows/terraform.yml
+  workflow_dispatch:
+    inputs:
+      action:
+        description: What to do
+        type: choice
+        options: [plan, apply, destroy]
+        default: plan
+      confirm:
+        description: Type "destroy" here to confirm a destroy
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+# One Terraform run at a time, so the state is never used twice.
+concurrency:
+  group: terraform
+  cancel-in-progress: false
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_VAR_tenancy_ocid: ${{ secrets.OCI_TENANCY_OCID }}
+  TF_VAR_compartment_ocid: ${{ secrets.OCI_COMPARTMENT_OCID }}
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    env:
+      ACTION: ${{ inputs.action || 'plan' }}
+      CONFIRM: ${{ inputs.confirm }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stop if destroy is not confirmed
+        if: env.ACTION == 'destroy' && env.CONFIRM != 'destroy'
+        run: |
+          echo 'To destroy, type "destroy" in the confirm box.'
+          exit 1
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ">=1.12"
+          terraform_wrapper: false
+
+      # Same files Terraform uses on your Mac: ~/.oci/config and the SSH public keys.
+      - name: Set up Oracle Cloud login
+        env:
+          OCI_USER_OCID: ${{ secrets.OCI_USER_OCID }}
+          OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+          OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
+          OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
+          SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
+          DEPLOY_SSH_PUBLIC_KEY: ${{ secrets.DEPLOY_SSH_PUBLIC_KEY }}
+        run: |
+          install -d -m 700 ~/.oci ~/.ssh
+          printf '%s\n' "$OCI_PRIVATE_KEY" > ~/.oci/tf_key.pem
+          chmod 600 ~/.oci/tf_key.pem
+          cat > ~/.oci/config <<EOF
+          [DEFAULT]
+          user=$OCI_USER_OCID
+          fingerprint=$OCI_FINGERPRINT
+          tenancy=$OCI_TENANCY_OCID
+          region=ap-mumbai-1
+          key_file=$HOME/.oci/tf_key.pem
+          EOF
+          printf '%s\n' "$SSH_PUBLIC_KEY" > ~/.ssh/lbstash_oci.pub
+          echo "TF_VAR_extra_ssh_public_keys=$(jq -cn --arg k "$DEPLOY_SSH_PUBLIC_KEY" '[$k | rtrimstr("\n")]')" >> "$GITHUB_ENV"
+
+      - name: Format check
+        run: terraform fmt -check -recursive
+
+      - name: Init
+        run: terraform init -input=false
+
+      - name: Validate
+        run: terraform validate
+
+      - name: Plan
+        run: |
+          flags=""
+          if [ "$ACTION" = destroy ]; then flags="-destroy"; fi
+          terraform plan -input=false -no-color $flags -out=tfplan | tee plan.txt
+
+      - name: Show the plan
+        run: |
+          {
+            echo "### Terraform plan ($ACTION)"
+            echo '```'
+            tail -n 150 plan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Apply
+        if: github.event_name == 'workflow_dispatch' && (env.ACTION == 'apply' || env.ACTION == 'destroy')
+        run: terraform apply -input=false -auto-approve tfplan
+
+      - name: Show the server address
+        if: github.event_name == 'workflow_dispatch' && env.ACTION == 'apply'
+        run: |
+          {
+            echo "### Server"
+            echo '```'
+            terraform output -no-color
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

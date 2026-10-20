@@ -1,5 +1,11 @@
 # LBStash
 
+[![Release](https://github.com/aayushsugandhi2703/LBStash/actions/workflows/release.yml/badge.svg)](https://github.com/aayushsugandhi2703/LBStash/actions/workflows/release.yml)
+[![Terraform](https://github.com/aayushsugandhi2703/LBStash/actions/workflows/terraform.yml/badge.svg)](https://github.com/aayushsugandhi2703/LBStash/actions/workflows/terraform.yml)
+[![Version](https://img.shields.io/github/v/tag/aayushsugandhi2703/LBStash?sort=semver&label=version)](https://github.com/aayushsugandhi2703/LBStash/tags)
+[![Images](https://img.shields.io/badge/ghcr.io-lbstash-2496ED?logo=docker&logoColor=white)](https://github.com/aayushsugandhi2703?tab=packages&repo_name=LBStash)
+[![Status](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faayushsugandhi2703%2FLBStash%2Fstatus%2Fstatus.json&cacheSeconds=300)](https://lbstash.site)
+
 A private budget tracker you run from a Telegram chat. Send `/350 food` when you spend, `+1500 salary` when money comes in. It is saved, tagged and shown in the web app. Amounts are in ₹.
 
 ## How it works
@@ -63,9 +69,10 @@ lbstash/
 │   ├── docker/base.Dockerfile   shared Python base image
 │   ├── nginx/                   public entry: templates/, snippets/, certbot/, entrypoint.sh
 │   ├── terraform/               builds the Oracle Cloud server (see its README): modules/, policies.txt
-│   └── scripts/                 gen-secrets.py (makes .env), e2e.py (end-to-end test)
+│   └── scripts/                 gen-secrets.py (makes .env), e2e.py (end-to-end test), update-changelog.py (used by Release)
 │
-├── docs/                        ARCHITECTURE, SYSTEM_DESIGN, SERVICE_GUIDE, COLOURS, BRAND
+├── .github/workflows/           terraform.yml (builds the server), release.yml (builds, deploys, tags), status.yml (live-site badge)
+├── docs/                        ARCHITECTURE, SYSTEM_DESIGN, SERVICE_GUIDE, COLOURS, BRAND, CHANGELOG
 ├── docker-compose.yml           starts the whole stack (kept at the top so `docker compose up` just works)
 ├── .env, .env.example           secrets and settings (.env is never committed)
 └── README.md
@@ -121,20 +128,51 @@ Pick one. Each needs a `.env`: run `python3 infra/scripts/gen-secrets.py`, then 
 
 ### Oracle Cloud (free)
 
-An always-on server for about ₹0/month. [Terraform](infra/terraform/README.md) builds it.
+An always-on server for about ₹0/month. [Terraform](infra/terraform/README.md) builds it and GitHub Actions deploys to it (`.github/workflows/`).
 
-1. `cd infra/terraform && terraform apply`. It prints the server's IP.
-2. Point your domain at that IP (Cloudflare proxy on, SSL/TLS **Full (strict)**).
-3. SSH in (command printed in step 1), clone this repo and make the `.env`.
-4. In `.env`, set `DOMAIN`, `PUBLIC_URL=https://<domain>` and `LETSENCRYPT_EMAIL`.
-5. `docker compose up -d --build`
+**One-time setup**
+
+1. In the Oracle console, create a private bucket `lbstash-tfstate` (Storage > Buckets, in the `LBStash` compartment, versioning on). Terraform keeps its state there.
+2. Make a key that only GitHub uses: `ssh-keygen -t ed25519 -N "" -f ~/.ssh/lbstash_deploy -C lbstash-deploy`
+3. Add the GitHub secrets:
+   ```bash
+   gh secret set OCI_TENANCY_OCID --body "<tenancy OCID>"
+   gh secret set OCI_COMPARTMENT_OCID --body "<LBStash compartment OCID>"
+   gh secret set OCI_USER_OCID --body "<terraform user OCID>"
+   gh secret set OCI_FINGERPRINT --body "<API key fingerprint>"
+   gh secret set OCI_PRIVATE_KEY < ~/.oci/tf_key.pem
+   gh secret set SSH_PUBLIC_KEY < ~/.ssh/lbstash_oci.pub
+   gh secret set DEPLOY_SSH_PUBLIC_KEY < ~/.ssh/lbstash_deploy.pub
+   gh secret set VM_SSH_PRIVATE_KEY < ~/.ssh/lbstash_deploy
+   ```
+4. Build the server: **Actions > Terraform > Run workflow > apply**. The run summary shows the server's IP.
+5. Use that IP:
+   ```bash
+   gh secret set VM_HOST --body "<ip>"
+   gh variable set DOMAIN --body "lbstash.site"      # also used by the status badge
+   gh variable set LETSENCRYPT_EMAIL --body "<your email>"
+   ```
+   Then point the domain's A record at the IP (Cloudflare proxy on, SSL/TLS **Full (strict)**).
+6. Release once: **Actions > Release > Run workflow**, type `0.1.0`. The first run builds all images (about 15 minutes) and creates `.env` on the server.
+7. Back up the server's `FIELD_KEY`: `ssh -i ~/.ssh/lbstash_deploy ubuntu@<ip> grep FIELD_KEY lbstash/.env`
+
+**Every change after that**
+
+1. Push a branch and open a pull request. Merge it into `main`.
+2. **Actions > Release > Run workflow**, type the next version. Nothing deploys until you do this.
+
+The workflow builds every image for amd64 and arm64, publishes `:<version>` and `:latest` to GHCR, deploys to the server, deletes older version tags, bumps `frontend/package.json`, adds the commits to [docs/CHANGELOG.md](docs/CHANGELOG.md) and tags `vX.Y.Z`. A version can only be used once.
+
+Version `x.y.z`: x = major change or new feature, y = UI change or fix, z = bug fix.
+
+Server changes (`infra/terraform`): the pull request shows the Terraform plan; run **Actions > Terraform > Run workflow > apply** to apply it.
 
 ### Cloudflare Tunnel
 
 No public IP or open ports needed.
 
 1. In Cloudflare, create a tunnel (Network > Tunnels) to `http://nginx:80`. Copy its token.
-2. In `.env`, set `TUNNEL_TOKEN`, `COMPOSE_PROFILES=tunnel` and `PUBLIC_URL=https://<domain>`.
+2. In `.env`, set `TUNNEL_TOKEN`, `COMPOSE_PROFILES=tunnel` and `PUBLIC_URL=https://lbstash.site`.
 3. `docker compose up -d --build`
 
 ### Locally with Docker

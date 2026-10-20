@@ -1,0 +1,299 @@
+name: Release
+
+# Manual only: Actions tab > Release > Run workflow, then type the version.
+# Nothing is built or deployed on its own. Run it from main (merge your pull request first).
+#
+# Versioning: x.y.z
+#   x = major change or new feature
+#   y = UI change, placement or fix
+#   z = bug fix
+#
+# What it does, in order:
+#   1. Checks the version is new (no git tag and no image with that version yet).
+#   2. Builds every image for amd64 and arm64 and pushes :<version> and :latest to GHCR.
+#   3. Deploys :<version> to the Oracle Cloud server (untick "deploy" to skip).
+#   4. Deletes older version tags from GHCR.
+#   5. Bumps frontend/package.json, adds an entry to docs/CHANGELOG.md, commits and tags vX.Y.Z.
+# Steps 4 and 5 only run when everything before them worked.
+# Setup (secrets, variables, first run): see "Oracle Cloud" in the README.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, x.y.z (e.g. 1.4.2)"
+        required: true
+        type: string
+      deploy:
+        description: "Deploy to the server after building"
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  packages: write
+
+# One release at a time. A second one waits instead of cutting the first short.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  VERSION: ${{ inputs.version }}
+  IMAGES: base auth transactions ingest planning recurring telegram reports gateway web
+
+jobs:
+  # ---------------------------------------------------------------
+  # 1. Check: is this a new, valid version?
+  # ---------------------------------------------------------------
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run from main only
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Run this from main. Merge your pull request first."
+          exit 1
+
+      - name: Check the version format
+        run: |
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version must be x.y.z (got '$VERSION')"
+            exit 1
+          fi
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Refuse to overwrite an existing version
+        run: |
+          if git rev-parse -q --verify "refs/tags/v$VERSION" > /dev/null; then
+            echo "::error::Tag v$VERSION already exists. Bump the version and run again."
+            exit 1
+          fi
+          if docker manifest inspect "ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/lbstash-web:$VERSION" > /dev/null 2>&1; then
+            echo "::error::Image version $VERSION is already published. Bump the version and run again."
+            exit 1
+          fi
+
+  # ---------------------------------------------------------------
+  # 2. Build: one native build per CPU type (amd64, arm64)
+  # ---------------------------------------------------------------
+  build:
+    needs: check
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set the image address
+        run: echo "REGISTRY=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/" >> "$GITHUB_ENV"
+
+      # The two fake values only satisfy docker-compose.yml. They are not put in any image.
+      - uses: docker/bake-action@v6
+        env:
+          IMAGE_TAG: ${{ inputs.version }}-${{ matrix.arch }}
+          BUILDX_NO_DEFAULT_ATTESTATIONS: "1" # keep each image a plain manifest, so they merge cleanly
+          INTERNAL_SECRET: build-only
+          POSTGRES_PASSWORD: build-only
+        with:
+          files: docker-compose.yml
+          push: true
+          targets: |
+            base
+            auth
+            transactions
+            ingest
+            planning
+            recurring
+            telegram
+            reports
+            gateway
+            web
+          set: |
+            *.platform=linux/${{ matrix.arch }}
+            *.cache-from=type=gha,scope=${{ matrix.arch }}
+            *.cache-to=type=gha,mode=max,scope=${{ matrix.arch }}
+            *.labels.org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
+  # ---------------------------------------------------------------
+  # 3. Merge: join the two builds into one image that runs on both
+  #    Tags it :<version> and :latest
+  # ---------------------------------------------------------------
+  merge:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Combine amd64 and arm64
+        run: |
+          registry="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/"
+          for name in $IMAGES; do
+            image="${registry}lbstash-${name}"
+            docker buildx imagetools create \
+              -t "$image:$VERSION" -t "$image:latest" \
+              "$image:$VERSION-amd64" "$image:$VERSION-arm64"
+          done
+
+  # ---------------------------------------------------------------
+  # 4. Deploy: copy the config to the server and restart the app
+  # ---------------------------------------------------------------
+  deploy:
+    needs: merge
+    if: inputs.deploy
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      packages: read
+    env:
+      VM_HOST: ${{ secrets.VM_HOST }}
+      DOMAIN: ${{ vars.DOMAIN }}
+      LETSENCRYPT_EMAIL: ${{ vars.LETSENCRYPT_EMAIL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Connect to the server
+        env:
+          VM_SSH_PRIVATE_KEY: ${{ secrets.VM_SSH_PRIVATE_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$VM_SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$VM_HOST" >> ~/.ssh/known_hosts
+          printf 'Host vm\n  HostName %s\n  User ubuntu\n  IdentityFile ~/.ssh/deploy_key\n  IdentitiesOnly yes\n' "$VM_HOST" > ~/.ssh/config
+
+      # Only config files. The app itself runs from the images.
+      - name: Copy config files
+        run: |
+          ssh vm 'mkdir -p ~/lbstash'
+          rsync -az --relative \
+            docker-compose.yml .env.example infra/scripts/gen-secrets.py \
+            infra/nginx/entrypoint.sh infra/nginx/templates infra/nginx/snippets infra/nginx/certbot/entrypoint.sh \
+            vm:lbstash/
+
+      - name: Update the app
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          registry="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/"
+          printf '%s' "$GHCR_TOKEN" | ssh vm "docker login ghcr.io -u '$GITHUB_ACTOR' --password-stdin"
+          ssh vm "REGISTRY='$registry' IMAGE_TAG='$VERSION' DOMAIN='$DOMAIN' LETSENCRYPT_EMAIL='$LETSENCRYPT_EMAIL' bash -s" <<'REMOTE'
+          set -euo pipefail
+          cd ~/lbstash
+
+          # First deploy only: make .env with fresh random secrets.
+          if [ ! -f .env ]; then python3 infra/scripts/gen-secrets.py; fi
+
+          set_env() {
+            if grep -q "^$1=" .env; then sed -i "s|^$1=.*|$1=$2|" .env; else echo "$1=$2" >> .env; fi
+          }
+          set_env REGISTRY "$REGISTRY"
+          set_env IMAGE_TAG "$IMAGE_TAG"
+          set_env LETSENCRYPT_EMAIL "$LETSENCRYPT_EMAIL"
+          if [ -n "$DOMAIN" ]; then
+            set_env DOMAIN "$DOMAIN"
+            set_env PUBLIC_URL "https://$DOMAIN"
+          fi
+
+          docker compose pull
+          docker compose up -d --remove-orphans
+          docker image prune -f
+          REMOTE
+
+      - name: Check the app is up
+        run: |
+          ssh vm 'port=$(grep -E "^PUBLIC_PORT=" ~/lbstash/.env | cut -d= -f2); curl -fsS --retry 30 --retry-delay 3 --retry-connrefused -o /dev/null "http://127.0.0.1:${port:-8088}/"'
+          ssh vm 'cd ~/lbstash && docker compose ps'
+
+  # ---------------------------------------------------------------
+  # 5. Finish: clean up old tags, then record the release
+  #    Only runs when the images are published and the deploy worked (or was skipped).
+  # ---------------------------------------------------------------
+  finish:
+    needs: [merge, deploy]
+    if: ${{ !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Deletes versions whose tags are all old. A version that has any current tag is kept,
+      # so an unchanged image shared with an older release is never removed by mistake.
+      - name: Delete older version tags from GHCR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER}"
+          kind=$(gh api "/users/$owner" --jq '.type' | tr '[:upper:]' '[:lower:]')
+          [ "$kind" = organization ] && base="/orgs/$owner" || base="/users/$owner"
+          for name in $IMAGES; do
+            pkg="lbstash-$name"
+            ids=$(gh api --paginate "$base/packages/container/$pkg/versions" --jq '
+              .[]
+              | select((.metadata.container.tags | length) > 0)
+              | select(all(.metadata.container.tags[]; . != "latest" and . != "'"$VERSION"'" and . != "'"$VERSION"'-amd64" and . != "'"$VERSION"'-arm64"))
+              | .id') || { echo "::warning::Could not list versions of $pkg"; continue; }
+            for id in $ids; do
+              echo "Deleting old $pkg version $id"
+              gh api -X DELETE "$base/packages/container/$pkg/versions/$id" > /dev/null \
+                || echo "::warning::Could not delete $pkg version $id. Cleanup only; the release is fine."
+            done
+          done
+
+      - name: Bump the version in frontend/package.json
+        run: npm version "$VERSION" --no-git-tag-version --allow-same-version
+        working-directory: frontend
+
+      # Built from the commit log since the last vX.Y.Z tag. A plain record of what shipped.
+      - name: Update docs/CHANGELOG.md
+        run: |
+          PREV_TAG=$(git tag --list 'v*' --sort=-v:refname | head -n1)
+          if [ -n "$PREV_TAG" ]; then
+            LOG=$(git log "${PREV_TAG}..HEAD" --no-merges --pretty='- %s')
+            [ -n "$LOG" ] || LOG="- No commits since $PREV_TAG."
+          else
+            LOG="- Initial tracked release."
+          fi
+          RELEASE_VERSION="$VERSION" RELEASE_LOG="$LOG" python3 infra/scripts/update-changelog.py
+
+      - name: Commit and tag the release
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add frontend/package.json frontend/package-lock.json docs/CHANGELOG.md
+          git commit -m "Release v$VERSION"
+          git tag "v$VERSION"
+          git pull --rebase origin main
+          git push origin HEAD:main
+          git push origin "v$VERSION"

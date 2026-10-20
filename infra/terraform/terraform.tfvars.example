@@ -24,5 +24,8 @@ ssh_public_key_path = "~/.ssh/lbstash_oci.pub"
 # Allow SSH only from your own IP:
 # ssh_ingress_cidrs = ["203.0.113.7/32"]
 
+# Extra keys allowed to log in (the GitHub Actions deploy key):
+# extra_ssh_public_keys = ["ssh-ed25519 AAAA... lbstash-deploy"]
+
 # Cloudflare Tunnel mode, open no web ports:
 # web_ingress_cidrs = []

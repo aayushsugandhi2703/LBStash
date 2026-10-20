@@ -115,6 +115,12 @@ variable "ssh_public_key_path" {
   default     = "~/.ssh/lbstash_oci.pub"
 }
 
+variable "extra_ssh_public_keys" {
+  description = "More public keys allowed to log in, for example the GitHub Actions deploy key."
+  type        = list(string)
+  default     = []
+}
+
 # ---------------------------------------------------------------
 # Backups
 # ---------------------------------------------------------------

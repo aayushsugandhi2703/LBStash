@@ -1,0 +1,75 @@
+name: Update status badge
+
+# Every 15 minutes: opens the live site and saves a tiny status.json on a separate
+# "status" branch (so it never clutters main). The README badge reads that file
+# through shields.io. No extra account or secret: it uses the workflow's own token.
+# Needs the repository variable DOMAIN (the same one the Release workflow uses).
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    # Nothing to check until DOMAIN is set.
+    if: vars.DOMAIN != ''
+    runs-on: ubuntu-latest
+    env:
+      CHECK_URL: https://${{ vars.DOMAIN }}/
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Open the live site
+        id: check
+        run: |
+          # curl prints "000 <seconds>" when the site cannot be reached, so this never fails the step.
+          read -r code secs < <(curl -s -o /dev/null -w "%{http_code} %{time_total}" --max-time 10 "$CHECK_URL" || true)
+          code="${code:-000}"
+          ms=$(awk -v s="${secs:-0}" 'BEGIN { printf "%d", s * 1000 }')
+
+          if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
+            if [ "$ms" -gt 3000 ]; then
+              message="Degraded Performance"; color="yellow"
+            else
+              message="Operational"; color="brightgreen"
+            fi
+          else
+            message="Down"; color="red"
+          fi
+
+          {
+            echo "message=$message"
+            echo "color=$color"
+            echo "detail=HTTP $code, ${ms}ms"
+          } >> "$GITHUB_OUTPUT"
+          echo "Checked $CHECK_URL: $message (HTTP $code, ${ms}ms)"
+
+      - name: Save status.json on the status branch
+        env:
+          MESSAGE: ${{ steps.check.outputs.message }}
+          COLOR: ${{ steps.check.outputs.color }}
+          DETAIL: ${{ steps.check.outputs.detail }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git fetch origin status; then
+            git checkout -B status origin/status
+          else
+            git checkout --orphan status
+            git rm -rf . > /dev/null 2>&1 || true
+          fi
+
+          printf '{"schemaVersion": 1, "label": "status", "message": "%s", "color": "%s"}\n' "$MESSAGE" "$COLOR" > status.json
+
+          git add status.json
+          if git diff --cached --quiet; then
+            echo "No change, nothing to save."
+          else
+            git commit -m "status: $MESSAGE ($DETAIL)"
+            git push origin status
+          fi

@@ -16,6 +16,8 @@ Login comes from `~/.oci/config`. No keys or secrets live in this folder.
 
 On first boot the VM installs Docker, fail2ban and its own firewall, and turns off SSH passwords (`modules/compute/cloud-init.yaml`).
 
+State (Terraform's record of what exists) is kept in the Object Storage bucket `lbstash-tfstate`, which you create by hand once. Your Mac and GitHub Actions share it.
+
 Not built here (done by hand, see `policies.txt`): the Terraform user and group, and the VM's permissions (IAM).
 
 Used outside Oracle: Cloudflare (DNS and HTTPS front) and Let's Encrypt (certificate), both free.
@@ -56,8 +58,13 @@ Every module has `main.tf` (what it builds), `variables.tf` (inputs) and `output
 2. Make an SSH key: `ssh-keygen -t ed25519 -f ~/.ssh/lbstash_oci -C lbstash-oci`
 3. Copy `terraform.tfvars.example` to `terraform.tfvars` and fill in the two OCIDs.
 4. In the console, create the permissions from `policies.txt`.
+5. In the console, create a private bucket `lbstash-tfstate` in the `LBStash` compartment with versioning on.
 
 ## Run
+
+Easiest: **Actions > Terraform > Run workflow** on GitHub (plan, apply or destroy). Setup is in the main [README](../../README.md#deployment). Pull requests that change this folder get a plan automatically.
+
+From your Mac:
 
 ```bash
 cd infra/terraform
@@ -76,5 +83,5 @@ If apply says `Out of host capacity`, wait and apply again. Free ARM capacity co
 
 ## Change or remove
 
-- Edit `terraform.tfvars` (for example `ssh_ingress_cidrs = ["your-ip/32"]`), then `terraform apply`.
+- Edit `terraform.tfvars` (for example `ssh_ingress_cidrs = ["your-ip/32"]`), then `terraform apply`. If you also apply from GitHub, keep `extra_ssh_public_keys` the same in both places, or the two runs will keep changing each other's result.
 - Delete everything: `terraform destroy`.

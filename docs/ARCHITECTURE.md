@@ -94,7 +94,7 @@ Typed in `lbstash.clients`; payloads in `lbstash.contracts`. Paths are the contr
 - `frontend/Dockerfile` is self-contained (Node 24, Next.js standalone build, context `frontend`).
 - `docker-compose.yml` is the only compose file: `db` → `db-init` → services → `gateway` → `nginx`, plus `web`. `docker compose up --build` starts it all. On the host: `nginx` (80 and 443, plus plain http on `PUBLIC_PORT`, default 8088) and the gateway on `127.0.0.1` only (`GATEWAY_PORT`, default 3010, used by `infra/scripts/e2e.py`). Images are `${REGISTRY}lbstash-<name>:${IMAGE_TAG}`, so `docker compose build && docker compose push` publishes them all.
 - The `test` profile adds `test-db`: throwaway Postgres on `127.0.0.1:5544` (`docker compose --profile test up -d test-db`).
-- Hosting: `infra/terraform` builds a free Oracle Cloud VM (network, firewall, VM, backup bucket) that runs this compose file. See its README and the README's Deployment section.
+- Hosting: `infra/terraform` builds a free Oracle Cloud VM (network, firewall, VM, backup bucket) that runs this compose file. `.github/workflows/release.yml` (manual, versioned) builds multi-arch (amd64 + arm64) images into GHCR, deploys them to the VM and tags the release. See the README's Deployment section.
 
 ## Where this differs from the original plan
 
