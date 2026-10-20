@@ -5,9 +5,9 @@
 .keptLbl { position: absolute; left: -40px; top: 100%; margin-top: 27px; font-size: var(--fs-label); color: var(--muted); }
 .cols { position: absolute; inset: 0; display: flex; }
 .grp { flex: 1; min-width: 0; position: relative; height: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 3px; border: 0; background: transparent; padding: 0; font: inherit; color: inherit; cursor: default; }
-.grp:hover, .grp:focus-visible { background: rgba(14, 14, 16, .04); }
+.grp:hover, .grp:focus-visible { background: var(--hover-wash); }
 .outWrap { display: flex; flex-direction: column; justify-content: flex-end; width: 30%; max-width: 30px; height: 100%; }
 .label { position: absolute; top: 100%; margin-top: 8px; left: 50%; transform: translateX(-50%); text-align: center; white-space: nowrap; font-size: var(--fs-label); color: var(--muted); }
 .kept { display: block; margin-top: 4px; color: var(--accent); font-weight: 500; }
 .kept[data-none="true"] { color: var(--muted); font-weight: 400; }
-.tipKept { color: #fff; }
+.tipKept { color: var(--on-ink); }

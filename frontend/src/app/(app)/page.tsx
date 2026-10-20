@@ -123,7 +123,7 @@ function FlowView({ d, loading }: { d?: DashboardRes; loading: boolean }) {
         </div>
         <div className={s.lnodes}>
           {left.length === 0 ? <div style={{ flex: 1, background: '#9A9AA6' }} /> : left.map((l) => (
-            <div key={l.kind} style={{ flex: `${l.flex} 1 0`, ...(l.kind === 'carried' ? { background: '#9A9AA6' } : { background: 'var(--ink)', borderTop: '2px solid #fff', boxSizing: 'border-box' }) }} />
+            <div key={l.kind} style={{ flex: `${l.flex} 1 0`, ...(l.kind === 'carried' ? { background: '#9A9AA6' } : { background: 'var(--ink)', borderTop: '2px solid var(--surface)', boxSizing: 'border-box' }) }} />
           ))}
         </div>
         <div className={s.ribbons}>

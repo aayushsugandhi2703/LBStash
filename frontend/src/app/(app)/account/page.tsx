@@ -4,9 +4,11 @@ import { useRouter } from 'next/navigation';
 import type { z } from 'zod';
 import type { AuditRes, TransactionPageDto } from '@/contracts';
 import { AccountShell } from '@/components/shell';
-import { Button, CodeInput, ErrorLine, GhostButton, TallyMath, Loading, SettingsRow, TextLink } from '@/components/ui';
+import { Button, CodeInput, ErrorLine, GhostButton, TallyMath, Loading, Segmented, SettingsRow, TextLink } from '@/components/ui';
 import { api, errorText, fieldErrors, useApi } from '@/lib/api';
 import { useMe } from '@/lib/me';
+import { MODE_OPTIONS } from '@/lib/mode';
+import { useMode } from '@/lib/use-mode';
 import { buildExportFile, canDelete, codeError, exportLine, type ExportResult, isCode, isEmail, nameDirty, profileSummary, shortDate } from '@/features/account';
 import { downloadText } from '@/lib/browser';
 import { LineStatus, LoadError, Section, Well } from './parts';
@@ -19,6 +21,7 @@ const AUDIT_LIMIT = 200;
 
 export default function ProfilePage() {
   const router = useRouter();
+  const [mode, setMode] = useMode();
   const { data: me, error: meError, mutate: mutateMe, isLoading } = useMe();
   const audit = useApi<z.infer<typeof AuditRes>>(`/audit?limit=${AUDIT_LIMIT}`);
   const transactions = useApi<z.infer<typeof TransactionPageDto>>('/transactions?limit=1');
@@ -169,6 +172,11 @@ export default function ProfilePage() {
           <Section>REGION</Section>
           <SettingsRow title="Rupees, India time" sub="Money is in ₹ with Indian grouping; days end at midnight India time. Fixed for now.">
             <span className={`mono ${s.mono13}`}>₹ · IST</span>
+          </SettingsRow>
+
+          <Section>APPEARANCE</Section>
+          <SettingsRow title="Colour mode" sub="System follows your device. The choice is saved on this device only.">
+            <Segmented label="Colour mode" value={mode} options={MODE_OPTIONS} onChange={setMode} />
           </SettingsRow>
 
           <Section>YOUR DATA</Section>

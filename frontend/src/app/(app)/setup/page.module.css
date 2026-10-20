@@ -62,7 +62,7 @@
 .l1 { font-size: var(--fs-h2); font-weight: 300; letter-spacing: -0.01em; }
 .l2 { font-size: var(--fs-s); color: var(--muted); margin-top: 4px; }
 .buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
-.buttons > span { display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border: 1px solid var(--disabled); background: #fff; font-size: var(--fs-s); }
+.buttons > span { display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border: 1px solid var(--disabled); background: var(--raised); font-size: var(--fs-s); }
 .previewNote { margin-top: 10px; line-height: 1.6; }
 
 /* step 4 */
@@ -80,7 +80,7 @@
 .summary { max-width: 620px; border-top: 1px solid var(--rule); }
 .sumRow { display: flex; align-items: center; gap: 14px; padding: var(--row-pad) 0; border-bottom: 1px solid var(--rule); }
 .dot { width: 10px; height: 10px; flex: none; background: var(--accent); }
-.dot[data-ok="false"] { background: #fff; border: 1px solid var(--disabled); }
+.dot[data-ok="false"] { background: var(--raised); border: 1px solid var(--disabled); }
 .sumLabel { flex: 1; font-size: var(--fs-body); font-weight: 500; }
 .sumValue { font-size: var(--fs-s); }
 .sumValue[data-ok="false"] { color: var(--muted); }

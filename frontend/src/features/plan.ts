@@ -3,8 +3,8 @@ import type { PlanPutReq } from '@/contracts';
 
 /** Plan page logic (docs/ui-spec/03-plan). Pure: the page keeps a draft and calls these. All money is paise. */
 
-/** Neutral ramp for the split bar and row swatches, in order (design system §1). */
-export const RAMP = ['#0E0E10', '#2C2C33', '#4A4A53', '#6B6B73', '#8E8E98', '#B1B1BA', '#CFCFD6', '#E3E3E8', '#EDEDF1'] as const;
+/** Neutral ramp for the split bar and row swatches, in order (design system §1). Values come from `--ramp-N`, so they flip in dark mode. */
+export const RAMP = ['var(--ramp-0)', 'var(--ramp-1)', 'var(--ramp-2)', 'var(--ramp-3)', 'var(--ramp-4)', 'var(--ramp-5)', 'var(--ramp-6)', 'var(--ramp-7)', 'var(--ramp-8)'] as const;
 export const MAX_LINES = RAMP.length;
 const TOTAL_STEP = 500_000; // ₹5,000
 const LINE_STEP = 50_000; // ₹500

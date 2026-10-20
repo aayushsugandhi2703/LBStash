@@ -1,7 +1,7 @@
 /* One message of the Needs a look queue. */
 .item { padding: var(--row-pad) 0 var(--cv-12-2-18); border-bottom: 1px solid var(--rule); }
 .when { letter-spacing: .06em; }
-.reason { color: #8A6200; }
+.reason { color: var(--warn-text); }
 .text { margin-top: 8px; background: var(--hover-index); padding: 12px 14px; font-size: var(--fs-s); line-height: 1.6; color: var(--text-2); overflow-wrap: anywhere; }
 .controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 24px; margin-top: 12px; }
 .seg { margin-top: 6px; }

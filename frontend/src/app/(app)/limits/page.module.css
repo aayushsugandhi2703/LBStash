@@ -17,7 +17,7 @@
 .dot { width: 9px; height: 9px; display: inline-block; flex: none; box-sizing: border-box; background: var(--accent); }
 .dot[data-k="close"] { background: var(--warn); }
 .dot[data-k="over"] { background: var(--danger); }
-.dot[data-k="fast"] { background: #fff; border: 2px solid var(--warn); }
+.dot[data-k="fast"] { background: var(--raised); border: 2px solid var(--warn); }
 .acts { display: inline-flex; gap: 14px; margin-left: 4px; }
 .acts button { min-height: 28px; color: var(--muted); }
 .barWrap { margin-top: var(--cv-6-1p4-12); flex: none; }

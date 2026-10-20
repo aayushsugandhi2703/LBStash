@@ -1,5 +1,5 @@
 .head { display: flex; flex-wrap: wrap; gap: 6px 24px; align-items: baseline; justify-content: space-between; padding-bottom: 12px; }
-.split { display: flex; gap: 2px; height: 32px; background: #F3F3F6; }
+.split { display: flex; gap: 2px; height: 32px; background: var(--wash-neutral); }
 .split > span { display: block; height: 100%; transition: width .35s cubic-bezier(.2, .8, .2, 1); }
 .tableWrap { overflow-x: auto; margin-top: 22px; flex: 1; display: flex; flex-direction: column; min-height: 180px; }
 .tableInner { min-width: 700px; flex: 1; display: flex; flex-direction: column; min-height: 0; }
