@@ -55,6 +55,31 @@ class TestRegistrationAndMandatorySetup:
         assert (await b.call('POST', '/account/export', {'code': '123456'})).status == 403
         assert (await b.call('GET', '/auth/factors')).status == 200
 
+    async def test_sends_one_welcome_mail_to_the_address_used_and_none_when_sign_up_fails(self, h: Harness):
+        before = len(h.mails)
+        b = h.browser()
+        assert (await b.call('POST', '/auth/register', {'email': 'Welcome@Example.com', 'password': STRONG, 'name': 'Wen'})).status == 201
+        sent = h.mails[before:]
+        assert [(m.to, m.subject) for m in sent] == [('welcome@example.com', 'Welcome to Ledger')]
+        assert sent[0].text.startswith('Hi Wen,') and 'Thank you for choosing Ledger' in sent[0].text
+
+        # duplicate and weak-password attempts send nothing
+        assert (await b.call('POST', '/auth/register', {'email': 'welcome@example.com', 'password': STRONG})).status == 409
+        assert (await b.call('POST', '/auth/register', {'email': 'weak@example.com', 'password': 'short'})).status == 400
+        assert len(h.mails) == before + 1
+
+    async def test_a_failing_mailer_does_not_fail_the_sign_up(self, h: Harness):
+        async def boom(to: str, subject: str, text: str) -> None:
+            raise RuntimeError('smtp down')
+
+        original = h.mailer.send
+        h.mailer.send = boom  # type: ignore[method-assign]
+        try:
+            res = await h.browser().call('POST', '/auth/register', {'email': 'nomail@example.com', 'password': STRONG})
+        finally:
+            h.mailer.send = original  # type: ignore[method-assign]
+        assert res.status == 201
+
     async def test_rejects_weak_common_and_email_containing_passwords_bad_zones_and_duplicate_emails(self, h: Harness):
         b = h.browser()
 

@@ -1,4 +1,4 @@
-"""Mail transports, used only for the e-mail change link."""
+"""Mail transports: the e-mail change link and the welcome mail."""
 
 from email.message import EmailMessage
 from typing import Protocol

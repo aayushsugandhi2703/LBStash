@@ -27,6 +27,7 @@ from .throttle import (
     throttle_key,
 )
 from .users import USER_COLS, UserRow, find_user_by_email, load_user, session_res, setup_state
+from .welcome import send_welcome
 
 GENERIC_LOGIN_ERROR = "That email and password don't match."
 
@@ -79,8 +80,11 @@ async def register(svc: Svc, email: str, password: str, name: str | None, timezo
         )
         user = UserRow(**row)
         await record_audit(tx, user.id, 'register', ip=info.ip)
-        issued = await start_session(svc, tx, user.id, user.timezone, info)
-        return Issued(await session_res(tx, user), issued.tokens)
+        started = await start_session(svc, tx, user.id, user.timezone, info)
+        result = Issued(await session_res(tx, user), started.tokens)
+    # after the commit: the account exists whatever happens to the mail
+    await send_welcome(svc, user.email, user.name)
+    return result
 
 
 @dataclass(frozen=True, slots=True)
