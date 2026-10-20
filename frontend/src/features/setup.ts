@@ -44,8 +44,15 @@ export const nextLabel = (step: Step): string => (step === 3 ? 'Finish' : 'Conti
 /** Step 1: the bot. */
 const BOT_TOKEN_MIN = 20;
 export const canSaveBot = (t: string): boolean => t.trim().length >= BOT_TOKEN_MIN;
-/** Who may link: a Telegram @username (5-32 letters, digits, underscore) or a numeric id. The server checks again. */
-export const canSaveOwner = (t: string): boolean => /^@?[A-Za-z][A-Za-z0-9_]{4,31}$/.test(t.trim()) || /^\d{5,15}$/.test(t.trim());
+/** Who may link: a Telegram @username (5-32 letters, digits, underscore, a pasted t.me link is fine) or a numeric id. The server checks again. */
+const ownerHandle = (t: string): string => t.trim().replace(/^(?:https?:\/\/)?(?:t|telegram)\.me\//i, '').replace(/^@/, '');
+export const canSaveOwner = (t: string): boolean => /^[A-Za-z][A-Za-z0-9_]{4,31}$/.test(ownerHandle(t)) || /^\d{5,15}$/.test(ownerHandle(t));
+/** What is wrong with what was typed, if it can be told before saving (null = nothing to say). */
+export function ownerHint(t: string, botUsername: string | null): string | null {
+  if (!t.trim()) return null;
+  if (botUsername && ownerHandle(t).toLowerCase() === botUsername.toLowerCase()) return 'That is your bot. Enter your own Telegram username.';
+  return canSaveOwner(t) ? null : 'Use your @username (5 or more letters, digits or _), or your numeric id.';
+}
 export function signWaitText(l: Pick<LinkStatus, 'linked' | 'signInPausedUntil'>, now: Date = new Date()): string {
   if (!l.linked) return 'link your account first';
   if (l.signInPausedUntil && new Date(l.signInPausedUntil) > now) return 'paused after 3 wrong codes · try again soon';

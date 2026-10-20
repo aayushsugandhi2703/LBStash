@@ -1,4 +1,4 @@
-"""Webhook handling. Checks in order: webhook secrets, private chat, linked Telegram id, active session. Anyone who fails gets no reply."""
+"""Webhook handling. Checks in order: webhook secrets, private chat, linked Telegram id, active session. Anyone who fails gets no reply, except a `/start` before linking, which says what to fix."""
 
 import re
 from dataclasses import dataclass, replace
@@ -41,7 +41,7 @@ MAX_WRONG = 3
 
 _DUMMY_HASH = sha256_hex('no-such-bot')
 
-_START = re.compile(r'/start(?:@\w+)?\s+(\d{6})')
+_START = re.compile(r'/start(?:@\w+)?(?:\s+(.*))?', re.DOTALL)
 _COMMAND = re.compile(r'/([A-Za-z_]+)(?:@\w+)?(?:\s+(.*))?', re.DOTALL)
 # `/300` or `/300 chai` = money out, `+1500` or `+1500 salary` = money in
 _AMOUNT = re.compile(r'([/+])(\d{1,9}(?:\.\d{1,2})?)(?:@\w+)?(?:\s+(.+))?', re.DOTALL)
@@ -121,20 +121,31 @@ async def handle_update(rt: Runtime, bot: BotRow, update: TelegramUpdate) -> Non
 
 
 async def _try_pair(rt: Runtime, bot: BotRow, from_: TgUser, chat_id: int, message_id: int, text: str) -> None:
+    """`/start <code>` from a chat that is not linked yet. Anything that is not a `/start` is ignored; a `/start` that cannot link says why."""
     m = _START.fullmatch(text.strip())
     if not m:
         return
-    if not rt.pair_tries.allow(f'{bot.user_id}:{from_.id}'):
+    token = rt.token(bot)
+    code = re.sub(r'[\s-]', '', m[1] or '')  # "123 456" and "123-456" are fine
+    has_code = re.fullmatch(r'\d{6}', code) is not None
+
+    async def say(out: str) -> None:
+        await quietly(rt, lambda: rt.bot.send_message(token, chat_id=chat_id, text=out), 'say')
+
+    # only real code attempts use up the guessing budget; a plain /start (Telegram's Start button) is just throttled
+    if not (rt.pair_tries if has_code else rt.strangers).allow(f'{bot.user_id}:{from_.id}'):
         return
     if not is_owner(bot.owner_tg, from_.id, from_.username):
-        return  # only the Telegram account set on the Setup page may link, whatever code is sent: no reply, code stays unused
+        # the reply only repeats what the sender already knows about their own account
+        return await say(T.not_owner(from_.username, from_.id))
+    if not has_code:
+        return await say(T.send_code)
     now = rt.clock()
-    token = rt.token(bot)
     outcome: Literal['invalid', 'taken', 'linked']
     async with rt.deps.as_user(bot.user_id) as tx:
         used = await tx.maybe_one(
             'UPDATE telegram_pairings SET used_at = $3 WHERE user_id = $1 AND code_hash = $2 AND used_at IS NULL AND expires_at > $3 RETURNING id',
-            [bot.user_id, pairing_hash(bot.user_id, m[1]), now],
+            [bot.user_id, pairing_hash(bot.user_id, code), now],
         )
         if used is None:
             outcome = 'invalid'
@@ -151,10 +162,10 @@ async def _try_pair(rt: Runtime, bot: BotRow, from_: TgUser, chat_id: int, messa
                 await rt.deps.bus.emit(tx, 'audit.record', {'user_id': bot.user_id, 'action': 'telegram.link'})
                 outcome = 'linked'
     if outcome == 'invalid':
-        return  # wrong or expired code: no reply
+        return await say(T.bad_code)
     await quietly(rt, lambda: rt.bot.delete_message(token, chat_id, message_id), 'delete-start')
     text_out = T.linked if outcome == 'linked' else T.linked_elsewhere
-    await quietly(rt, lambda: rt.bot.send_message(token, chat_id=chat_id, text=text_out), 'say')
+    await say(text_out)
 
 
 # messages

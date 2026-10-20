@@ -348,7 +348,7 @@ class TestAlertsNudgesAndTheDigest:
         u = await w.signed_in_user()
         await w.say(u, '/help')
         text = w.bot.last_message(u.chat_id).text
-        for cmd in ['/number tag', '+number tag', '/pending', '/tally', '/signin', '/signout', '/unlink', '/help']:
+        for cmd in ['/value tag', '/value :', '+value tag', '+value :', '/pending', '/tally', '/signin', '/signout', '/unlink', '/help']:
             assert cmd in text
 
     async def test_tally_reports_the_untagged_gap_or_a_match(self, w: World) -> None:

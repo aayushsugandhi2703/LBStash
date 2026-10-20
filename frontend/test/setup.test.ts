@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { LinkStatus } from '@/features/devices';
-import { alertText, canSaveBot, clampStep, linkedText, money, nextLabel, previewButtons, previewLine2, signWaitText, type StepInput, stepLabel, stepLead, stepStates, stepTitle, summaryRows } from '@/features/setup';
+import { alertText, canSaveBot, canSaveOwner, clampStep, linkedText, money, nextLabel, ownerHint, previewButtons, previewLine2, signWaitText, type StepInput, stepLabel, stepLead, stepStates, stepTitle, summaryRows } from '@/features/setup';
 
 const base: StepInput = { step: 1, reached: 1, botSaved: false, linked: false, signed: false };
 const link = (over: Partial<LinkStatus> = {}): LinkStatus => ({
@@ -61,6 +61,19 @@ describe('telegram steps', () => {
   it('words the linked line from the masked id only', () => {
     expect(linkedText({ telegramUsername: 'aayush', telegramIdHint: '••4821' })).toBe('linked · @aayush · id ••4821');
     expect(linkedText({ telegramUsername: null, telegramIdHint: null })).toBe('linked · your account · id ••••');
+  });
+});
+
+describe('telegram owner', () => {
+  it('takes a username, a pasted t.me link or a numeric id, and nothing else', () => {
+    for (const ok of ['@aayush_s', 'aayush_s', ' t.me/aayush_s ', 'https://t.me/aayush_s', '123456789']) expect(canSaveOwner(ok), ok).toBe(true);
+    for (const bad of ['', '@ab', 'two words', 'bad-name!', '12']) expect(canSaveOwner(bad), bad).toBe(false);
+  });
+  it('says what is wrong, including pasting the bot instead of yourself', () => {
+    expect(ownerHint('', 'my_bot')).toBeNull();
+    expect(ownerHint('@aayush_s', 'my_bot')).toBeNull();
+    expect(ownerHint('@My_Bot', 'my_bot')).toMatch(/your bot/);
+    expect(ownerHint('ab', 'my_bot')).toMatch(/@username/);
   });
 });
 

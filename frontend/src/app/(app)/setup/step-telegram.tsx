@@ -4,7 +4,7 @@ import type { PairingRes } from '@/contracts';
 import { Button, ErrorLine, Field } from '@/components/ui';
 import { api, errorText, fieldErrors } from '@/lib/api';
 import { countdown, type LinkStatus } from '@/features/devices';
-import { canSaveBot, canSaveOwner, linkedText, signWaitText } from '@/features/setup';
+import { canSaveBot, canSaveOwner, linkedText, ownerHint, signWaitText } from '@/features/setup';
 import { CopyLink, Live, StepRow } from './parts';
 import s from './page.module.css';
 
@@ -88,7 +88,7 @@ export function StepTelegram({ link, refresh }: { link: LinkStatus; refresh: () 
         )}
       </StepRow>
 
-      <StepRow n={3} title="Link your account" text="Add your username, then send the code to your bot. One use, 5 minutes.">
+      <StepRow n={3} title="Link your account" text={<>Tell the bot who you are, then send it a one-time code. Two small steps: <strong>a</strong> your actual Telegram username, <strong>b</strong> the code.</>}>
         {link.linked ? (
           <Live kind="ok">{linkedText(link)}</Live>
         ) : !link.botSaved || replacing ? (
@@ -97,16 +97,19 @@ export function StepTelegram({ link, refresh }: { link: LinkStatus; refresh: () 
           <>
             <form className={s.control} onSubmit={(e) => { e.preventDefault(); if (canSaveOwner(owner)) void saveOwner(); }}>
               <div className={s.tokenRow}>
-                <Field label="Your Telegram username" type="text" className={s.tokenInput} autoComplete="off" placeholder={link.ownerTelegram ?? '@yourname'} value={owner} onChange={(e) => { setOwner(e.target.value); setOwnerError(''); }} />
+                <Field label="a · Your actual Telegram username (not the bot's, not your name)" type="text" className={s.tokenInput} autoComplete="off" autoCapitalize="none" spellCheck={false} placeholder={link.ownerTelegram ?? '@yourname'} value={owner} onChange={(e) => { setOwner(e.target.value); setOwnerError(''); }} />
                 <Button type="submit" disabled={!canSaveOwner(owner) || ownerBusy}>{link.ownerTelegram ? 'Change' : 'Save'}</Button>
               </div>
-              {ownerError && <ErrorLine>{ownerError}</ErrorLine>}
+              {(ownerError || ownerHint(owner, link.botUsername)) && <ErrorLine>{ownerError || ownerHint(owner, link.botUsername)}</ErrorLine>}
               <div className={`cap ${s.caption}`}>
                 {link.ownerTelegram
-                  ? <>Only {mono(link.ownerTelegram)} can link. Others are ignored.</>
-                  : <>Your Telegram @username or numeric id.</>}
+                  ? <>Only {mono(link.ownerTelegram)} can link this bot. Send the bot a message from that account.</>
+                  : <>Your real Telegram username is required, not a display name or nickname. Find it in Telegram under Settings → Username, like {mono('@yourname')}. No username set? Create one there, or use your numeric id: message {mono('@userinfobot')} and it replies with it.</>}
               </div>
             </form>
+            {code ? (
+              <div className={`cap ${s.caption}`}>b · Send this to your bot (one use, 5 minutes). Tap the link below to have Telegram do it for you.</div>
+            ) : null}
             {code ? (
               <div className={`${s.box} ${s.control}`}>
                 <span className={`mono ${s.command}`}>{code.command}</span>
@@ -114,7 +117,8 @@ export function StepTelegram({ link, refresh }: { link: LinkStatus; refresh: () 
               </div>
             ) : (
               <div className={s.control}>
-                <Button disabled={pairBusy || !link.ownerTelegram} onClick={() => void makeCode()}>{pairing || link.pairingPending ? 'Make a new code' : 'Make a code'}</Button>
+                <Button disabled={pairBusy || !link.ownerTelegram} onClick={() => void makeCode()}>{pairing || link.pairingPending ? 'b · Make a new code' : 'b · Make a code'}</Button>
+                {!link.ownerTelegram && <span className={`mono ${s.small}`} style={{ marginLeft: 12 }}>save your username first</span>}
                 {pairing && <span className={`mono ${s.small}`} style={{ marginLeft: 12 }}>the last code expired</span>}
               </div>
             )}

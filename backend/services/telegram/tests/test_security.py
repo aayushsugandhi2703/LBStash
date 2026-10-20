@@ -77,8 +77,6 @@ class TestWhoMayTalkToTheBot:
         tags = len(w.transactions.tag_calls)
         stranger = {'from_id': 31337, 'chat_id': 31337}
         await w.say(u, '/signin', **stranger)
-        await w.say(u, '/start', **stranger)
-        await w.say(u, '/start 123456', **stranger)
         await w.say(u, '482915', **stranger)
         await w.say(u, 'hello', **stranger)
         await w.tap_data(u, message_id, w.bot.button(msg, 'Food')['callback_data'], **stranger)
@@ -87,6 +85,13 @@ class TestWhoMayTalkToTheBot:
         assert calls_since(w, n) == []
         assert len(w.transactions.tag_calls) == tags
         assert msg.text == 'Money out · 6:42 pm'
+
+    async def test_a_start_from_the_wrong_account_says_which_account_to_enter_on_setup_and_links_nothing(self, w: World) -> None:
+        u = await w.user_with_bot(pin=False)
+        await w.pin_owner(u, '@the_real_owner')
+        await w.say(u, '/start')
+        assert 'enter @someone as your Telegram username' in w.bot.last_message(u.chat_id).text
+        assert (await w.web(u.user_id, 'GET', '/telegram/link')).body['linked'] is False
 
     async def test_group_and_channel_chats_are_ignored_even_from_the_linked_id(self, w: World) -> None:
         u = await w.signed_in_user()
@@ -132,6 +137,10 @@ class TestOnlyTheChosenAccountCanLink:
             assert (await w.web(u.user_id, 'PUT', '/telegram/owner', {'telegram': bad})).status == 400, bad
         assert (await w.web(str(uuid.uuid4()), 'PUT', '/telegram/owner', {'telegram': 'someone'})).status == 409  # no bot yet
 
+        bot_name = (await w.web(u.user_id, 'GET', '/telegram/link')).body['botUsername']
+        if bot_name:  # pasting the bot's own username instead of yours is caught
+            assert (await w.web(u.user_id, 'PUT', '/telegram/owner', {'telegram': f'@{bot_name}'})).status == 400
+        assert (await w.web(u.user_id, 'PUT', '/telegram/owner', {'telegram': 'https://t.me/Some_One'})).status == 200
         assert (await w.web(u.user_id, 'PUT', '/telegram/owner', {'telegram': ' @Some_One '})).status == 200
         assert (await w.web(u.user_id, 'GET', '/telegram/link')).body['ownerTelegram'] == '@some_one'
         assert (await w.web(u.user_id, 'PUT', '/telegram/owner', {'telegram': str(u.tg_id)})).status == 200
@@ -145,7 +154,7 @@ class TestOnlyTheChosenAccountCanLink:
         code = (await w.web(u.user_id, 'POST', '/telegram/pairing')).body['command']
 
         await w.say(u, code)
-        assert w.bot.sends(u.chat_id) == []
+        assert 'not set to link this bot' in w.bot.last_message(u.chat_id).text
         st = (await w.web(u.user_id, 'GET', '/telegram/link')).body
         assert (st['linked'], st['pairingPending']) == (False, True)  # the stranger did not even use the code up
         assert await w.sql('SELECT 1 FROM telegram_links WHERE user_id = $1', u.user_id) == []
@@ -185,9 +194,11 @@ class TestPairing:
         st = (await w.web(u.user_id, 'GET', '/telegram/link')).body
         assert (st['linked'], st['pairingPending']) == (False, True)
 
-        # a stranger who guesses a wrong code gets nothing; the right code from the owner links
+        # the owner sends a bare /start, then a wrong code: each is told what to do; the right code links
+        await w.say(u, '/start')
+        assert w.bot.last_message(u.chat_id).text == 'To link this chat, make a code on the Setup page, then send it here like /start 123456.'
         await w.say(u, '/start 000000')
-        assert w.bot.sends(u.chat_id) == []
+        assert 'wrong, expired or already used' in w.bot.last_message(u.chat_id).text
         await w.say(u, p.body['command'])
         assert w.bot.last_message(u.chat_id).text == 'Linked. Send /signin to start.'
         st = (await w.web(u.user_id, 'GET', '/telegram/link')).body
@@ -197,7 +208,7 @@ class TestPairing:
 
         # the code cannot be used again, by anyone
         await w.say(u, p.body['command'], from_id=777, chat_id=777)
-        assert w.bot.sends(777) == []
+        assert w.bot.sends(777) == []  # once linked, strangers get no reply
         # and a second pairing while linked is refused
         assert (await w.web(u.user_id, 'POST', '/telegram/pairing')).status == 409
 
@@ -207,7 +218,7 @@ class TestPairing:
         w.clock.advance(minutes=5, seconds=1)
         await w.say(u, p.body['command'])
         assert (await w.web(u.user_id, 'GET', '/telegram/link')).body['linked'] is False
-        assert w.bot.sends(u.chat_id) == []
+        assert 'wrong, expired or already used' in w.bot.last_message(u.chat_id).text
 
     async def test_a_new_code_replaces_the_old_one_the_pairing_must_come_from_a_private_chat(self, w: World) -> None:
         u = await w.user_with_bot()

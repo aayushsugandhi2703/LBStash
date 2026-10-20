@@ -29,12 +29,12 @@ _NUMERIC_ID = re.compile(r'\d{5,15}')
 
 def normalize_owner(raw: str) -> str:
     """Stored form of "who may link": lower-case username without `@`, or a numeric id. Validation error otherwise."""
-    text = raw.strip().removeprefix('@')
+    text = re.sub(r'^(?:https?://)?(?:t|telegram)\.me/', '', raw.strip(), flags=re.IGNORECASE).removeprefix('@')  # a pasted t.me link is fine
     if _NUMERIC_ID.fullmatch(text):
         return text
     if _USERNAME.fullmatch(text):
         return text.lower()
-    raise Errors.validation({'telegram': 'Enter your Telegram username (like @yourname) or your numeric id'})
+    raise Errors.validation({'telegram': 'Enter your own Telegram @username (5 or more letters, digits or _), or your numeric id'})
 
 
 def owner_label(owner: str | None) -> str | None:
@@ -123,8 +123,11 @@ async def set_owner(rt: Runtime, ctx: Ctx, telegram: str) -> None:
     """Choose the one Telegram account that may link. A code made earlier stays valid only for that account."""
     owner = normalize_owner(telegram)
     async with rt.deps.as_user(ctx) as tx:
-        if not await get_bot(tx, ctx.user_id):
+        bot = await get_bot(tx, ctx.user_id)
+        if not bot:
             raise Errors.conflict('Save your bot token first')
+        if bot.bot_username and owner == bot.bot_username.lower():
+            raise Errors.validation({'telegram': f'@{bot.bot_username} is your bot. Enter your own Telegram username instead'})
         if await get_link(tx, ctx.user_id):
             raise Errors.conflict('Telegram is already linked. Disconnect it first to change the account')
         await tx.execute('UPDATE telegram_bots SET owner_tg = $2, updated_at = $3 WHERE user_id = $1', [ctx.user_id, owner, rt.clock()])

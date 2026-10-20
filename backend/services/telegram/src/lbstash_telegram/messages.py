@@ -27,6 +27,8 @@ class T:
     already_linked = 'This chat is linked. Send /signin to start.'
     linked_elsewhere = 'This Telegram account is already linked to another account.'
     unlinked = 'Disconnected. This bot will not send or accept anything now.'
+    send_code = 'To link this chat, make a code on the Setup page, then send it here like /start 123456.'
+    bad_code = 'That code is wrong, expired or already used. Make a new one on the Setup page and send it here.'
     ask_tag = 'Reply with the tag.'
     tag_placeholder = 'food, gym, rent'
     bad_tag = 'A tag can use letters, numbers and simple punctuation, up to 32 characters. Try again.'
@@ -34,15 +36,16 @@ class T:
     plan_yes = "Added to this month's plan."
     plan_no = 'OK, not added.'
     help = (
-        'Commands\n'
-        '/number tag · log money out\n'
-        '+number tag · log money in\n'
-        '/pending · payments needing tags\n'
-        '/tally number · check bank balance\n'
-        '/signin · sign in with code\n'
-        '/signout · end this session\n'
-        '/unlink · disconnect this bot\n'
-        '/help · show this list'
+        '/value tag : debit with tag\n'
+        '/value : debit without tag\n'
+        '+value tag : credit with tag\n'
+        '+value : credit without tag\n'
+        '/pending : payments needing tags\n'
+        '/tally value : tally balance\n'
+        '/signin : sign in with code\n'
+        '/signout : end this session\n'
+        '/unlink : disconnect this bot\n'
+        '/help : show this list'
     )
     bad_amount = 'Send an amount like /300 or +1500 (up to 2 decimals).'
     nothing_pending = 'Nothing needs a tag.'
@@ -57,6 +60,12 @@ class T:
     try_again = 'Could not check the code right now. Try again in a moment.'
     balance_nudge = 'Time to compare your balance with your bank. Open Check balance in the web app.'
     balance_button = 'Check balance'
+
+    @staticmethod
+    def not_owner(username: str | None, user_id: int) -> str:
+        """Reply to a `/start` from an account that is not the allowed one: it names the sender's own account so Setup can be fixed."""
+        who = f'@{escape_html(username)}' if username else f'the number {user_id} (this account has no @username)'
+        return f'This account is not set to link this bot. On the Setup page, enter {who} as your Telegram username, then make a new code.'
 
     @staticmethod
     def wrong_code(left: int) -> str:
