@@ -16,3 +16,6 @@ __pycache__
 # nginx certificates and ACME webroot
 nginx/certs/
 nginx/webroot/
+
+# local notes for the assistant, never pushed
+.context/
