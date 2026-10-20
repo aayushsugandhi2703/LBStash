@@ -14,8 +14,8 @@ __pycache__
 .ruff_cache
 
 # nginx certificates and ACME webroot
-nginx/certs/
-nginx/webroot/
+nginx/certbot/certs/
+nginx/certbot/webroot/
 
 # local notes for the assistant, never pushed
 .context/

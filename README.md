@@ -131,7 +131,7 @@ Then follow the in-app **Setup guide** (Account menu): create a bot in @BotFathe
 `docker compose up -d` also starts **nginx** (`nginx/`). Two ways to get `https://aegios.co.in`:
 
 - **Cloudflare Tunnel** (home machine, no public IP, no open ports). In Cloudflare Zero Trust > Networks > Tunnels, create a tunnel with the public hostname `aegios.co.in` -> `http://nginx:80` and delete any A record for it. Put the token in `.env` as `TUNNEL_TOKEN`, set `COMPOSE_PROFILES=tunnel`, run `docker compose up -d`. Cloudflare supplies the certificate; turn on "Always Use HTTPS".
-- **Let's Encrypt** (public IP). Point the A record at the machine, open ports 80 and 443, set `LETSENCRYPT_EMAIL` in `.env`, run `docker compose up -d`. **certbot** writes the certificate to `nginx/certs` (never committed) and nginx switches to https. Try `LETSENCRYPT_STAGING=1` first.
+- **Let's Encrypt** (public IP). Point the A record at the machine, open ports 80 and 443, set `LETSENCRYPT_EMAIL` in `.env`, run `docker compose up -d`. **certbot** writes the certificate to `nginx/certbot/certs` (never committed) and nginx switches to https. Try `LETSENCRYPT_STAGING=1` first.
 
 Either way, set `PUBLIC_URL=https://aegios.co.in` in `.env` (or another domain via `DOMAIN`). Telegram needs https for its webhook, so save the bot token once the site is live.
 

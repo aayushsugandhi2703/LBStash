@@ -1,13 +1,15 @@
-# Used once the certificate exists. ${DOMAIN} defaults to aegios.co.in (set DOMAIN in .env to change it).
+# https.conf.template: the app over https.
+# Used once the certificate exists. entrypoint.sh fills in ${DOMAIN} (set in .env).
 
-include /etc/nginx/snippets/common.conf;
+include /etc/nginx/snippets/global.conf;
 
-# http://${DOMAIN} (and www) -> redirect to https://${DOMAIN}. Port 80 also answers Let's Encrypt's challenge.
+# --- Port 80: redirect to https -----------------------------------------
 server {
     listen 80;
     listen [::]:80;
     server_name ${DOMAIN} www.${DOMAIN};
 
+    # Keep this open: certificate renewal needs it.
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
     }
@@ -17,20 +19,23 @@ server {
     }
 }
 
-# https://${DOMAIN} -> the app (routes and security headers: app-routes.conf)
+# --- Port 443: the app --------------------------------------------------
 server {
     listen 443 ssl;
     listen [::]:443 ssl;
     http2 on;
     server_name ${DOMAIN};
 
+    # Certificate from certbot.
     ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+
+    # Modern TLS only, no session tickets.
     ssl_protocols       TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers off;
     ssl_session_cache   shared:SSL:10m;
     ssl_session_timeout 1d;
     ssl_session_tickets off;
 
-    include /etc/nginx/snippets/app-routes.conf;
+    include /etc/nginx/snippets/app.conf;
 }

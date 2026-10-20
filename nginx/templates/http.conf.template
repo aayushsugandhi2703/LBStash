@@ -1,0 +1,18 @@
+# http.conf.template: the app over plain http.
+# Used until a certificate exists, or when running behind the Cloudflare Tunnel.
+# entrypoint.sh fills in ${DOMAIN}, then switches to https.conf.template once certbot succeeds.
+
+include /etc/nginx/snippets/global.conf;
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${DOMAIN} www.${DOMAIN};
+
+    # Lets certbot prove we own the domain.
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    include /etc/nginx/snippets/app.conf;
+}

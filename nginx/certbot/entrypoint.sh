@@ -1,5 +1,5 @@
 #!/bin/sh
-# Gets the Let's Encrypt certificate when it is missing, then renews it. Does nothing until LETSENCRYPT_EMAIL is set in .env.
+# Gets the Let's Encrypt certificate, then keeps it renewed. Idle until LETSENCRYPT_EMAIL is set in .env.
 if [ -z "${LETSENCRYPT_EMAIL:-}" ]; then
   echo "certbot: LETSENCRYPT_EMAIL is not set in .env, so no certificate is requested and the app stays on http."
   while :; do sleep 86400; done
