@@ -1,7 +1,7 @@
 import { parseTag } from '@/common';
 import type { PlanPutReq } from '@/contracts';
 
-/** Plan page logic (docs/ui-spec/03-plan). Pure: the page keeps a draft and calls these. All money is paise. */
+/** Plan page logic. Pure: the page keeps a draft and calls these. All money is paise. */
 
 /** Neutral ramp for the split bar and row swatches, in order (design system §1). Values come from `--ramp-N`, so they flip in dark mode. */
 export const RAMP = ['var(--ramp-0)', 'var(--ramp-1)', 'var(--ramp-2)', 'var(--ramp-3)', 'var(--ramp-4)', 'var(--ramp-5)', 'var(--ramp-6)', 'var(--ramp-7)', 'var(--ramp-8)'] as const;

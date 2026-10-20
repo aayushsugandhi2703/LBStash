@@ -1,7 +1,7 @@
 import { limitStatus, type LimitStatus } from '@/common';
 import type { BudgetDto } from '@/contracts';
 
-/** Limits page logic (docs/ui-spec/04-limits). Statuses are recomputed here so changing the alert level or the pace switch answers at once. */
+/** Limits page logic. Statuses are recomputed here so changing the alert level or the pace switch answers at once. */
 
 export const LEVELS = [
   { level: 70, note: 'early warning' },

@@ -1,7 +1,7 @@
 import { displayTag, listAmount, MAX_TAG_LENGTH, monthDay, parseTag, plain, shortMonth, TZ } from '@/common';
 import type { BalanceCheckDto, TransactionPageDto, TransactionRowDto } from '@/contracts';
 
-/** Transactions page logic (docs/ui-spec/02-transactions). Pure: the page owns fetching and state. Money is paise. */
+/** Transactions page logic. Pure: the page owns fetching and state. Money is paise. */
 
 export type TransactionRow = TransactionRowDto;
 export type TransactionCounts = TransactionPageDto['counts'];

@@ -1,6 +1,6 @@
 # Architecture: modular microservices
 
-The README says *what* the product does and how to deploy it; this file says *where the code lives*.
+The README says what the product does. This file says where the code lives and how the main parts work.
 
 ## Services
 
@@ -87,6 +87,33 @@ Typed in `lbstash.clients`; payloads in `lbstash.contracts`. Paths are the contr
 | `telegram.send`, `telegram.sync_prompt`, `telegram.digest` (jobs) | telegram | messages out |
 | `retention.sweep.<service>` (job, nightly) | each service | expire its own old rows |
 
+## Key flows
+
+- **Logging a payment.** `/350 food` (out) or `+1500 salary` (in) reaches the telegram service. It ignores the message unless all checks pass, in order: webhook secret, private chat, your Telegram id, an active `/signin`. Then transactions saves the row (tagged = confirmed; untagged = pending, with category buttons), your message is deleted and the reply repeats the amount. Each Telegram update id is stored, so a retry never logs twice.
+- **Linking Telegram.** Setup asks for your username or id first (`owner_tg`), then makes a code. `/start <code>` links only that account.
+- **Bank-message route (optional).** `POST /ingest/message`. Checks, cheapest first: token, rate limit, nonce and time (5 min), OTP guard, parse, dedupe, save. Replies: `201` saved, `200` duplicate, `202` dropped (OTP or promo), `422` unreadable (kept encrypted in "Needs a look"), `401` bad token, `409` replayed. Unknown wording is never guessed.
+- **Events.** A change and its event commit together (outbox). A relay copies outbox rows to `queue.job` about every 500 ms. Workers claim jobs with `FOR UPDATE SKIP LOCKED`. Failures retry with backoff (2 s to 10 min, 5 tries). Delivery is at-least-once, so every consumer is idempotent.
+- **Tagging.** A known payee or keyword rule tags it. Otherwise it stays `pending` and Telegram sends category buttons; the first tap wins and teaches the payee. Pending payments already count in the balance.
+- **Balance check.** You enter your bank balance; `gap = bank − transactions`. A gap waits a grace period (a late message may still merge), then one **Unaccounted** entry is booked for you to tag or split.
+- **Limits and alerts.** `transaction.changed` triggers `budget.evaluate`. An alert is raised once per budget, period and level. No timers.
+- **Telegram privacy.** Prompts for detected payments show no amount or payee, only "Money out, 6:42 pm" and buttons. **Reveal** shows details for 30 s. A payment you type yourself is confirmed with its amount.
+- **Allowed addresses (optional).** `users.allowed_ips` limits the web app to listed IPs. The gateway sends the caller's address with each session check; the same check runs at sign-in and refresh. Saving needs a fresh authenticator code and must include your own address. The address comes from nginx (`CF-Connecting-IP`). The bot cannot be covered (Telegram hides your address), so it is locked to one Telegram account.
+- **Consistency.** Transactions and balance are strong (one Postgres). Plan total after a credit, alerts and prompts are eventual (seconds). Reports are computed on read.
+- **Load.** About 50 payments a day, roughly 20 MB a year. One Postgres is plenty.
+
+## When things fail
+
+| Failure | Result |
+|---|---|
+| Payment not logged | The balance check finds the gap and books it as Unaccounted |
+| Duplicate Telegram update or bank message | One payment |
+| Service crash mid-way | The event is still in the outbox; the job retries |
+| Telegram down | Payments are saved; the web app shows "Needs a tag" |
+| Database restart | Services wait; unsent events are still stored |
+| Phone lost | Revoke the device token |
+
+Health checks run on every container (`docker compose ps`). Logs hold ids and outcome codes only. Back up the database and `FIELD_KEY`.
+
 ## Docker
 
 - `infra/docker/base.Dockerfile` is the common image (`lbstash-base`, two stages): a builder installs every backend dependency from `uv.lock` into one venv; the final image is Python 3.12 slim plus that venv and `lbstash`. No `uv` at runtime. It also runs the one-shot `db-init` job (`python -m lbstash.db.init`).
@@ -94,13 +121,4 @@ Typed in `lbstash.clients`; payloads in `lbstash.contracts`. Paths are the contr
 - `frontend/Dockerfile` is self-contained (Node 24, Next.js standalone build, context `frontend`).
 - `docker-compose.yml` is the only compose file: `db` → `db-init` → services → `gateway` → `nginx`, plus `web`. `docker compose up --build` starts it all. On the host: `nginx` (80 and 443, plus plain http on `PUBLIC_PORT`, default 8088) and the gateway on `127.0.0.1` only (`GATEWAY_PORT`, default 3010, used by `infra/scripts/e2e.py`). Images are `${REGISTRY}lbstash-<name>:${IMAGE_TAG}`, so `docker compose build && docker compose push` publishes them all.
 - The `test` profile adds `test-db`: throwaway Postgres on `127.0.0.1:5544` (`docker compose --profile test up -d test-db`).
-- Hosting: `infra/terraform` builds a free Oracle Cloud VM (network, firewall, VM, backup bucket) that runs this compose file. `.github/workflows/release.yml` (manual, versioned) builds multi-arch (amd64 + arm64) images into GHCR, deploys them to the VM and tags the release. See the README's Deployment section.
-
-## Where this differs from the original plan
-
-| Planned | Built as | Why |
-|---|---|---|
-| One deployable API, many modules | Eight services plus web | the requested modular microservice architecture |
-| One shared `user_settings` table | Each field lives with the service that uses it; the gateway composes `/settings` | data ownership |
-| Worker container | Each service runs its own consumers and cron | no cross-service worker to deploy; same queue (the `queue` schema in Postgres, `lbstash.queue`) |
-| Telegram bot token in a secret manager | Encrypted in the telegram schema (AES-256-GCM, `FIELD_KEY`); `FIELD_KEY` comes from the environment / secret store | the Setup guide has the user save the bot token in the app |
+- Hosting: `infra/terraform` builds a free Oracle Cloud VM that runs this compose file. Images are built for amd64 and arm64 and stored on Docker Hub; the server pulls `:latest`. See [SERVER_SETUP](../infrastructure/SERVER_SETUP.md) and [RELEASE](RELEASE.md).

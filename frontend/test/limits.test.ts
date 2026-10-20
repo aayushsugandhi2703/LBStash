@@ -5,7 +5,7 @@ import { daysLeftText, headline, limitRow, limitRows, warningText } from '@/feat
 const R = (n: number) => n * 100;
 const display = (n: string) => n.charAt(0).toUpperCase() + n.slice(1);
 
-// docs/ui-spec/04-limits sample on day 18 of 31: projected = spent ÷ 18 × 31, to the nearest ₹10
+// The limits sample on day 18 of 31: projected = spent ÷ 18 × 31, to the nearest ₹10
 const b = (name: string, spent: number, limit: number, projected: number, over: Partial<BudgetDto> = {}): BudgetDto => ({
   id: name, categoryId: `c-${name}`, categoryName: name, limitMinor: R(limit), period: 'monthly', warnPct: null, active: true,
   spentMinor: R(spent), pct: Math.floor((spent / limit) * 100), projectedMinor: R(projected), status: 'ok', ...over,

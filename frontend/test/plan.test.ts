@@ -3,7 +3,7 @@ import { addTag, type Draft, draftFrom, lineView, MAX_LINES, planMath, segments,
 
 const R = (n: number) => n * 100;
 
-// docs/ui-spec/03-plan sample: 50,000 to plan, 45,500 assigned
+// The plan sample: 50,000 to plan, 45,500 assigned
 const sample: Draft = {
   totalMinor: R(50000),
   lines: [

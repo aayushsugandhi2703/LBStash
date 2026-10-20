@@ -1,6 +1,6 @@
 import { addDays, toPaise } from '@/common';
 
-/** Add credit page logic (docs/ui-spec/07-add-credit). Pure; money is paise, the box holds whole rupees. */
+/** Add credit page logic. Pure; money is paise, the box holds whole rupees. */
 
 /** Whole rupees, added to what is typed. */
 export const QUICK_ADDS = [1_000, 5_000, 10_000, 50_000] as const;

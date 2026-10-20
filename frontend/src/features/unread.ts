@@ -1,6 +1,6 @@
 import { fromPaise, listAmount, monthDay, plain, timeOfDay, TZ } from '@/common';
 
-/** Needs a look page logic (docs/ui-spec/08-needs-a-look). Pure; the page keeps one form per message. */
+/** Needs a look page logic. Pure; the page keeps one form per message. */
 
 type Reason = 'no_amount' | 'direction_unclear' | 'unreadable';
 export type Dir = 'debit' | 'credit';

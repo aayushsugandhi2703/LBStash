@@ -1,7 +1,7 @@
 import { css3, dayScale, formatInr, inr, inSentence, joinPlain, monthDay, monthName, nextMonthName, type Paise, pct, shortMonth, wholeRupees } from '@/common';
 import type { AttentionItem, BalanceCheckDto, DashboardRes, ReportDailyRes } from '@/contracts';
 
-/** Now page view-model (docs/ui-spec/01-now): flow diagram, day bars, hero copy, action links, balance-check wording. */
+/** Now page view-model: flow diagram, day bars, hero copy, action links, balance-check wording. */
 
 const FLOW_H = 330;
 const FLOW_GAP = 22;

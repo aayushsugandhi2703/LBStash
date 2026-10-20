@@ -2,7 +2,7 @@ import type { z } from 'zod';
 import { addDays, addMonthsClamped, inr, parseTag, parseAmount } from '@/common';
 import type { CreateRecurringReq, PatchRecurringReq, RecurringRes, RecurringRuleDto, Schedule } from '@/contracts';
 
-/** Repeats page logic (docs/ui-spec/05-repeats). Pure: schedule text, the 30-day timeline, the aside sum and the rule form. */
+/** Repeats page logic. Pure: schedule text, the 30-day timeline, the aside sum and the rule form. */
 
 export type RecurringList = z.infer<typeof RecurringRes>;
 

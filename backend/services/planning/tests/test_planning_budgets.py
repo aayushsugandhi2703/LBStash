@@ -20,7 +20,7 @@ def _fresh_clock(h: Harness) -> None:
 
 
 async def sample(h: Harness, u: str) -> dict[str, str]:
-    """The docs/ui-spec/04-limits October sample, day 18 of 31."""
+    """The limits October sample, day 18 of 31."""
     ids: dict[str, str] = {}
     for name, spent, limit in [
         ('fun', 1640, 2000),

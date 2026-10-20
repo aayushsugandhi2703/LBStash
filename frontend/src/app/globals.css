@@ -1,4 +1,4 @@
-/* Design system tokens and shared component classes (docs/ui-spec/00-design-system). One definition each.
+/* Design system tokens and shared component classes. One definition each.
    Pages compose these; they do not restyle them. Accent swap = change the four accent variables. */
 :root {
   --ink: #0E0E10;

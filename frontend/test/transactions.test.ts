@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { categoryIndex, checkStage, endMark, type TransactionCounts, transactionsQuery, type TransactionRow, lookText, mergePage, monthCaption, parseTagDraft, refreshSize, replaceRow, rowView, shownText, splitBody, splitCaption, splitChoices, tagBody, tagSuggestions, validateSplit } from '@/features/transactions';
 
-// docs/ui-spec/02-transactions dataset: 18 rows, newest first. [date, name, note kind, tag, source, amount in rupees]
+// The transactions dataset: 18 rows, newest first. [date, name, note kind, tag, source, amount in rupees]
 type Src = TransactionRow['source'];
 const base = { recurringId: null, capturedAt: null, weakParse: false, status: 'confirmed' as const, classifiedBy: null, matchedRule: null, description: null };
 let n = 0;

@@ -10,12 +10,12 @@ name: Release
 #
 # What it does, in order:
 #   1. Checks the version is new (no git tag and no image with that version yet).
-#   2. Builds every image for amd64 and arm64 and pushes :<version> and :latest to GHCR.
-#   3. Deploys :<version> to the Oracle Cloud server (untick "deploy" to skip).
-#   4. Deletes older version tags from GHCR.
-#   5. Bumps frontend/package.json, adds an entry to docs/CHANGELOG.md, commits and tags vX.Y.Z.
+#   2. Builds every image for amd64 and arm64 and pushes :<version> and :latest to Docker Hub.
+#   3. Deploys to the Oracle Cloud server: it pulls :latest and restarts (untick "deploy" to skip).
+#   4. Deletes older version tags from Docker Hub.
+#   5. Bumps frontend/package.json, adds an entry to docs/application/CHANGELOG.md, commits and tags vX.Y.Z.
 # Steps 4 and 5 only run when everything before them worked.
-# Setup (secrets, variables, first run): see "Oracle Cloud" in the README.
+# Setup (secrets, variables, first run): see docs/application/RELEASE.md and docs/infrastructure/SERVER_SETUP.md.
 
 on:
   workflow_dispatch:
@@ -32,7 +32,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 # One release at a time. A second one waits instead of cutting the first short.
 concurrency:
@@ -41,6 +40,9 @@ concurrency:
 
 env:
   VERSION: ${{ inputs.version }}
+  HUB_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+  # Image names are ${REGISTRY}lbstash-<name>, as in docker-compose.yml.
+  REGISTRY: ${{ secrets.DOCKERHUB_USERNAME }}/
   IMAGES: base auth transactions ingest planning recurring telegram reports gateway web
 
 jobs:
@@ -69,9 +71,8 @@ jobs:
 
       - uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Refuse to overwrite an existing version
         run: |
@@ -79,8 +80,8 @@ jobs:
             echo "::error::Tag v$VERSION already exists. Bump the version and run again."
             exit 1
           fi
-          if docker manifest inspect "ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/lbstash-web:$VERSION" > /dev/null 2>&1; then
-            echo "::error::Image version $VERSION is already published. Bump the version and run again."
+          if docker manifest inspect "${REGISTRY}lbstash-web:$VERSION" > /dev/null 2>&1; then
+            echo "::error::Image version $VERSION is already on Docker Hub. Bump the version and run again."
             exit 1
           fi
 
@@ -102,12 +103,8 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set the image address
-        run: echo "REGISTRY=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/" >> "$GITHUB_ENV"
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       # The two fake values only satisfy docker-compose.yml. They are not put in any image.
       - uses: docker/bake-action@v6
@@ -147,31 +144,26 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Combine amd64 and arm64
         run: |
-          registry="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/"
           for name in $IMAGES; do
-            image="${registry}lbstash-${name}"
+            image="${REGISTRY}lbstash-${name}"
             docker buildx imagetools create \
               -t "$image:$VERSION" -t "$image:latest" \
               "$image:$VERSION-amd64" "$image:$VERSION-arm64"
           done
 
   # ---------------------------------------------------------------
-  # 4. Deploy: copy the config to the server and restart the app
+  # 4. Deploy: copy the config to the server, pull :latest, restart
   # ---------------------------------------------------------------
   deploy:
     needs: merge
     if: inputs.deploy
     runs-on: ubuntu-latest
     environment: production
-    permissions:
-      contents: read
-      packages: read
     env:
       VM_HOST: ${{ secrets.VM_HOST }}
       DOMAIN: ${{ vars.DOMAIN }}
@@ -198,13 +190,10 @@ jobs:
             infra/nginx/entrypoint.sh infra/nginx/templates infra/nginx/snippets infra/nginx/certbot/entrypoint.sh \
             vm:lbstash/
 
+      # The images are public on Docker Hub, so the server needs no login to pull them.
       - name: Update the app
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          registry="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/"
-          printf '%s' "$GHCR_TOKEN" | ssh vm "docker login ghcr.io -u '$GITHUB_ACTOR' --password-stdin"
-          ssh vm "REGISTRY='$registry' IMAGE_TAG='$VERSION' DOMAIN='$DOMAIN' LETSENCRYPT_EMAIL='$LETSENCRYPT_EMAIL' bash -s" <<'REMOTE'
+          ssh vm "REGISTRY='$REGISTRY' IMAGE_TAG='latest' DOMAIN='$DOMAIN' LETSENCRYPT_EMAIL='$LETSENCRYPT_EMAIL' bash -s" <<'REMOTE'
           set -euo pipefail
           cd ~/lbstash
 
@@ -242,32 +231,32 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      packages: write
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # Deletes versions whose tags are all old. A version that has any current tag is kept,
-      # so an unchanged image shared with an older release is never removed by mistake.
-      - name: Delete older version tags from GHCR
+      # Keeps :latest and this version's tags; deletes every other tag. A failure here only warns.
+      - name: Delete older version tags from Docker Hub
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          owner="${GITHUB_REPOSITORY_OWNER}"
-          kind=$(gh api "/users/$owner" --jq '.type' | tr '[:upper:]' '[:lower:]')
-          [ "$kind" = organization ] && base="/orgs/$owner" || base="/users/$owner"
+          jwt=$(curl -s -H "Content-Type: application/json" -X POST \
+            -d "$(jq -cn --arg u "$HUB_USER" --arg p "$DOCKERHUB_TOKEN" '{username: $u, password: $p}')" \
+            https://hub.docker.com/v2/users/login/ | jq -r .token)
+          if [ -z "$jwt" ] || [ "$jwt" = null ]; then
+            echo "::warning::Docker Hub API login failed, so old tags were not deleted. The release is fine."
+            exit 0
+          fi
+          echo "::add-mask::$jwt"
           for name in $IMAGES; do
-            pkg="lbstash-$name"
-            ids=$(gh api --paginate "$base/packages/container/$pkg/versions" --jq '
-              .[]
-              | select((.metadata.container.tags | length) > 0)
-              | select(all(.metadata.container.tags[]; . != "latest" and . != "'"$VERSION"'" and . != "'"$VERSION"'-amd64" and . != "'"$VERSION"'-arm64"))
-              | .id') || { echo "::warning::Could not list versions of $pkg"; continue; }
-            for id in $ids; do
-              echo "Deleting old $pkg version $id"
-              gh api -X DELETE "$base/packages/container/$pkg/versions/$id" > /dev/null \
-                || echo "::warning::Could not delete $pkg version $id. Cleanup only; the release is fine."
+            repo="$HUB_USER/lbstash-$name"
+            tags=$(curl -s -H "Authorization: Bearer $jwt" "https://hub.docker.com/v2/repositories/$repo/tags/?page_size=100" | jq -r '.results[].name // empty')
+            for tag in $tags; do
+              case "$tag" in latest|"$VERSION"|"$VERSION-amd64"|"$VERSION-arm64") continue ;; esac
+              echo "Deleting old tag $repo:$tag"
+              status=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE -H "Authorization: Bearer $jwt" "https://hub.docker.com/v2/repositories/$repo/tags/$tag/")
+              case "$status" in 200|202|204|404) ;; *) echo "::warning::Could not delete $repo:$tag (HTTP $status). Cleanup only." ;; esac
             done
           done
 
@@ -276,7 +265,7 @@ jobs:
         working-directory: frontend
 
       # Built from the commit log since the last vX.Y.Z tag. A plain record of what shipped.
-      - name: Update docs/CHANGELOG.md
+      - name: Update docs/application/CHANGELOG.md
         run: |
           PREV_TAG=$(git tag --list 'v*' --sort=-v:refname | head -n1)
           if [ -n "$PREV_TAG" ]; then
@@ -291,7 +280,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add frontend/package.json frontend/package-lock.json docs/CHANGELOG.md
+          git add frontend/package.json frontend/package-lock.json docs/application/CHANGELOG.md
           git commit -m "Release v$VERSION"
           git tag "v$VERSION"
           git pull --rebase origin main
