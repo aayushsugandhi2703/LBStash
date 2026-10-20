@@ -1,7 +1,7 @@
 # Runs Terraform for the Oracle Cloud server.
 #   Pull request that touches infra/terraform  -> check and plan only
 #   Actions tab > Terraform > Run workflow     -> plan, apply or destroy
-# Setup (secrets, variables, first run): see docs/infrastructure/SERVER_SETUP.md.
+# Setup (secrets, variables, first run): see docs/SECRETS.md and docs/infrastructure/SERVER_SETUP.md.
 
 name: Terraform
 

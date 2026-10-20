@@ -8,31 +8,21 @@ Release workflow --> builds images (amd64 + arm64) --> Docker Hub --> server pul
 
 ## First time
 
-1. **Make a Docker Hub token.** hub.docker.com > Account settings > Personal access tokens > New, with **Read, Write, Delete**. Copy it.
+1. **Add the secrets.** Make the Docker Hub token and run **step B** in [SECRETS](../SECRETS.md) (step A was done before Terraform).
 
-2. **Add the secrets and variables:**
-   ```bash
-   gh secret set DOCKERHUB_USERNAME --body "<your Docker Hub username>"
-   gh secret set DOCKERHUB_TOKEN --body "<the token>"
-   gh secret set VM_HOST --body "<public_ip>"
-   gh secret set VM_SSH_PRIVATE_KEY < ~/.ssh/lbstash_deploy
-   gh variable set DOMAIN --body "lbstash.site"
-   gh variable set LETSENCRYPT_EMAIL --body "<your email>"
-   ```
-
-3. **Set up Cloudflare.**
+2. **Set up Cloudflare.**
    DNS: add an `A` record, name `@`, value the `public_ip`, proxy on.
    SSL/TLS: set the mode to **Full (strict)**.
 
-4. **First release.** Actions > **Release** > Run workflow > version `0.1.0`.
+3. **First release.** Actions > **Release** > Run workflow > version `0.1.0`.
    It builds the images (about 15 minutes), creates the server's `.env`, starts the app, and gets the https certificate.
 
-5. **Back up `FIELD_KEY`.** Without it, encrypted data cannot be read.
+4. **Back up `FIELD_KEY`.** Without it, encrypted data cannot be read.
    ```bash
    ssh -i ~/.ssh/lbstash_deploy ubuntu@<public_ip> grep FIELD_KEY lbstash/.env
    ```
 
-6. **Open https://lbstash.site**, create your account and follow the in-app Setup guide for Telegram.
+5. **Open https://lbstash.site**, create your account and follow the in-app Setup guide for Telegram.
 
 ## Next releases
 
@@ -48,21 +38,6 @@ Images are created as **public** repos on the first push (the free plan allows u
 To roll back, set `IMAGE_TAG=<old version>` in the server's `.env` and run `docker compose up -d`. Only the latest version's tags are kept, so roll back to the most recent one.
 
 The **Update status badge** workflow checks the site every 15 minutes for the README badge. It starts once `DOMAIN` is set.
-
-## Secrets and variables
-
-GitHub > Settings > Secrets and variables > Actions.
-
-| Name | Type | Value |
-|---|---|---|
-| `DOCKERHUB_USERNAME` | secret | your Docker Hub username |
-| `DOCKERHUB_TOKEN` | secret | the access token from step 1 |
-| `VM_HOST` | secret | `public_ip` from the Terraform run |
-| `VM_SSH_PRIVATE_KEY` | secret | file `~/.ssh/lbstash_deploy` |
-| `DOMAIN` | variable | `lbstash.site` |
-| `LETSENCRYPT_EMAIL` | variable | your email (empty if you use the Cloudflare Tunnel) |
-
-Keep your email out of files. The repo is public.
 
 ## Problems
 
