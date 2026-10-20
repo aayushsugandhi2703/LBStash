@@ -3,7 +3,7 @@
 [![Release](https://github.com/aayushsugandhi2703/LBStash/actions/workflows/release.yml/badge.svg)](https://github.com/aayushsugandhi2703/LBStash/actions/workflows/release.yml)
 [![Terraform](https://github.com/aayushsugandhi2703/LBStash/actions/workflows/terraform.yml/badge.svg)](https://github.com/aayushsugandhi2703/LBStash/actions/workflows/terraform.yml)
 [![Version](https://img.shields.io/github/v/tag/aayushsugandhi2703/LBStash?sort=semver&label=version)](https://github.com/aayushsugandhi2703/LBStash/tags)
-[![Docker Hub](https://img.shields.io/docker/v/aayushop/lbstash-web?sort=semver&label=docker&logo=docker)](https://hub.docker.com/u/aayushop)
+[![Docker Hub](https://img.shields.io/docker/v/aayush2703/lbstash-web?sort=semver&label=docker&logo=docker)](https://hub.docker.com/u/aayush2703)
 [![Status](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faayushsugandhi2703%2FLBStash%2Fstatus%2Fstatus.json&cacheSeconds=300)](https://lbstash.site)
 
 A private budget tracker you run from a Telegram chat. Send `/350 food` when you spend, `+1500 salary` when money comes in. It is saved, tagged and shown in the web app. Amounts are in ₹.

@@ -14,7 +14,7 @@ You need: the Oracle setup from `infra/terraform/policies.txt`, `~/.oci/config` 
 3. **Build the server.** GitHub > Actions > **Terraform** > Run workflow > `apply`.
    Copy the `public_ip` from the run summary.
 
-"Out of host capacity" means Oracle has no free ARM space right now. Wait and run it again.
+"Out of host capacity" means Oracle has no free ARM space right now. It is common and usually clears within hours. Run the workflow with **retry_minutes** set to `300`: it tries again every minute until the VM is created (it stops after 5 hours; run it again if it gives up). The network and firewall are already built, so only the VM is retried.
 
 ## Later changes
 
@@ -27,6 +27,6 @@ To delete everything, run `destroy` and type `destroy` to confirm.
 | Problem | Fix |
 |---|---|
 | Fails at init | The `lbstash-tfstate` bucket is missing, or not in the `LBStash` compartment |
-| "Out of host capacity" | Wait, run again |
+| "Out of host capacity" | Run with `retry_minutes` = `300`, or try again later |
 
 Cost is about ₹0/month. Details of what gets built: [infra/terraform/README.md](../../infra/terraform/README.md).

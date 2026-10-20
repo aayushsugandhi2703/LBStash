@@ -21,6 +21,10 @@ on:
         description: Type "destroy" here to confirm a destroy
         type: string
         required: false
+      retry_minutes:
+        description: "apply only: if Oracle has no free ARM space, keep trying every minute for this long (max 330, 0 = once)"
+        type: string
+        default: "0"
 
 permissions:
   contents: read
@@ -44,6 +48,7 @@ jobs:
     env:
       ACTION: ${{ inputs.action || 'plan' }}
       CONFIRM: ${{ inputs.confirm }}
+      RETRY_MINUTES: ${{ inputs.retry_minutes || '0' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -108,7 +113,26 @@ jobs:
 
       - name: Apply
         if: github.event_name == 'workflow_dispatch' && (env.ACTION == 'apply' || env.ACTION == 'destroy')
-        run: terraform apply -input=false -auto-approve tfplan
+        run: |
+          if [ "$ACTION" = apply ] && [ "$RETRY_MINUTES" -gt 0 ]; then
+            # Oracle often has no free ARM space. Keep trying until it does, or time runs out.
+            [ "$RETRY_MINUTES" -gt 330 ] && RETRY_MINUTES=330
+            end=$((SECONDS + RETRY_MINUTES * 60))
+            until terraform apply -input=false -auto-approve -no-color 2>&1 | tee apply.txt; [ "${PIPESTATUS[0]}" -eq 0 ]; do
+              if ! grep -q "Out of host capacity" apply.txt; then
+                echo "Failed for another reason, so not retrying."
+                exit 1
+              fi
+              if [ "$SECONDS" -ge "$end" ]; then
+                echo "Gave up after $RETRY_MINUTES minutes. Run it again later."
+                exit 1
+              fi
+              echo "No free ARM space yet. Trying again in 60 seconds."
+              sleep 60
+            done
+          else
+            terraform apply -input=false -auto-approve tfplan
+          fi
 
       - name: Show the server address
         if: github.event_name == 'workflow_dispatch' && env.ACTION == 'apply'
