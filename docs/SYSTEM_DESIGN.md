@@ -77,7 +77,7 @@ flowchart LR
     Browser
     TG["Telegram app"]
   end
-  Proxy["Reverse proxy (Caddy)"]
+  Proxy["Reverse proxy (nginx)"]
   GW["API gateway"]
   Web["Web app (Next.js)"]
   subgraph services["Services (FastAPI)"]
@@ -105,7 +105,7 @@ flowchart LR
 
 | Term | In this system |
 |---|---|
-| **Reverse proxy** | Caddy: the one public door, adds TLS and security headers |
+| **Reverse proxy** | nginx: the one public door, ends TLS (Let's Encrypt or the Cloudflare Tunnel) and adds security headers |
 | **API gateway** | Checks login, CSRF and rate limits, then routes by path |
 | **Microservice** | A small service that owns its own data |
 | **Message queue** | A Postgres table of jobs that workers claim |

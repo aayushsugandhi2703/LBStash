@@ -21,7 +21,7 @@ A payment you forget to log shows up in the balance check as "Unaccounted", for 
 
 ## Architecture
 
-**Stack:** Python 3.12 + FastAPI services, PostgreSQL 17, a Next.js web app, Caddy and nginx in front, all run by Docker Compose. Each service owns its own schema and never reads another's tables.
+**Stack:** Python 3.12 + FastAPI services, PostgreSQL 17, a Next.js web app, nginx in front, all run by Docker Compose. Each service owns its own schema and never reads another's tables.
 
 ```mermaid
 flowchart LR
@@ -47,7 +47,7 @@ flowchart LR
 
 | Service | Job |
 |---|---|
-| proxy (Caddy) | Only public entry: `/` to the web app, `/api`, `/ingest`, `/telegram/webhook` to the gateway |
+| nginx | Only public entry (also does https): `/` to the web app, `/api`, `/ingest`, `/telegram/webhook` to the gateway |
 | gateway | Only door to the backend: login, CSRF, rate limits, security headers, forwards by path |
 | auth | Users, sessions, 2FA, passkeys, recovery codes, optional allowed addresses, audit log, export, account deletion |
 | ingest | Optional bank-message route: device tokens, OTP guard, message reader |
@@ -66,7 +66,7 @@ flowchart LR
 - **Derived, not stored:** balance, spend, pace and trends are worked out when read.
 - **Money:** whole paise as integers, never floats. Months and "today" use your time zone.
 - **Shared code:** `packages/bt` (money, crypto, contracts, DB, queue, clients). More: [ARCHITECTURE](docs/ARCHITECTURE.md), [COLOURS](docs/COLOURS.md). Logo, icons and name: `apps/web/src/brand` (SVGs in `apps/web/public/brand`).
-- **Deploy:** one image per service on a shared base. `db-init` creates roles and schemas, then services, gateway and proxy start.
+- **Deploy:** one image per service on a shared base. `db-init` creates roles and schemas, then services, gateway and nginx start.
 
 ### One logged payment
 
@@ -119,7 +119,7 @@ You need Docker.
 
 ```bash
 python3 scripts/gen-secrets.py   # once: writes .env with random secrets
-docker compose up --build        # db, services, gateway, web, proxy
+docker compose up --build        # db, services, gateway, web, nginx
 ```
 
 Open http://localhost:8088 and create your account. Back up `FIELD_KEY` from `.env`: encrypted data cannot be read without it. One account is allowed unless `REGISTRATION=open`.

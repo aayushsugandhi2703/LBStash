@@ -1,4 +1,4 @@
-// In compose the proxy routes /api/* to the gateway; this rewrite gives `next dev` and `next start` the same same-origin paths.
+// In compose nginx routes /api/* to the gateway; this rewrite gives `next dev` and `next start` the same same-origin paths.
 const GATEWAY_URL = process.env.GATEWAY_URL ?? 'http://localhost:3000';
 
 /** @type {import('next').NextConfig} */

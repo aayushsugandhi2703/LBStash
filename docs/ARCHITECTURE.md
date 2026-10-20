@@ -36,7 +36,7 @@ Web code: logo, name and icons in `apps/web/src/brand` (import from `@/brand`; S
 2. **Every user table has RLS.** Migration ends with `SELECT bt.enable_rls('table')`; queries run in `async with deps.as_user(ctx) as tx:` (sets `app.user_id`). Scheduler scans use `deps.as_system()`.
 3. **Writes that cause work use the outbox.** `deps.bus.emit(tx, event, payload)` or `enqueue(tx, job, payload)` in the same transaction as the change. Delivery can repeat: consumers must be idempotent.
 4. **Events, not polling.** Budget evaluation is triggered by `transaction.changed`, never a timer. Catalogue in `packages/bt/src/bt/contracts/events.py`.
-5. **Auth between services.** Every request carries `x-internal-token` (60-second JWT: service, user id, time zone). `/internal/*` refuses requests forwarded from outside. Only the proxy is published on the host.
+5. **Auth between services.** Every request carries `x-internal-token` (60-second JWT: service, user id, time zone). `/internal/*` refuses requests forwarded from outside. Only nginx is published on the host.
 6. **Money is integer paise.** Never floats. Format only at the edge (`format_inr`). Month boundaries and "today" use the user's time zone (`month_range`, `month_progress`).
 7. **Derive, don't duplicate.** Balance, spend, pace and trends are computed on read, with no cached totals. The metric functions live in `bt.common`.
 8. **No sensitive data in logs.** Ids and outcome codes only (the logger also redacts common fields).
@@ -45,10 +45,10 @@ Web code: logo, name and icons in `apps/web/src/brand` (import from `@/brand`; S
 ## Request paths
 
 ```
-Browser ──/api/*──► proxy ──► gateway ──(cookie → JWT → session check)──► service
-Telegram ──/telegram/webhook/<secret>──► proxy ──► gateway ──► telegram ──► ledger (save tagged payment, tag) ──(outbox)──► transaction.changed
-Telegram button ──/pay──► proxy ──► web (hands the phone to Google Pay)
-Optional sender ──/ingest/message──► proxy ──► gateway ──► ingest ──► ledger
+Browser ──/api/*──► nginx ──► gateway ──(cookie → JWT → session check)──► service
+Telegram ──/telegram/webhook/<secret>──► nginx ──► gateway ──► telegram ──► ledger (save tagged payment, tag) ──(outbox)──► transaction.changed
+Telegram button ──/pay──► nginx ──► web (hands the phone to Google Pay)
+Optional sender ──/ingest/message──► nginx ──► gateway ──► ingest ──► ledger
 ```
 
 ## Internal API (service → service)
@@ -92,7 +92,7 @@ Typed in `bt.clients`; payloads in `bt.contracts`. Paths are the contract.
 - `docker/base.Dockerfile` is the common image (`budget-base`, two stages): a builder installs every backend dependency from `uv.lock` into one venv; the final image is Python 3.12 slim plus that venv and `bt`. No `uv` at runtime. It also runs the one-shot `db-init` job (`python -m bt.db.init`).
 - Each `services/<name>/Dockerfile` builds on it (`ARG BASE_IMAGE=budget-base`), copies that service's source, sets `PYTHONPATH` and runs as a non-root user with a health check (`python -m bt_<name>.main`). No per-service install, so all services share the same layers on disk. Push `budget-base` first; use `--build-arg BASE_IMAGE=<registry>/budget-base:<tag>` for a registry copy.
 - `apps/web/Dockerfile` is self-contained (Node 24, Next.js standalone build, context `apps/web`).
-- `docker-compose.yml` is the only compose file: `db` → `db-init` → services → `gateway` → `proxy`, plus `web`. `docker compose up --build` starts it all. On the host: `proxy` (`PUBLIC_PORT`, default 8088) and the gateway on `127.0.0.1` only (`GATEWAY_PORT`, default 3010, used by `scripts/e2e.py`). Images are `${REGISTRY}budget-<name>:${IMAGE_TAG}`, so `docker compose build && docker compose push` publishes them all.
+- `docker-compose.yml` is the only compose file: `db` → `db-init` → services → `gateway` → `nginx`, plus `web`. `docker compose up --build` starts it all. On the host: `nginx` (80 and 443, plus plain http on `PUBLIC_PORT`, default 8088) and the gateway on `127.0.0.1` only (`GATEWAY_PORT`, default 3010, used by `scripts/e2e.py`). Images are `${REGISTRY}budget-<name>:${IMAGE_TAG}`, so `docker compose build && docker compose push` publishes them all.
 - The `test` profile adds `test-db`: throwaway Postgres on `127.0.0.1:5544` (`docker compose --profile test up -d test-db`).
 
 ## Where this differs from the README

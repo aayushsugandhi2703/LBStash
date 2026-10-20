@@ -1,9 +1,9 @@
 # Budget Tracker: the whole stack in one file. One image per service (services/<name>/Dockerfile, apps/web/Dockerfile)
 # on a shared Python base (docker/base.Dockerfile).
 #   python3 scripts/gen-secrets.py   # once: writes .env with random secrets
-#   docker compose up --build        # everything: db, services, gateway, web, proxy
+#   docker compose up --build        # everything: db, services, gateway, web, nginx
 #   docker compose --profile test up -d test-db   # throwaway Postgres for the backend tests (port 5544)
-# Published to the host: `nginx` (ports 80 and 443), `proxy` (PUBLIC_PORT) and, on 127.0.0.1 only, the gateway (GATEWAY_PORT, for scripts/e2e.py).
+# Published to the host: `nginx` (ports 80 and 443, plus PUBLIC_PORT for plain http) and, on 127.0.0.1 only, the gateway (GATEWAY_PORT, for scripts/e2e.py).
 # Push to a registry: REGISTRY=registry.example.com/team/ IMAGE_TAG=1.0 docker compose build && docker compose push
 name: budget-tracker
 
@@ -29,7 +29,6 @@ networks:
 
 volumes:
   pgdata: {}
-  caddy_data: {}
 
 services:
   # shared base image (build-only; services build on it)
@@ -139,7 +138,7 @@ services:
     <<: *service
     build: { <<: *build, dockerfile: services/gateway/Dockerfile }
     image: ${REGISTRY:-}budget-gateway:${IMAGE_TAG:-latest}
-    ports: ["127.0.0.1:${GATEWAY_PORT:-3010}:3000"] # loopback only; the public way in is `proxy`
+    ports: ["127.0.0.1:${GATEWAY_PORT:-3010}:3000"] # loopback only; the public way in is `nginx`
     environment:
       <<: *env
       ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET}
@@ -168,23 +167,13 @@ services:
       start_period: 20s
 
   # edge
-  proxy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    networks: [internal]
-    ports: ["${PUBLIC_PORT:-8088}:80"]
-    volumes: ["./docker/Caddyfile:/etc/caddy/Caddyfile:ro", "caddy_data:/data"]
-    depends_on:
-      gateway: { condition: service_healthy }
-      web: { condition: service_healthy }
-
-  # https: nginx terminates TLS for DOMAIN and forwards to `proxy`; certbot gets and renews the Let's Encrypt certificate into ./nginx/certs.
+  # The one public door. nginx routes `/` to web and `/api`, `/ingest`, `/telegram/webhook` to the gateway, and terminates TLS for DOMAIN; certbot gets and renews the Let's Encrypt certificate into ./nginx/certs.
   # Until LETSENCRYPT_EMAIL is set in .env, nginx serves plain http and certbot waits. They switch to https by themselves once the certificate exists.
   nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped
     networks: [internal]
-    ports: ["${HTTP_PORT:-80}:80", "${HTTPS_PORT:-443}:443"]
+    ports: ["${HTTP_PORT:-80}:80", "${HTTPS_PORT:-443}:443", "${PUBLIC_PORT:-8088}:8088"]
     environment:
       DOMAIN: ${DOMAIN:-aegios.co.in}
     command: ["/bin/sh", "/start.sh"]
@@ -192,9 +181,13 @@ services:
       - ./nginx/start.sh:/start.sh:ro
       - ./nginx/https.conf.template:/etc/nginx/templates-src/https.conf.template:ro
       - ./nginx/http-only.conf.template:/etc/nginx/templates-src/http-only.conf.template:ro
+      - ./nginx/common.conf:/etc/nginx/snippets/common.conf:ro
+      - ./nginx/app-routes.conf:/etc/nginx/snippets/app-routes.conf:ro
       - ./nginx/certs:/etc/letsencrypt:ro
       - ./nginx/webroot:/var/www/certbot:ro
-    depends_on: [proxy]
+    depends_on:
+      gateway: { condition: service_healthy }
+      web: { condition: service_healthy }
 
   certbot:
     image: certbot/certbot:latest
