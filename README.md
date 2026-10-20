@@ -1,151 +1,148 @@
 # LBStash
 
-A private budget tracker run from a Telegram chat. Send `/350 food` when you spend, `+1500 salary` when money comes in. It is saved, tagged and shown in the web app. Amounts are in ₹.
+A private budget tracker you run from a Telegram chat. Send `/350 food` when you spend, `+1500 salary` when money comes in. It is saved, tagged and shown in the web app. Amounts are in ₹.
 
 ## How it works
 
-1. **Log.** Send `/350` (money out) or `+1500` (money in). Add a tag to file it at once (`/350 food`), or pick one from the buttons. Money out also gets an **Open Google Pay** button.
-2. **Save.** The server stores the amount, direction and time, then deletes your message from the chat.
+1. **Log.** `/350` = money out, `+1500` = money in. Add a tag (`/350 food`) or pick one from the buttons.
+2. **Save.** The server stores it and deletes your message from the chat.
 3. **Tag.** Known payees are tagged for you. Tag a new one once and it is remembered.
-4. **Track.** Balance, limits, alerts, trends and repeating payments come from your tagged payments.
+4. **Track.** Balance, limits, alerts, trends and repeating payments come from your tagged payments. A payment you forgot to log shows up as "Unaccounted".
 
-A payment you forget to log shows up in the balance check as "Unaccounted", for you to tag.
+You can also log from the web app, or (optionally) let another tool post bank SMS text to `/ingest/message`.
 
-| Source | Used for |
-|---|---|
-| Telegram bot | Logging and tagging (main route) |
-| Web app | Everything, plus hand-added credits |
-| Bank-message token (optional) | Another tool posting bank SMS text to `/ingest/message` |
+## The three parts
 
-**Web pages:** Now · Transactions · Plan · Limits · Repeats · Trends · Add credit · Needs a look · Account (profile, security, devices) · Setup guide
-
-## Architecture
-
-**Stack:** Python 3.12 + FastAPI services, PostgreSQL 17, a Next.js web app, nginx in front, all run by Docker Compose. Each service owns its own schema and never reads another's tables.
+| Part | What it is | Tech | Folders |
+|---|---|---|---|
+| **Backend** | 8 small services that own the data and rules | Python 3.12, FastAPI, PostgreSQL 17 | `backend/` |
+| **Frontend** | The web app you use in the browser | Next.js (TypeScript) | `frontend/` |
+| **Infra** | Runs and protects everything | Docker Compose, nginx, certbot / Cloudflare | `infra/`, `docker-compose.yml` |
 
 ```mermaid
 flowchart LR
-  Browser --> Proxy
-  Sender["Optional bank-message sender"] -.-> Proxy
-  Telegram --> Proxy
-  Proxy -->|"/"| Web["web (Next.js)"]
-  Proxy -->|"/api, /ingest, /telegram/webhook"| Gateway
-  Gateway --> Auth
-  Gateway --> Ingest
-  Gateway --> Transactions
-  Gateway --> Planning
-  Gateway --> Recurring
-  Gateway --> Reports
-  Gateway --> Tg["telegram service"]
-  Ingest -->|save parsed payment| Transactions
-  Transactions -.->|events via outbox| Q[("Job queue<br/>in Postgres")]
-  Q -.-> Planning
-  Q -.-> Tg
-  Recurring -->|post due payments| Transactions
-  Auth & Ingest & Transactions & Planning & Recurring & Tg --> DB[("PostgreSQL<br/>one schema + login role per service")]
+  Browser --> Nginx
+  Telegram --> Nginx
+  Nginx -->|"/"| Web
+  Nginx -->|"/api, /ingest, /telegram/webhook"| Gateway
+  Gateway --> Auth & Ingest & Transactions & Planning & Recurring & Reports & Tg["Telegram service"]
+  Auth & Ingest & Transactions & Planning & Recurring & Tg --> DB[("PostgreSQL")]
 ```
+
+## Folder structure
+
+```
+lbstash/
+├── backend/                     Python 3.12 + FastAPI (a uv workspace; also the Docker build folder of every Python image)
+│   ├── services/                one folder per service
+│   │   ├── gateway/             only door to the backend: login, CSRF, rate limits
+│   │   ├── auth/                users, sessions, 2FA, passkeys, audit log
+│   │   ├── transactions/        payments, categories, tag rules, balance checks
+│   │   ├── ingest/              optional bank-message route
+│   │   ├── planning/            monthly plans, limits, alerts
+│   │   ├── recurring/           repeating payments
+│   │   ├── reports/             dashboard and trends (stores nothing)
+│   │   └── telegram/            the bot
+│   │       (each has: src/  migrations/  tests/  Dockerfile  pyproject.toml)
+│   ├── packages/lbstash/        code shared by every service (money, crypto, db, queue, clients)
+│   ├── pyproject.toml, uv.lock  Python workspace and locked versions
+│   └── .dockerignore
+│
+├── frontend/                    Next.js web app
+│   ├── src/app/                 pages (sign-in, create-account, reset, pay, the app screens)
+│   ├── src/components/          shared UI pieces
+│   ├── src/features/            data and logic for each screen
+│   ├── src/lib/                 API calls and hooks
+│   ├── src/brand/               logo, name, icons
+│   ├── src/common/, contracts/  copies of money rules and response types
+│   ├── public/                  images and brand SVGs
+│   ├── test/                    web tests
+│   └── next.config.mjs, package.json, Dockerfile
+│
+├── infra/
+│   ├── docker/base.Dockerfile   shared Python base image
+│   ├── nginx/                   public entry: templates/, snippets/, certbot/, entrypoint.sh
+│   └── scripts/                 gen-secrets.py (makes .env), e2e.py (end-to-end test)
+│
+├── docs/                        ARCHITECTURE, SYSTEM_DESIGN, SERVICE_GUIDE, COLOURS, BRAND
+├── docker-compose.yml           starts the whole stack (kept at the top so `docker compose up` just works)
+├── .env, .env.example           secrets and settings (.env is never committed)
+└── README.md
+```
+
+## Backend
+
+Each service owns its own database schema and login, and never reads another's tables.
 
 | Service | Job |
 |---|---|
-| nginx | Only public entry (also does https): `/` to the web app, `/api`, `/ingest`, `/telegram/webhook` to the gateway |
-| gateway | Only door to the backend: login, CSRF, rate limits, security headers, forwards by path |
-| auth | Users, sessions, 2FA, passkeys, recovery codes, optional allowed addresses, audit log, export, account deletion |
-| ingest | Optional bank-message route: device tokens, OTP guard, message reader |
-| transactions | Transactions, categories, tag rules, credits, balance checks |
+| gateway | Login check, CSRF, rate limits, security headers, forwards by path |
+| auth | Users, sessions, 2FA, passkeys, recovery codes, export, account deletion |
+| transactions | Payments, categories, tag rules, credits, balance checks |
+| ingest | Optional bank-message route: device tokens, OTP guard, parser |
 | planning | Monthly plans, limits, alerts |
 | recurring | Repeating payments and the cron that posts them |
-| reports | Dashboard and trend views, built on read (stores nothing) |
-| telegram | The bot: logging, tagging, Google Pay button, daily digest, encrypted bot token, who may link |
+| reports | Dashboard and trend views, worked out when read |
+| telegram | Logging, tagging, Google Pay button, daily digest |
 
-### How the services work together
+How they work together:
+- **Calls** are typed HTTP clients. Reads may retry; writes are never blindly retried.
+- **Events** are saved with the change (outbox), then moved to a Postgres queue. Failed jobs retry; every consumer is safe to run twice.
+- **Money** is whole paise as integers, never floats. Months and "today" use your time zone.
+- More: [ARCHITECTURE](docs/ARCHITECTURE.md), [SYSTEM_DESIGN](docs/SYSTEM_DESIGN.md), [SERVICE_GUIDE](docs/SERVICE_GUIDE.md).
 
-- **Calls:** typed HTTP clients. Reads may retry; writes are never blindly retried.
-- **Events and jobs:** a change and its event are saved in one transaction (outbox), then moved to a Postgres queue. Failed jobs retry with backoff (2 s to 10 min, 5 tries). Delivery can repeat, so every consumer is idempotent.
-- **Cron:** cleanup, repeating payments, balance checks and the digest run from the same queue; one replica fires each tick.
-- **Events:** `transaction.changed`, `credit.added`, `alert.created`, `unparsed.created`, `account.deleted` (every service purges that user), `audit.record`.
-- **Derived, not stored:** balance, spend, pace and trends are worked out when read.
-- **Money:** whole paise as integers, never floats. Months and "today" use your time zone.
-- **Shared code:** `packages/lbstash` (money, crypto, contracts, DB, queue, clients). More: [ARCHITECTURE](docs/ARCHITECTURE.md), [COLOURS](docs/COLOURS.md). Logo, icons and name: `apps/web/src/brand` (SVGs in `apps/web/public/brand`).
-- **Deploy:** one image per service on a shared base. `db-init` creates roles and schemas, then services, gateway and nginx start.
+## Frontend
 
-### One logged payment
+A Next.js app with these pages: Now · Transactions · Plan · Limits · Repeats · Trends · Add credit · Needs a look · Account · Setup guide. It only talks to the gateway. Colours: [COLOURS](docs/COLOURS.md). Logo and name: [BRAND](docs/BRAND.md).
 
-```mermaid
-sequenceDiagram
-  participant You
-  participant Telegram
-  participant Bot as telegram service
-  participant Transactions
-  participant Q as Queue
-  participant Planning
-  You->>Telegram: "/350 food"
-  Telegram->>Bot: webhook (secret header, your id, signed-in session)
-  Bot->>Transactions: save manual transaction with tag "food"
-  Transactions->>Q: transaction.changed (same DB transaction)
-  Bot->>Telegram: delete your message, reply "Money out · ₹350 · Food ✓" + Open Google Pay
-  Q->>Planning: re-check limits, raise alert once if crossed
-  Note over You,Telegram: With no tag ("/350") the bot sends category buttons and tagging is one tap
-  You->>Telegram: tap Open Google Pay
-  Telegram->>You: opens the /pay page, which opens Google Pay
-```
+## Infra
 
-## System design
-
-Built for one person's money: correctness and privacy first, not scale. One Postgres, small services that own their data, safe retries, and a balance check that catches anything lost. More: [SYSTEM_DESIGN](docs/SYSTEM_DESIGN.md).
+- **nginx** is the only public entry. `/` goes to the web app; `/api`, `/ingest`, `/telegram/webhook` go to the gateway. Nothing else is exposed.
+- **Docker images:** one per service on a shared, slimmed Python base (built from `backend/`; the web image from `frontend/`) (about 240MB each; web about 225MB). The 8 Python images share the same base layers, so together they take roughly one image of disk.
+- **Start order:** `db-init` creates roles and schemas, then the services, gateway, web and nginx start.
+- **https:** Cloudflare Tunnel or Let's Encrypt (see below).
 
 ## Security
 
-| Area | What we do |
-|---|---|
-| **Sign-in** | • 12+ character password, common ones rejected, Argon2id hash<br>• Authenticator app is required<br>• Passkeys and 10 hashed recovery codes |
-| **Sessions** | • Access token 15 min; refresh token rotates<br>• A reused refresh token means it was copied: session revoked<br>• Ends after 12 h idle or 30 days |
-| **Allowed addresses (optional)** | • Account > Security: list the IPs or ranges that may use the web app<br>• Sign-in, refresh and every page refuse other addresses<br>• Needs a fresh authenticator code; your own address must stay on the list<br>• Not for the bot: Telegram never shows your address, so the bot is locked to your Telegram account |
-| **Cookies and CSRF** | • `HttpOnly`, `Secure`, `SameSite=Strict`<br>• CSRF token on every change |
-| **Brute force** | • 5 wrong passwords lock 30 s, doubling to 15 min<br>• Per-IP limits on login, reset and webhook<br>• Generic errors, so emails cannot be guessed |
-| **Safe to repeat** | • Each Telegram update is handled once<br>• Bank-message route: one-time `nonce`, 5-min window, unique key<br>• Queue jobs can run twice with the same result<br>• Telegram taps and sign-in codes work once |
-| **Encryption** | • AES-256-GCM for 2FA secrets, bot token, unreadable messages<br>• Tokens stored only as hashes<br>• Key from the environment |
-| **Data isolation** | • One Postgres login and schema per service<br>• Row-level security on every user table |
-| **Between services** | • Not on the internet<br>• Signed 60-second token on every call<br>• Internal routes refuse outside requests |
-| **Edge** | • HSTS, `nosniff`, `no-referrer`, strict CSP, Permissions-Policy<br>• Strict input checks, parameterised queries<br>• Constant-time secret checks |
-| **Bank-message token (optional)** | • Per-device, ingest-only, shown once, revocable<br>• OTP-like text dropped unread, nothing stored<br>• Parsed messages not kept |
-| **Telegram** | • Setup asks for your username or id first; only that account can link, others are ignored even with a valid code<br>• Then only your id, private chat<br>• `/signin` with an authenticator code before any `/350`<br>• Your message is deleted; the confirmation repeats the amount you typed<br>• Bank-message prompts show no amount, payee or balance unless you tap Reveal<br>• Webhook secret header, stored hashed |
-| **Never collected** | • Bank logins, UPI PINs, card numbers, OTPs<br>• The app never moves money |
-| **Logs and audit** | • Logs hold ids and outcome codes only<br>• Append-only audit log |
-| **Your data** | • Export any time<br>• Delete account (7-day grace)<br>• Old rows cleaned nightly |
+- **Sign-in:** 12+ character password (Argon2id), authenticator app required, passkeys, 10 hashed recovery codes. Optional allowed-IP list.
+- **Sessions:** 15-minute access token; refresh token rotates and a reused one revokes the session. `HttpOnly`, `Secure`, `SameSite=Strict` cookies and a CSRF token on every change.
+- **Brute force:** 5 wrong passwords lock for 30 s, doubling up to 15 min. Per-IP limits.
+- **Data:** AES-256-GCM for secrets, tokens stored as hashes, one Postgres login and schema per service, row-level security on user tables.
+- **Between services:** not on the internet; a signed 60-second token on every call.
+- **Telegram:** only your account can link; your message is deleted after it is read; sensitive prompts stay hidden until you tap Reveal.
+- **Never collected:** bank logins, UPI PINs, card numbers, OTPs. The app never moves money.
+- **Yours:** export any time, delete your account (7-day grace), append-only audit log, logs hold ids only.
 
 ## Run it
 
 You need Docker.
 
 ```bash
-python3 scripts/gen-secrets.py   # once: writes .env with random secrets
+python3 infra/scripts/gen-secrets.py   # once: writes .env with random secrets
 docker compose up --build        # db, services, gateway, web, nginx
 ```
 
-Open http://localhost:8088 and create your account. Back up `FIELD_KEY` from `.env`: encrypted data cannot be read without it. One account is allowed unless `REGISTRATION=open`.
+Open http://localhost:8088 and create your account. **Back up `FIELD_KEY` from `.env`**: encrypted data cannot be read without it. Then follow the in-app **Setup guide** to connect your Telegram bot. For the Google Pay button, set `PUBLIC_URL` to an address your phone can reach.
 
-Then follow the in-app **Setup guide** (Account menu): create a bot in @BotFather, paste its token, enter your Telegram username, send the code to the bot (or tap the link under it). For the Google Pay button, set `PUBLIC_URL` to an address your phone can reach.
+Stop with `docker compose down` (add `-v` to wipe the database).
 
 ### Put it on a domain (https)
 
-`docker compose up -d` also starts **nginx** (`nginx/`). Two ways to get `https://aegios.co.in`:
+Set `PUBLIC_URL=https://your-domain` in `.env` (or use `DOMAIN`). Telegram needs https, so save the bot token once the site is live. Pick one:
 
-- **Cloudflare Tunnel** (home machine, no public IP, no open ports). In Cloudflare Zero Trust > Networks > Tunnels, create a tunnel with the public hostname `aegios.co.in` -> `http://nginx:80` and delete any A record for it. Put the token in `.env` as `TUNNEL_TOKEN`, set `COMPOSE_PROFILES=tunnel`, run `docker compose up -d`. Cloudflare supplies the certificate; turn on "Always Use HTTPS".
-- **Let's Encrypt** (public IP). Point the A record at the machine, open ports 80 and 443, set `LETSENCRYPT_EMAIL` in `.env`, run `docker compose up -d`. **certbot** writes the certificate to `nginx/certbot/certs` (never committed) and nginx switches to https. Try `LETSENCRYPT_STAGING=1` first.
-
-Either way, set `PUBLIC_URL=https://aegios.co.in` in `.env` (or another domain via `DOMAIN`). Telegram needs https for its webhook, so save the bot token once the site is live.
-
-Stop with `docker compose down` (add `-v` to wipe the database).
+- **Cloudflare Tunnel** (home machine, no open ports): create a tunnel to `http://nginx:80`, put the token in `.env` as `TUNNEL_TOKEN`, set `COMPOSE_PROFILES=tunnel`, run `docker compose up -d`.
+- **Let's Encrypt** (public IP): point the A record at the machine, open ports 80 and 443, set `LETSENCRYPT_EMAIL`, run `docker compose up -d`. Try `LETSENCRYPT_STAGING=1` first.
 
 ### Develop and test
 
 ```bash
-uv sync                                      # Python environment
-docker compose --profile test up -d test-db  # throwaway Postgres
+docker compose --profile test up -d test-db  # throwaway Postgres (run from the top folder)
 export TEST_DATABASE_URL=postgres://lbstash_admin:<POSTGRES_PASSWORD from .env>@127.0.0.1:5544/lbstash
-uv run pytest services/auth/tests            # backend tests, one service at a time
-cd apps/web && npm install && npm test       # web tests
-uv run python scripts/e2e.py                 # end-to-end against the running stack
-```
 
-Backend tests run one service at a time (each has its own `conftest.py`); `transactions` has no tests yet. `scripts/e2e.py` needs `PUBLIC_URL` and `REGISTRATION=open` (see the script header).
+cd backend
+uv sync                                      # Python environment
+uv run pytest services/auth/tests            # backend tests, one service at a time
+uv run python ../infra/scripts/e2e.py        # end-to-end test (needs PUBLIC_URL and REGISTRATION=open)
+
+cd ../frontend && npm install && npm test    # web tests
+```

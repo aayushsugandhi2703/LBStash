@@ -1,0 +1,11 @@
+# Build context of every Python image is this folder (backend/): only packages/ and services/ are needed. The web image has its own context (../frontend).
+.git
+.env
+.env.*
+.venv
+**/node_modules
+**/__pycache__
+**/.pytest_cache
+.ruff_cache
+services/*/tests
+packages/lbstash/tests

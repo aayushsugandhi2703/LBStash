@@ -16,7 +16,7 @@ The README says *what* the product does; this file says *where the code lives*. 
 | **telegram** | 3007 | `telegram` | links, pairings, bot sessions, prompts, bot token (encrypted), webhook handling, digest | transactions, auth |
 | **web** | 3000 (container) | – | Next.js app, 16 screens from `docs/ui-spec/` | gateway only |
 
-Every backend service is Python 3.12 + FastAPI. The web app is the only TypeScript. Services share one library, `packages/lbstash` (import `lbstash.*`), and nothing else:
+Every backend service is Python 3.12 + FastAPI. The web app is the only TypeScript. Services share one library, `backend/packages/lbstash` (import `lbstash.*`), and nothing else:
 
 | Module | What it gives every service |
 |---|---|
@@ -28,19 +28,19 @@ Every backend service is Python 3.12 + FastAPI. The web app is the only TypeScri
 | `lbstash.clients` | one typed client per service (`deps.clients.transactions.tag(...)`), signing, timeouts, retries, error mapping |
 | `lbstash.kit` | `run_service` (boot), `create_app`, request dependencies (`user_ctx`, `service_claims`), `MemoryRateLimiter`, test fixtures, a software WebAuthn authenticator |
 
-Web code: logo, name and icons in `apps/web/src/brand` (import from `@/brand`; SVGs in `apps/web/public/brand`). The web app keeps browser-side copies in `src/common` (money, month maths, tag and password rules, so pages promise what the server enforces) and `src/contracts` (response types). The Python models are the source of truth; `scripts/e2e.py` keeps the two honest.
+Web code: logo, name and icons in `frontend/src/brand` (import from `@/brand`; SVGs in `frontend/public/brand`). The web app keeps browser-side copies in `src/common` (money, month maths, tag and password rules, so pages promise what the server enforces) and `src/contracts` (response types). The Python models are the source of truth; `infra/scripts/e2e.py` keeps the two honest.
 
 ## Rules of the road
 
 1. **A service owns its data.** One Postgres, one schema and one login role per service (`svc_transactions` owns `transactions`). Never read another service's tables; call its API. Cross-service joins happen in code (usually `reports`).
 2. **Every user table has RLS.** Migration ends with `SELECT lbstash.enable_rls('table')`; queries run in `async with deps.as_user(ctx) as tx:` (sets `app.user_id`). Scheduler scans use `deps.as_system()`.
 3. **Writes that cause work use the outbox.** `deps.bus.emit(tx, event, payload)` or `enqueue(tx, job, payload)` in the same transaction as the change. Delivery can repeat: consumers must be idempotent.
-4. **Events, not polling.** Budget evaluation is triggered by `transaction.changed`, never a timer. Catalogue in `packages/lbstash/src/lbstash/contracts/events.py`.
+4. **Events, not polling.** Budget evaluation is triggered by `transaction.changed`, never a timer. Catalogue in `backend/packages/lbstash/src/lbstash/contracts/events.py`.
 5. **Auth between services.** Every request carries `x-internal-token` (60-second JWT: service, user id, time zone). `/internal/*` refuses requests forwarded from outside. Only nginx is published on the host.
 6. **Money is integer paise.** Never floats. Format only at the edge (`format_inr`). Month boundaries and "today" use the user's time zone (`month_range`, `month_progress`).
 7. **Derive, don't duplicate.** Balance, spend, pace and trends are computed on read, with no cached totals. The metric functions live in `lbstash.common`.
 8. **No sensitive data in logs.** Ids and outcome codes only (the logger also redacts common fields).
-9. **Reuse before writing.** Logic two services need goes in `packages/lbstash`, not copied.
+9. **Reuse before writing.** Logic two services need goes in `backend/packages/lbstash`, not copied.
 
 ## Request paths
 
@@ -89,10 +89,10 @@ Typed in `lbstash.clients`; payloads in `lbstash.contracts`. Paths are the contr
 
 ## Docker
 
-- `docker/base.Dockerfile` is the common image (`lbstash-base`, two stages): a builder installs every backend dependency from `uv.lock` into one venv; the final image is Python 3.12 slim plus that venv and `lbstash`. No `uv` at runtime. It also runs the one-shot `db-init` job (`python -m lbstash.db.init`).
-- Each `services/<name>/Dockerfile` builds on it (`ARG BASE_IMAGE=lbstash-base`), copies that service's source, sets `PYTHONPATH` and runs as a non-root user with a health check (`python -m lbstash_<name>.main`). No per-service install, so all services share the same layers on disk. Push `lbstash-base` first; use `--build-arg BASE_IMAGE=<registry>/lbstash-base:<tag>` for a registry copy.
-- `apps/web/Dockerfile` is self-contained (Node 24, Next.js standalone build, context `apps/web`).
-- `docker-compose.yml` is the only compose file: `db` → `db-init` → services → `gateway` → `nginx`, plus `web`. `docker compose up --build` starts it all. On the host: `nginx` (80 and 443, plus plain http on `PUBLIC_PORT`, default 8088) and the gateway on `127.0.0.1` only (`GATEWAY_PORT`, default 3010, used by `scripts/e2e.py`). Images are `${REGISTRY}lbstash-<name>:${IMAGE_TAG}`, so `docker compose build && docker compose push` publishes them all.
+- `infra/docker/base.Dockerfile` is the common image (`lbstash-base`, two stages): a builder installs every backend dependency from `uv.lock` into one venv; the final image is Python 3.12 slim plus that venv and `lbstash`. No `uv` at runtime. It also runs the one-shot `db-init` job (`python -m lbstash.db.init`).
+- Each `backend/services/<name>/Dockerfile` builds on it (`ARG BASE_IMAGE=lbstash-base`), copies that service's source, sets `PYTHONPATH` and runs as a non-root user with a health check (`python -m lbstash_<name>.main`). No per-service install, so all services share the same layers on disk. Push `lbstash-base` first; use `--build-arg BASE_IMAGE=<registry>/lbstash-base:<tag>` for a registry copy.
+- `frontend/Dockerfile` is self-contained (Node 24, Next.js standalone build, context `frontend`).
+- `docker-compose.yml` is the only compose file: `db` → `db-init` → services → `gateway` → `nginx`, plus `web`. `docker compose up --build` starts it all. On the host: `nginx` (80 and 443, plus plain http on `PUBLIC_PORT`, default 8088) and the gateway on `127.0.0.1` only (`GATEWAY_PORT`, default 3010, used by `infra/scripts/e2e.py`). Images are `${REGISTRY}lbstash-<name>:${IMAGE_TAG}`, so `docker compose build && docker compose push` publishes them all.
 - The `test` profile adds `test-db`: throwaway Postgres on `127.0.0.1:5544` (`docker compose --profile test up -d test-db`).
 
 ## Where this differs from the README

@@ -6,6 +6,7 @@ export default {
   output: 'standalone',
   reactStrictMode: true,
   poweredByHeader: false,
+  images: { unoptimized: true }, // no next/image in the app; keeps the sharp/libvips binaries out of the image
   async rewrites() {
     return [{ source: '/api/:path*', destination: `${GATEWAY_URL}/:path*` }];
   },

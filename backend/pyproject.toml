@@ -1,6 +1,6 @@
-# Python workspace for the backend (uv). The web app (apps/web) stays TypeScript and has its own package.json.
+# Python workspace for the backend (uv); run uv commands from this folder. The web app (../frontend) stays TypeScript and has its own package.json.
 #   uv sync                      # creates .venv with every package below
-#   uv run pytest                # all backend tests (needs Postgres: docker compose -f docker/compose.test.yml up -d)
+#   uv run pytest                # all backend tests (needs Postgres: docker compose --profile test up -d test-db, from the repo root)
 #   uv run pytest services/transactions
 [project]
 name = "lbstash-workspace"

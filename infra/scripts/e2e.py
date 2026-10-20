@@ -2,8 +2,8 @@
 
     docker compose up -d --build
     REGISTRATION=open ... (a second sign-up must be allowed, see .env.example)
-    PUBLIC_URL=<the stack's PUBLIC_URL> uv run python scripts/e2e.py   # GATEWAY=http://127.0.0.1:3010 by default
-    PROXY=http://127.0.0.1:8088 uv run python scripts/e2e.py   # also checks the web app via the proxy
+    cd backend && PUBLIC_URL=<the stack's PUBLIC_URL> uv run python ../infra/scripts/e2e.py   # GATEWAY=http://127.0.0.1:3010 by default
+    cd backend && PROXY=http://127.0.0.1:8088 PUBLIC_URL=<...> uv run python ../infra/scripts/e2e.py   # also checks the web app via the proxy
 
 Signs up a throwaway user, drives the money flows from README section 10 and checks the numbers. HTTP only.
 """

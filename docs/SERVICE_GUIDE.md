@@ -1,12 +1,12 @@
 # Building a service
 
 Read `docs/ARCHITECTURE.md` first. This is the how-to every service follows. Services are Python 3.12 / FastAPI; the shared
-code is the library in `packages/lbstash` (import `lbstash.*`).
+code is the library in `backend/packages/lbstash` (import `lbstash.*`).
 
 ## Layout
 
 ```
-services/<name>/
+backend/services/<name>/
   Dockerfile                 # ARG BASE_IMAGE=lbstash-base; FROM it, add this service's source and own dependencies
   pyproject.toml             # depends on `lbstash`; add only service-specific dependencies, then `uv sync`
   migrations/001_init.sql    # forward-only; ends each user table with SELECT lbstash.enable_rls('table')
@@ -21,7 +21,7 @@ services/<name>/
     test_*.py
 ```
 
-Dev loop: `uv sync`, then `uv run pytest services/<name> -q` and `uv run ruff check services/<name>`. Postgres for tests:
+Dev loop (run from `backend/`): `uv sync`, then `uv run pytest services/<name> -q` and `uv run ruff check services/<name>`. Postgres for tests:
 `docker compose --profile test up -d test-db` (port 5544; set `TEST_DATABASE_URL` to its superuser URL).
 
 ## Writing routes
@@ -62,8 +62,8 @@ async with deps.as_user(ctx) as tx:
 
 ## Calling other services
 
-`await deps.clients.transactions.tag(ctx, id, body)`. Add a method to your own client class in `packages/lbstash/src/lbstash/clients/clients.py`
-if another service needs to call you (and its models to `packages/lbstash/src/lbstash/contracts/<you>.py`). Do not edit another service's
+`await deps.clients.transactions.tag(ctx, id, body)`. Add a method to your own client class in `backend/packages/lbstash/src/lbstash/clients/clients.py`
+if another service needs to call you (and its models to `backend/packages/lbstash/src/lbstash/contracts/<you>.py`). Do not edit another service's
 client or contract except to add something you were told is missing; report it instead.
 
 ## Events
@@ -78,10 +78,10 @@ make handlers idempotent (unique keys, "first write wins").
 - DB tests: the `db` fixture is a throwaway database per test module, connected as the service's own least-privilege role, so RLS is real.
 - HTTP tests: `app_factory(register=register, pool=db.pool, clients={"transactions": FakeTransactions()})` gives a harness with an `httpx` client over
   ASGI and `headers_for(user_id)`. Messages go to an `InMemoryBus` (`bus.events_of("…")`, `await bus.drain()`).
-- Run only your own tests: `uv run pytest services/<name>`.
+- Run only your own tests (from `backend/`): `uv run pytest services/<name>`.
 - Cover: happy path, validation, ownership (user A cannot see user B), idempotency, and each edge case the README lists for your area.
 - End to end: `docker compose up -d --build` (with `REGISTRATION=open`), then
-  `uv run python scripts/e2e.py`.
+  `cd backend && uv run python ../infra/scripts/e2e.py`.
 
 ## Definition of done
 
@@ -90,5 +90,5 @@ make handlers idempotent (unique keys, "first write wins").
 - [ ] Idempotent consumers; outbox used for every write that triggers work.
 - [ ] No amounts, payees, message text, tokens or e-mail addresses in logs.
 - [ ] Money is integer paise; time-zone aware month logic uses `lbstash.common`.
-- [ ] Tests pass; `uv run ruff check services/<name>` is clean; `docker build -f services/<name>/Dockerfile -t lbstash-<name> .` works (after `docker build -f docker/base.Dockerfile -t lbstash-base .`).
+- [ ] Tests pass; `uv run ruff check services/<name>` (from `backend/`) is clean; `docker build -f backend/services/<name>/Dockerfile -t lbstash-<name> backend` works (after `docker build -f infra/docker/base.Dockerfile -t lbstash-base backend`).
 - [ ] No logic copied from another service or from `lbstash`: reuse it.

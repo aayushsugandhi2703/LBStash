@@ -1,4 +1,4 @@
-# transactions service image, built on the shared base (docker/base.Dockerfile).
+# transactions service image, built on the shared base (infra/docker/base.Dockerfile).
 ARG BASE_IMAGE=lbstash-base
 FROM ${BASE_IMAGE}
 COPY services/transactions ./services/transactions

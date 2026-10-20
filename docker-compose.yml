@@ -1,21 +1,17 @@
-# LBStash: the whole stack in one file. One image per service (services/<name>/Dockerfile, apps/web/Dockerfile)
-# on a shared Python base (docker/base.Dockerfile).
-#   python3 scripts/gen-secrets.py   # once: writes .env with random secrets
-#   docker compose up --build        # everything: db, services, gateway, web, nginx
-#   docker compose --profile test up -d test-db   # throwaway Postgres for the backend tests (port 5544)
-# Published to the host: `nginx` (ports 80 and 443, plus PUBLIC_PORT for plain http) and, on 127.0.0.1 only, the gateway (GATEWAY_PORT, for scripts/e2e.py).
-# Push to a registry: REGISTRY=registry.example.com/team/ IMAGE_TAG=1.0 docker compose build && docker compose push
+# LBStash: the whole stack.
+#   python3 infra/scripts/gen-secrets.py   (once: creates .env)
+#   docker compose up --build
 name: lbstash
 
 x-env: &env
   APP_ENV: ${APP_ENV:-production}
   LOG_LEVEL: ${LOG_LEVEL:-info}
-  INTERNAL_SECRET: ${INTERNAL_SECRET:?run python3 scripts/gen-secrets.py}
+  INTERNAL_SECRET: ${INTERNAL_SECRET:?run python3 infra/scripts/gen-secrets.py}
   QUEUE_DATABASE_URL: postgres://lbstash_queue:${DB_PASSWORD_QUEUE}@db:5432/${POSTGRES_DB:-lbstash}
   PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8088}
 
 x-build: &build
-  context: .
+  context: ./backend
   additional_contexts: { lbstash-base: "service:base" }
 
 x-service: &service
@@ -31,20 +27,20 @@ volumes:
   pgdata: {}
 
 services:
-  # shared base image (build-only; services build on it)
+  # shared Python base image (build only)
   base:
     image: ${REGISTRY:-}lbstash-base:${IMAGE_TAG:-latest}
-    build: { context: ., dockerfile: docker/base.Dockerfile }
-    scale: 0 # never runs; exists so `service:base` can be a build context for every Python service
+    build: { context: ./backend, dockerfile: ../infra/docker/base.Dockerfile }
+    scale: 0 # build only, never runs
 
-  # data
+  # database
   db:
     image: postgres:17-alpine
     restart: unless-stopped
     networks: [internal]
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-lbstash_admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run python3 scripts/gen-secrets.py}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run python3 infra/scripts/gen-secrets.py}
       POSTGRES_DB: ${POSTGRES_DB:-lbstash}
     volumes: ["pgdata:/var/lib/postgresql/data"]
     healthcheck:
@@ -53,9 +49,9 @@ services:
       timeout: 3s
       retries: 30
 
-  # one-shot: creates a login role + schema per service (idempotent), then exits
+  # creates a database login per service, then exits
   db-init:
-    build: { context: ., dockerfile: docker/base.Dockerfile }
+    build: { context: ./backend, dockerfile: ../infra/docker/base.Dockerfile }
     image: ${REGISTRY:-}lbstash-base:${IMAGE_TAG:-latest}
     networks: [internal]
     depends_on: { db: { condition: service_healthy } }
@@ -80,7 +76,7 @@ services:
       DATABASE_URL: postgres://svc_auth:${DB_PASSWORD_AUTH}@db:5432/${POSTGRES_DB:-lbstash}
       ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET}
       FIELD_KEY: ${FIELD_KEY}
-      REGISTRATION: ${REGISTRATION:-first-only} # one account per install; "open" allows several
+      REGISTRATION: ${REGISTRATION:-first-only} # "open" allows more than one account
       MAIL_TRANSPORT: ${MAIL_TRANSPORT:-log}
       SMTP_URL: ${SMTP_URL:-}
       MAIL_FROM: ${MAIL_FROM:-}
@@ -138,7 +134,7 @@ services:
     <<: *service
     build: { <<: *build, dockerfile: services/gateway/Dockerfile }
     image: ${REGISTRY:-}lbstash-gateway:${IMAGE_TAG:-latest}
-    ports: ["127.0.0.1:${GATEWAY_PORT:-3010}:3000"] # loopback only; the public way in is `nginx`
+    ports: ["127.0.0.1:${GATEWAY_PORT:-3010}:3000"] # this computer only
     environment:
       <<: *env
       ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET}
@@ -155,7 +151,7 @@ services:
   web:
     restart: unless-stopped
     networks: [internal]
-    build: { context: apps/web } # self-contained: Node, not the Python base
+    build: { context: frontend } # its own Node image
     image: ${REGISTRY:-}lbstash-web:${IMAGE_TAG:-latest}
     environment:
       NODE_ENV: production
@@ -166,9 +162,7 @@ services:
       retries: 10
       start_period: 20s
 
-  # edge
-  # The one public door. nginx routes `/` to web and `/api`, `/ingest`, `/telegram/webhook` to the gateway, and terminates TLS for DOMAIN; certbot gets and renews the Let's Encrypt certificate into ./nginx/certbot/certs.
-  # Until LETSENCRYPT_EMAIL is set in .env, nginx serves plain http and certbot waits. They switch to https by themselves once the certificate exists.
+  # public entry: nginx serves the site; certbot gets the https certificate (needs LETSENCRYPT_EMAIL)
   nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped
@@ -178,11 +172,11 @@ services:
       DOMAIN: ${DOMAIN:-aegios.co.in}
     command: ["/bin/sh", "/entrypoint.sh"]
     volumes:
-      - ./nginx/entrypoint.sh:/entrypoint.sh:ro
-      - ./nginx/templates:/etc/nginx/templates-src:ro # rendered into conf.d by entrypoint.sh (not nginx's own /etc/nginx/templates)
-      - ./nginx/snippets:/etc/nginx/snippets:ro
-      - ./nginx/certbot/certs:/etc/letsencrypt:ro
-      - ./nginx/certbot/webroot:/var/www/certbot:ro
+      - ./infra/nginx/entrypoint.sh:/entrypoint.sh:ro
+      - ./infra/nginx/templates:/etc/nginx/templates-src:ro # filled in by entrypoint.sh
+      - ./infra/nginx/snippets:/etc/nginx/snippets:ro
+      - ./infra/nginx/certbot/certs:/etc/letsencrypt:ro
+      - ./infra/nginx/certbot/webroot:/var/www/certbot:ro
     depends_on:
       gateway: { condition: service_healthy }
       web: { condition: service_healthy }
@@ -197,13 +191,12 @@ services:
       LETSENCRYPT_STAGING: ${LETSENCRYPT_STAGING:-0}
     entrypoint: ["/bin/sh", "/entrypoint.sh"]
     volumes:
-      - ./nginx/certbot/entrypoint.sh:/entrypoint.sh:ro
-      - ./nginx/certbot/certs:/etc/letsencrypt
-      - ./nginx/certbot/webroot:/var/www/certbot
+      - ./infra/nginx/certbot/entrypoint.sh:/entrypoint.sh:ro
+      - ./infra/nginx/certbot/certs:/etc/letsencrypt
+      - ./infra/nginx/certbot/webroot:/var/www/certbot
     depends_on: [nginx]
 
-  # Cloudflare Tunnel: serves https://DOMAIN from this machine with no open ports or public IP. Needs TUNNEL_TOKEN in .env and
-  # COMPOSE_PROFILES=tunnel (or `docker compose --profile tunnel up -d`). In the Cloudflare dashboard point the tunnel's public hostname at http://nginx:80.
+  # optional https without open ports: needs TUNNEL_TOKEN and COMPOSE_PROFILES=tunnel
   cloudflared:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
@@ -214,14 +207,13 @@ services:
       TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
     depends_on: [nginx]
 
-  # opt-in (`--profile test`): throwaway Postgres for the backend tests, in memory, port 5544.
-  # Tests read TEST_DATABASE_URL=postgres://<POSTGRES_USER>:<POSTGRES_PASSWORD>@127.0.0.1:5544/<POSTGRES_DB>
+  # optional (--profile test): throwaway database for backend tests, port 5544
   test-db:
     profiles: [test]
     image: postgres:17-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-lbstash_admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run python3 scripts/gen-secrets.py}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run python3 infra/scripts/gen-secrets.py}
       POSTGRES_DB: ${POSTGRES_DB:-lbstash}
     ports: ["127.0.0.1:5544:5432"]
     tmpfs: ["/var/lib/postgresql/data"]
