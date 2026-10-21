@@ -47,6 +47,7 @@ class TestPaths:
     def test_strict_buckets(self) -> None:
         assert bucket_of('/auth/login') == 'login'
         assert bucket_of('/auth/2fa/verify') == '2fa'
+        assert bucket_of('/auth/demo') == 'demo'
         assert bucket_of('/auth/reset/request') == 'reset'
         assert bucket_of('/ingest/message') == 'ingest'
         assert bucket_of('/telegram/webhook/x') == 'webhook'

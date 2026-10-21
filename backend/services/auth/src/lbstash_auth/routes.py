@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from lbstash.common import COOKIES, Errors
 from lbstash.kit import DepsDep, IdParam, OptionalCtx, ServiceClaims, UserCtx, id_param
 
-from . import account, factors, passkeys, signin
+from . import account, demo, factors, passkeys, signin
 from .audit import list_audit, record_audit
 from .client_info import client_info
 from .cookies import Tokens, cleared_cookies, parse_cookies, session_cookies
@@ -62,6 +62,12 @@ def make_routes(mailer: Mailer | None = None):
             else:
                 proof = signin.SecondStep('passkey', body.passkey)
             issued = await signin.verify_second_step(svc, body.two_factor_token, proof, client_info(request))
+            issue(response, issued.tokens)
+            return issued.body
+
+        @router.post('/auth/demo', response_model=C.AuthSessionRes)
+        async def demo_login(request: Request, response: Response) -> C.AuthSessionRes:
+            issued = await demo.demo_login(svc, client_info(request))
             issue(response, issued.tokens)
             return issued.body
 

@@ -10,7 +10,7 @@ from urllib.parse import unquote
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
-from lbstash.common import COOKIES, HEADERS, AppError, Ctx, Errors
+from lbstash.common import COOKIES, DEMO_USER_ID, HEADERS, AppError, Ctx, Errors
 from lbstash.crypto import AccessClaims, TokenError, verify_access_token, verify_internal_token
 from lbstash.kit import Deps, MemoryRateLimiter
 
@@ -20,6 +20,7 @@ from .session_cache import SessionCache
 
 _MUTATING: Final = frozenset({'POST', 'PUT', 'PATCH', 'DELETE'})
 _MINUTE: Final = 60.0
+DEMO_READ_ONLY: Final = 'This is a demo, so it is read-only. Create an account to make changes.'
 
 
 @dataclass(frozen=True, slots=True)
@@ -113,6 +114,7 @@ def build_guard(deps: Deps[Env]) -> Callable[[Request], Awaitable[None]]:
         'reset': Limiter(env.RATE_LIMIT_AUTH_PER_15_MIN, 15 * _MINUTE),
         'ingest': Limiter(env.RATE_LIMIT_INGEST_PER_MINUTE, _MINUTE),
         'webhook': Limiter(env.RATE_LIMIT_WEBHOOK_PER_MINUTE, _MINUTE),
+        'demo': Limiter(env.RATE_LIMIT_DEMO_PER_15_MIN, 15 * _MINUTE),
     }
     assert set(strict) == set(STRICT_BUCKETS)
 
@@ -166,6 +168,10 @@ def build_guard(deps: Deps[Env]) -> Callable[[Request], Awaitable[None]]:
                     limited = session.limited
                 if limited and not (path.startswith('/auth/') or (path == '/me' and request.method == 'GET')):
                     raise AppError('forbidden', 'Finish securing your account first', {'setupRequired': True})
+                # The public demo account may look, never change: every write of that user stops here, before any body is read.
+                # Sign-out is the one write it keeps; /auth/refresh and /auth/demo are public paths and never get here.
+                if env.DEMO_MODE and access.sub == DEMO_USER_ID and request.method in _MUTATING and path != '/auth/logout':
+                    raise AppError('forbidden', DEMO_READ_ONLY, {'demoReadOnly': True})
                 request.state.ctx = Ctx(user_id=access.sub, tz=access.tz, request_id=request.state.request_id)
 
         # Double-submit CSRF: the header must repeat the JS-readable cookie. Sign-in paths and non-browser callers are exempt.

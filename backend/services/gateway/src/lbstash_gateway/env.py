@@ -19,3 +19,5 @@ class Env(BaseEnv):
     RATE_LIMIT_INGEST_PER_MINUTE: int = Field(default=60, gt=0)
     # Per IP, per minute, on /telegram/webhook/*.
     RATE_LIMIT_WEBHOOK_PER_MINUTE: int = Field(default=120, gt=0)
+    # Per IP, per 15 minutes, on POST /auth/demo (only answered when DEMO_MODE is on).
+    RATE_LIMIT_DEMO_PER_15_MIN: int = Field(default=30, gt=0)

@@ -5,7 +5,7 @@ from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from typing import Any
 
-from lbstash.common import Ctx, month_key
+from lbstash.common import DEMO_USER_ID, Ctx, month_key
 from lbstash.contracts import (
     MeDto,
     PlanningSettingsPatch,
@@ -48,6 +48,7 @@ async def me(deps: Deps[Env], ctx: Ctx) -> dict[str, Any]:
         MeDto(
             id=user.id, email=user.email, name=user.name, timezone=user.timezone, pending_email=user.pending_email,
             delete_after=user.delete_after, alert_badge_count=alerts, needs_look_count=needs_look, untagged_count=untagged,
+            demo=deps.env.DEMO_MODE and user.id == DEMO_USER_ID,
         )
     )  # fmt: skip
 

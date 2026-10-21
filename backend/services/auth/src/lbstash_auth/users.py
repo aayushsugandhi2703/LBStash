@@ -46,6 +46,11 @@ async def load_user(tx: Tx, user_id: str, *, lock: bool = False) -> UserRow:
     return UserRow(**row)
 
 
+async def find_user(tx: Tx, user_id: str) -> UserRow | None:
+    row = await tx.maybe_one(f'SELECT {USER_COLS} FROM users WHERE id = $1', [user_id])
+    return UserRow(**row) if row else None
+
+
 async def find_user_by_email(tx: Tx, email: str) -> UserRow | None:
     row = await tx.maybe_one(f'SELECT {USER_COLS} FROM users WHERE email = $1', [email])
     return UserRow(**row) if row else None

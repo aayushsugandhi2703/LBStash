@@ -1,6 +1,6 @@
 """Helpers shared by every service: errors, context, money, time, metrics, tags, pagination, passwords, logging, env."""
 
-from .config import BaseEnv, is_prod, load_env
+from .config import DEMO_USER_ID, BaseEnv, is_prod, load_env
 from .context import COOKIES, DEFAULT_TZ, HEADERS, SERVICES, Ctx
 from .errors import AppError, Errors
 from .log import Logger, create_logger, route_stdlib_logging
@@ -41,6 +41,7 @@ from .timeutil import (
 __all__ = [
     'COOKIES',
     'DEFAULT_TZ',
+    'DEMO_USER_ID',
     'HEADERS',
     'SERVICES',
     'AppError',

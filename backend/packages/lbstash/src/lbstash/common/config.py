@@ -10,6 +10,9 @@ from .log import normalize_level
 
 AppEnv = Literal['development', 'test', 'production']
 
+# The one account the public demo may sign in to (`POST /auth/demo`). The demo seeder creates the user row with exactly this id.
+DEMO_USER_ID = '5de0b1a5-0000-4000-8000-00000000d3a0'
+
 
 class EnvError(ValueError):
     """Invalid environment; the message lists every problem."""
@@ -36,6 +39,9 @@ class BaseEnv(BaseModel):
     PUBLIC_URL: str = 'http://localhost:8088'
     # Signs the internal token on service-to-service calls.
     INTERNAL_SECRET: str = Field(min_length=32, repr=False)
+    # Public read-only demo: auth accepts `POST /auth/demo` for DEMO_USER_ID and the gateway refuses that user's writes.
+    # Off unless the docker-compose demo overlay turns it on; with it off nothing about sign-in or the gateway changes.
+    DEMO_MODE: bool = False
     # Service addresses; defaults match docker-compose names.
     GATEWAY_URL: str = 'http://gateway:3000'
     AUTH_URL: str = 'http://auth:3001'

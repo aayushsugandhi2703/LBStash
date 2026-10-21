@@ -64,8 +64,8 @@ def resolve_service(path: str, method: str) -> str | None:
     return None
 
 
-Bucket = Literal['login', '2fa', 'reset', 'ingest', 'webhook']
-STRICT_BUCKETS: Final[tuple[Bucket, ...]] = ('login', '2fa', 'reset', 'ingest', 'webhook')
+Bucket = Literal['login', '2fa', 'reset', 'ingest', 'webhook', 'demo']
+STRICT_BUCKETS: Final[tuple[Bucket, ...]] = ('login', '2fa', 'reset', 'ingest', 'webhook', 'demo')
 
 
 def bucket_of(path: str) -> Bucket | None:
@@ -74,6 +74,8 @@ def bucket_of(path: str) -> Bucket | None:
         return 'login'
     if path == '/auth/2fa/verify':
         return '2fa'
+    if path == '/auth/demo':
+        return 'demo'
     if path.startswith('/auth/reset/'):
         return 'reset'
     if path == '/ingest/message':

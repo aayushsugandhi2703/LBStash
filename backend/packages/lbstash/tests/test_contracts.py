@@ -421,7 +421,7 @@ CORPUS: list[tuple[str, Any, Any]] = [
     ('SettingsPatch', {}, 'same'),
     ('SettingsPatch', {'alertLevel': 90, 'digestHour': 3, 'reconcileGraceHours': 0, 'currency': 'USD'}, {'ok': {'reconcileGraceHours': 0, 'alertLevel': 90, 'digestHour': 3}}),
     ('SettingsPatch', {'alertLevel': 91, 'afterTag': 'x'}, ['afterTag', 'alertLevel']),
-    ('MeDto', {'id': '3f2b8c1e-5d4a-4b7e-9a10-2c6d8e0f1a23', 'email': 'a@b.in', 'name': None, 'timezone': 'Asia/Kolkata', 'pendingEmail': None, 'deleteAfter': None, 'alertBadgeCount': 1, 'needsLookCount': 2, 'untaggedCount': 3}, 'same'),
+    ('MeDto', {'id': '3f2b8c1e-5d4a-4b7e-9a10-2c6d8e0f1a23', 'email': 'a@b.in', 'name': None, 'timezone': 'Asia/Kolkata', 'pendingEmail': None, 'deleteAfter': None, 'alertBadgeCount': 1, 'needsLookCount': 2, 'untaggedCount': 3, 'demo': False}, 'same'),
     ('MeDto', {'id': 'any', 'email': 'e', 'name': 'n', 'timezone': 'z', 'pendingEmail': 'p', 'deleteAfter': '2025-01-01T00:00:00.000Z', 'alertBadgeCount': 1.5, 'needsLookCount': 2, 'untaggedCount': 3}, ['alertBadgeCount']),
     ('EVENT:transaction.changed', {'userId': '3f2b8c1e-5d4a-4b7e-9a10-2c6d8e0f1a23', 'transactionId': '7c9e6679-7425-40de-944b-e07fc1f90ae7', 'kind': 'created', 'type': 'debit', 'status': 'pending', 'source': 'captured', 'occurredAt': '2025-03-14T16:00:00+05:30', 'categoryIds': [None, '3f2b8c1e-5d4a-4b7e-9a10-2c6d8e0f1a23'], 'taggedVia': None}, 'same'),
     ('EVENT:transaction.changed', {'userId': '3f2b8c1e-5d4a-4b7e-9a10-2c6d8e0f1a23', 'transactionId': '7c9e6679-7425-40de-944b-e07fc1f90ae7', 'kind': 'updated', 'type': 'debit', 'status': 'pending', 'source': 'captured', 'occurredAt': '2025-03-14T16:00:00+05:30', 'categoryIds': [None, '3f2b8c1e-5d4a-4b7e-9a10-2c6d8e0f1a23'], 'taggedVia': 'rule', 'tz': 'Asia/Kolkata'}, 'same'),
@@ -770,7 +770,7 @@ def test_route_table_and_public_paths() -> None:
     assert len(C.ROUTE_TABLE) == 19
     assert ('/balance-check', 'transactions') in C.ROUTE_TABLE and ('/me/email', 'auth') in C.ROUTE_TABLE
     assert dict(C.ROUTE_TABLE)['/dashboard'] == 'reports' and dict(C.ROUTE_TABLE)['/telegram'] == 'telegram'
-    assert '/ingest/message' in C.PUBLIC_PATHS and '/telegram/webhook/*' in C.PUBLIC_PATHS and len(C.PUBLIC_PATHS) == 9
+    assert '/ingest/message' in C.PUBLIC_PATHS and '/telegram/webhook/*' in C.PUBLIC_PATHS and len(C.PUBLIC_PATHS) == 10
     assert list(C.CSRF_EXEMPT_PATHS) == list(C.PUBLIC_PATHS)
 
 

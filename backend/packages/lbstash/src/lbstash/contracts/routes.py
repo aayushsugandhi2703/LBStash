@@ -32,6 +32,7 @@ ROUTE_TABLE: Final[list[tuple[str, str]]] = [
 PUBLIC_PATHS: Final[tuple[str, ...]] = (
     '/auth/register',
     '/auth/login',
+    '/auth/demo',  # only answers when DEMO_MODE is on, and only ever for the demo user
     '/auth/2fa/verify',
     '/auth/passkey/login/options',
     '/auth/passkey/login/verify',
