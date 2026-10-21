@@ -121,7 +121,7 @@ Logo, name and colours: [Brand](docs/application/BRAND.md).
 
 ## Demo
 
-The About page (`/`, shown to visitors who are not signed in) shows a sample October you can scrub with a slider, tells the product as one month in days, and has a **Try the demo** button. It opens a read-only account with six months of sample data (payments, plan, limits, repeats, forecast), so people can see the app before making an account. It is opt-in and lives in [`demo/`](demo/README.md): a data builder and loader, a compose overlay and tests. Turning it on sets `DEMO_MODE` for auth and the gateway; the demo user can look but never change anything.
+The About page (`/`, shown to visitors who are not signed in) shows a sample month you can scrub with a slider (it names no month and no weekday, so it never goes stale), tells the product as one month in days, and has a **Try the demo** button. It opens a read-only account with six months of sample data (payments, plan, limits, repeats, forecast), so people can see the app before making an account. It is opt-in and lives in [`demo/`](demo/README.md): a data builder and loader, a compose overlay and tests. Turning it on sets `DEMO_MODE` for auth and the gateway; the demo user can look but never change anything.
 
 ## Infra
 

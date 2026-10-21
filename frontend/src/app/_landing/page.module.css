@@ -161,9 +161,7 @@
 .band .actions .bandGhost.ghost { background: transparent; color: #fff; border-color: #fff; }
 .band .actions .bandGhost.ghost:hover { background: #fff; color: #0E0E10; }
 .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; width: min(100%, 460px); }
-.calWd { font-size: 11px; letter-spacing: .06em; color: var(--b-dim); text-align: center; padding-bottom: 4px; }
 .calC { aspect-ratio: 1; display: flex; align-items: flex-start; padding: 6px 7px; border: 1px solid rgba(45, 200, 144, .5); font-size: 13px; color: #fff; }
-.calC[data-s="blank"] { border-color: transparent; }
 .calC[data-s="past"] { background: rgba(0, 0, 0, .28); }
 .calC[data-s="today"] { background: #fff; color: #0E0E10; border-color: #fff; font-weight: 500; }
 .calC[data-s="future"] { background-image: repeating-linear-gradient(135deg, rgba(45, 200, 144, .5) 0 1px, transparent 1px 6px); }
