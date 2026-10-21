@@ -1,17 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { demoFailure, shouldShowLanding } from '@/features/landing';
+import { APP_HOME, demoFailure, hasSessionCookie } from '@/features/landing';
 
-describe('who sees the About page', () => {
-  it('a visitor with no session opening / does', () => {
-    expect(shouldShowLanding('/', false)).toBe(true);
+describe('where the app starts', () => {
+  it('the signed-in app starts at /now; / is always the About page', () => {
+    expect(APP_HOME).toBe('/now');
   });
-  it('a signed-in visit to / still gets the Now page', () => {
-    expect(shouldShowLanding('/', true)).toBe(false);
+});
+
+describe('does this browser hold a session', () => {
+  it('finds the session marker among other cookies', () => {
+    expect(hasSessionCookie('lbstash_csrf=abc')).toBe(true);
+    expect(hasSessionCookie('theme=dark; lbstash_csrf=abc; other=1')).toBe(true);
   });
-  it('no other address is ever rewritten', () => {
-    for (const p of ['/welcome', '/sign-in', '/create-account', '/money', '/setup', '/pay', '/api/me', '/_next/static/a.js', '/favicon.ico']) {
-      expect(shouldShowLanding(p, false)).toBe(false);
-    }
+  it('is false without it, and a similar name does not count', () => {
+    expect(hasSessionCookie('')).toBe(false);
+    expect(hasSessionCookie('theme=dark')).toBe(false);
+    expect(hasSessionCookie('xlbstash_csrf=1; lbstash_csrf_old=1')).toBe(false);
   });
 });
 

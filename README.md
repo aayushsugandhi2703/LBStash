@@ -13,9 +13,9 @@ A private budget tracker you run from a Telegram chat. Send `/350 food` when you
 1. **Log.** `/350` = money out, `+1500` = money in. Add a tag (`/350 food`) or pick one from the buttons.
 2. **Save.** The server stores it and deletes your message from the chat.
 3. **Tag.** Known payees are tagged for you. Tag a new one once and it is remembered.
-4. **Track.** Balance, limits, alerts, trends and repeating payments come from your tagged payments. A payment you forgot to log shows up as "Unaccounted".
+4. **Track.** Balance, limits, alerts, the forecast and repeating payments come from your tagged payments. A payment you forgot to log shows up as "Unaccounted".
 
-You can also log from the web app, or (optionally) let another tool post bank SMS text to `/ingest/message`.
+The web app is for looking and sorting (tagging, plans, limits); you log in Telegram. Optionally, bank SMS text can flow in through `/ingest/message`.
 
 ## The three parts
 
@@ -41,13 +41,13 @@ flowchart LR
 lbstash/
 ├── backend/                     Python 3.12 + FastAPI (a uv workspace; also the Docker build folder of every Python image)
 │   ├── services/                one folder per service
-│   │   ├── gateway/             only door to the backend: login, CSRF, rate limits
-│   │   ├── auth/                users, sessions, 2FA, passkeys, audit log
+│   │   ├── gateway/             only door to the backend: login, CSRF, rate limits, the demo account's write guard
+│   │   ├── auth/                users, sessions, 2FA, passkeys, audit log, the opt-in demo sign-in
 │   │   ├── transactions/        payments, categories, tag rules, balance checks
 │   │   ├── ingest/              optional bank-message route
 │   │   ├── planning/            monthly plans, limits, alerts
 │   │   ├── recurring/           repeating payments
-│   │   ├── reports/             dashboard and trends (stores nothing)
+│   │   ├── reports/             the numbers behind Now and Forecast: dashboard, daily, months, category matrix (stores nothing)
 │   │   └── telegram/            the bot
 │   │       (each has: src/  migrations/  tests/  Dockerfile  pyproject.toml)
 │   ├── packages/lbstash/        code shared by every service (money, crypto, db, queue, clients)
@@ -85,13 +85,13 @@ Each service owns its own database schema and login, and never reads another's t
 
 | Service | Job |
 |---|---|
-| gateway | Login check, CSRF, rate limits, security headers, forwards by path |
-| auth | Users, sessions, 2FA, passkeys, recovery codes, export, account deletion |
+| gateway | Login check, CSRF, rate limits, security headers, forwards by path; refuses every write by the demo account |
+| auth | Users, sessions, 2FA, passkeys, recovery codes, export, account deletion, the opt-in demo sign-in |
 | transactions | Payments, categories, tag rules, credits, balance checks |
 | ingest | Optional bank-message route: device tokens, OTP guard, parser |
 | planning | Monthly plans, limits, alerts |
 | recurring | Repeating payments and the cron that posts them |
-| reports | Dashboard and trend views, worked out when read |
+| reports | The numbers behind Now and Forecast, worked out when read |
 | telegram | Logging, tagging, Google Pay button, daily digest |
 
 How they work together:
@@ -102,7 +102,22 @@ How they work together:
 
 ## Frontend
 
-A Next.js app with these pages: About (with a demo of sample data) · Now · Money (Activity, Repeats, Needs a look) · Budget (Plan, Limits) · Forecast · Account · Setup guide. Money in is logged in Telegram (`+1500 salary`); there is no Add credit page. It only talks to the gateway. Logo, name and colours: [Brand](docs/application/BRAND.md).
+A Next.js app. `lbstash.site` always opens the **About** page (a sample month, Try the demo, Sign in, Create account); the app starts at `/now`. Pages: About · Now · Money (Activity, Repeats, Needs a look) · Budget (Plan, Limits) · Forecast · Account · Setup guide. Money in is logged in Telegram (`+1500 salary`); there is no Add credit page. It only talks to the gateway. Which page asks which service:
+
+| Page | Asks (through the gateway) | Services behind it |
+|---|---|---|
+| About `/` | `POST /auth/demo` (demo only) | auth, with the gateway's read-only guard |
+| Now `/now` | `/dashboard`, `/reports/daily` | reports, which reads transactions, planning, recurring, ingest |
+| Money · Activity `/money` | `/transactions`, `/categories`, `/balance-check`, `/recurring` | transactions, recurring |
+| Money · Repeats `/money/repeats` | `/recurring`, `/categories` | recurring (posts into transactions) |
+| Needs a look `/money/unread` | `/unparsed`, `/transactions` | ingest, transactions |
+| Budget · Plan `/budget` | `/plans/:month`, `/categories`, `/recurring` | planning (reads spend from transactions), recurring |
+| Budget · Limits `/budget/limits` | `/budgets`, `/alerts`, `/settings` | planning, gateway |
+| Forecast `/forecast` | `/reports/daily`, `/reports/months`, `/reports/category-matrix`, `/plans/:month`, `/budgets`, `/recurring`, `/dashboard` | reports, planning, recurring |
+| Account, Security, Devices | `/me`, `/account`, `/sessions`, `/devices`, `/telegram` | auth, ingest, telegram |
+| Setup | `/settings`, `/plans/:month`, `/telegram` | gateway, planning, telegram |
+
+ Logo, name and colours: [Brand](docs/application/BRAND.md).
 
 ## Demo
 

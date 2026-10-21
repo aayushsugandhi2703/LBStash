@@ -20,6 +20,7 @@ export default {
       { source: '/limits', destination: '/budget/limits', permanent: false },
       { source: '/trends', destination: '/forecast', permanent: false },
       { source: '/credit', destination: '/', permanent: false },
+      { source: '/welcome', destination: '/', permanent: false },
     ];
   },
   async headers() {

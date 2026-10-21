@@ -2,12 +2,13 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { BRAND, Logo } from '@/brand';
 import { calendar } from '@/features/month';
+import { AccountLinks } from './account-links';
 import { DemoButton } from './demo-button';
 import { ForecastChart } from './forecast-chart';
 import { Hero } from './hero';
 import s from './page.module.css';
 
-export const metadata: Metadata = { title: `${BRAND.name}: ${BRAND.tagline.toLowerCase()}`, description: 'Log a payment in Telegram. LBStash saves it, tags it and shows the day your plan runs out, before the month ends.' };
+export const landingMetadata: Metadata = { title: `${BRAND.name}: ${BRAND.tagline.toLowerCase()}`, description: 'Log a payment in Telegram. LBStash saves it, tags it and shows the day your plan runs out, before the month ends.' };
 
 const WEEKDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 
@@ -34,17 +35,16 @@ function Day({ n, day, title, children, visual }: { n: string; day: string; titl
   );
 }
 
-export default function WelcomePage() {
+export function Landing() {
   return (
     <div className={s.page}>
       <header className={s.top}>
         <div className={`${s.wrap} ${s.topRow}`}>
-          <Link href="/welcome" aria-label={`${BRAND.name}, home`}><Logo size={28} /></Link>
+          <Link href="/" aria-label={`${BRAND.name}, home`}><Logo size={28} /></Link>
           <nav className={s.topNav} aria-label="Main">
             <a href="#month" className={`${s.topLink} ${s.topJump}`}>A month in {BRAND.name}</a>
             <a href="#private" className={`${s.topLink} ${s.topJump}`}>What it never sees</a>
-            <Link href="/sign-in" className={s.topLink}>Sign in</Link>
-            <Link href="/create-account" className={s.topLink}>Create account</Link>
+            <AccountLinks linkClass={s.topLink ?? ''} />
           </nav>
         </div>
       </header>

@@ -512,7 +512,7 @@ button, a, [role="button"], [role="checkbox"] { touch-action: manipulation; }
    - smooth scrolling: only when the visitor has not asked for reduced motion;
    - parallax: CSS scroll-driven animations, only where the browser supports them (@supports) and motion is allowed;
      transform only, so nothing reflows; without support or with reduced motion everything simply stays still and fully visible;
-   - the lazy fade-in of app blocks is components/scroll-reveal.tsx (above); the landing page does its own in welcome/page.module.css. ===== */
+   - the lazy fade-in of app blocks is components/scroll-reveal.tsx (above); the landing page does its own in _landing/page.module.css. ===== */
 html { scroll-padding-top: 72px; }
 .aside, .menu { overscroll-behavior: contain; }
 @media (min-width: 1024px) and (min-height: 720px) { .scroller { scrollbar-gutter: stable; } }

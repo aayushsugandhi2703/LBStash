@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { monthProgress, TZ } from '@/common';
 import { api } from '@/lib/api';
+import { APP_HOME } from '@/features/landing';
 import { useMe } from '@/lib/me';
 import { Glyph, type IconName, LogoMark, NavIcon } from '@/brand';
 import { IndexList } from './ui';
@@ -11,7 +12,7 @@ import { IndexList } from './ui';
 type Home = 'now' | 'money' | 'budget' | 'forecast' | 'acct' | null;
 
 const NAV: { key: Home & string; label: string; href: string; icon: IconName }[] = [
-  { key: 'now', label: 'Now', href: '/', icon: 'now' },
+  { key: 'now', label: 'Now', href: APP_HOME, icon: 'now' },
   { key: 'money', label: 'Money', href: '/money', icon: 'money' },
   { key: 'budget', label: 'Budget', href: '/budget', icon: 'budget' },
   { key: 'forecast', label: 'Forecast', href: '/forecast', icon: 'forecast' },
@@ -74,7 +75,7 @@ function Header({ home }: { home: Home }) {
     <header className="hdr">
       <div className="hdr-row">
         <div className="hdr-left">
-          <Link href="/" className="brand-link" aria-label="LBStash home"><LogoMark size={22} /></Link>
+          <Link href={APP_HOME} className="brand-link" aria-label="LBStash home"><LogoMark size={22} /></Link>
           <nav aria-label="Main" className="nav">
             {NAV.map((n) => (
               <Link key={n.key} href={n.href} className="navlink" aria-current={home === n.key ? 'page' : undefined}>
