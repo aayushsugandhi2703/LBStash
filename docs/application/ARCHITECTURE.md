@@ -6,13 +6,13 @@ The README says what the product does. This file says where the code lives and h
 
 | Service | Port | Database schema | Owns | Calls |
 |---|---|---|---|---|
-| **gateway** | 3000 | none | the only door: cookie session check, CSRF, rate limits, security headers, proxy by path (`ROUTE_TABLE`), `GET /me`, `GET\|PATCH /settings` | every service |
-| **auth** | 3001 | `auth` | users, sessions, auth factors (TOTP, passkeys, recovery codes), audit log, export, account deletion | – |
-| **transactions** | 3002 | `transactions` | transactions, categories, tag rules, classification, balance checks / Unaccounted, credits, transactions settings, spend aggregates | planning (credit → plan total) |
+| **gateway** | 3000 | none | the only door: cookie session check, CSRF, rate limits, security headers, proxy by path (`ROUTE_TABLE`), `GET /me`, `GET\|PATCH /settings`, the demo account's write guard (demo mode only) | every service |
+| **auth** | 3001 | `auth` | users, sessions, auth factors (TOTP, passkeys, recovery codes), audit log, export, account deletion, the opt-in demo sign-in (`POST /auth/demo`) | – |
+| **transactions** | 3002 | `transactions` | transactions, categories, tag rules, classification, balance checks / Unaccounted, credits (`POST /credits` for the API; Telegram uses the internal manual-entry path), transactions settings, spend aggregates | planning (credit → plan total) |
 | **ingest** | 3003 | `ingest` | devices (ingest tokens), ingest events (nonces), the bank-message parser, unparsed messages | transactions, auth |
 | **planning** | 3004 | `planning` | monthly plans, budgets (limits), alerts, planning settings | transactions |
 | **recurring** | 3005 | `recurring` | recurring rules and the posting cron | transactions |
-| **reports** | 3006 | none | dashboard, daily, months, category matrix: read models composed from other services, nothing stored | transactions, planning, recurring, ingest |
+| **reports** | 3006 | none | dashboard, daily, months, category matrix: read models composed from other services, nothing stored; they feed Now and Forecast | transactions, planning, recurring, ingest |
 | **telegram** | 3007 | `telegram` | links, pairings, bot sessions, prompts, bot token (encrypted), webhook handling, digest | transactions, auth |
 | **web** | 3000 (container) | – | Next.js app | gateway only |
 
@@ -30,7 +30,7 @@ Every backend service is Python 3.12 + FastAPI. The web app is the only TypeScri
 
 Web code: logo, name and icons in `frontend/src/brand` (import from `@/brand`; SVGs in `frontend/public/brand`). The web app keeps browser-side copies in `src/common` (money, month maths, tag and password rules, so pages promise what the server enforces) and `src/contracts` (response types). The Python models are the source of truth; `infra/scripts/e2e.py` keeps the two honest.
 
-Web pages: `/welcome` (About, shown at `/` to visitors without a session by `src/proxy.ts`), the auth pages, and the signed-in app: Now (`/`), Money (`/money`, `/money/repeats`, `/money/unread`), Budget (`/budget`, `/budget/limits`), Forecast (`/forecast`), Account and Setup. The old addresses (`/transactions`, `/repeats`, `/plan`, `/limits`, `/trends`, `/credit`) redirect in `next.config.mjs`. The Forecast is worked out in the browser (`src/features/forecast.ts`) from existing report, plan, limit and repeat endpoints; no new backend route.
+Web pages: `/` is always the About page (`app/page.tsx`, parts in `app/_landing`; signed-in visitors see an "Open the app" link), the auth pages, and the signed-in app: Now (`/now`), Money (`/money`, `/money/repeats`, `/money/unread`), Budget (`/budget`, `/budget/limits`), Forecast (`/forecast`), Account and Setup. The old addresses (`/transactions`, `/repeats`, `/plan`, `/limits`, `/trends`, `/credit`, `/welcome`) redirect in `next.config.mjs`. Which page asks which service is the table in the README (Frontend). The Forecast is worked out in the browser (`src/features/forecast.ts`) from existing report, plan, limit and repeat endpoints; no new backend route.
 
 ## Rules of the road
 

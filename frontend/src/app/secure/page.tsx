@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_HOME } from '@/features/landing';
 import { type FormEvent, useEffect, useState } from 'react';
 import { type PublicKeyCredentialCreationOptionsJSON, startRegistration } from '@simplewebauthn/browser';
 import type { z } from 'zod';
@@ -58,7 +59,7 @@ export default function SecurePage() {
           return;
         }
         if (factors.setup.complete && !refreshCodes) {
-          window.location.replace(requestedPath() ?? '/');
+          window.location.replace(requestedPath() ?? APP_HOME);
           return;
         }
         if (factors.setup.complete && refreshCodes) {
@@ -130,7 +131,7 @@ export default function SecurePage() {
         if (refreshingCodes) {
           setPart(3);
         } else {
-          window.location.replace(requestedPath() ?? '/');
+          window.location.replace(requestedPath() ?? APP_HOME);
         }
         return;
       }
@@ -149,7 +150,7 @@ export default function SecurePage() {
       const factors = await api.get<z.infer<typeof FactorsRes>>('/auth/factors');
       setPasskeyAdded(factors.passkeys.length > 0);
       if (factors.setup.complete && factors.passkeys.length > 0 && !refreshingCodes) {
-        window.location.replace(requestedPath() ?? '/');
+        window.location.replace(requestedPath() ?? APP_HOME);
         return;
       }
       if (factors.passkeys.length === 0 && !refreshingCodes) {
@@ -305,7 +306,7 @@ export default function SecurePage() {
               )}
               {error && <ErrorLine>{error}</ErrorLine>}
               {recoveryCodes.length > 0 && <div className="signin-actions">
-                <Button large type="button" disabled={!saved} onClick={() => window.location.assign(requestedPath() ?? (firstTime ? '/setup' : '/'))}>{firstTime ? 'Finish and open the setup guide' : 'Finish'}</Button>
+                <Button large type="button" disabled={!saved} onClick={() => window.location.assign(requestedPath() ?? (firstTime ? '/setup' : APP_HOME))}>{firstTime ? 'Finish and open the setup guide' : 'Finish'}</Button>
                 {!refreshingCodes && <button type="button" className="signin-back" onClick={() => setPart(2)}>Back</button>}
               </div>}
             </div>

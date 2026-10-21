@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_HOME } from '@/features/landing';
 import { type FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { z } from 'zod';
@@ -20,7 +21,7 @@ function requestedPath(): string | null {
   const requested = new URLSearchParams(window.location.search).get('next');
   return requested?.startsWith('/') && !requested.startsWith('//') ? requested : null;
 }
-const nextPath = (): string => requestedPath() ?? '/';
+const nextPath = (): string => requestedPath() ?? APP_HOME;
 /** `/secure` finishes at the setup guide for a new account unless the person was headed somewhere else. */
 function secureUrl(extra: Record<string, string> = {}): string {
   const query = new URLSearchParams(extra);
@@ -153,7 +154,7 @@ export default function SignInPage() {
 
   return (
     <AuthFrame
-      right={<Link href="/welcome" className="mono lbl signin-header-link">← about LBStash</Link>}
+      right={<Link href="/" className="mono lbl signin-header-link">← about LBStash</Link>}
       glyph="signin"
       title={step === 'password' ? 'Sign in' : step === 'verify' ? 'Second step' : 'Signed in'}
       description={
