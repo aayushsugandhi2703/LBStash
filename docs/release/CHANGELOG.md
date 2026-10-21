@@ -2,6 +2,12 @@
 
 Written by the Release workflow from the commit log. Do not edit by hand.
 
+## v1.3.0 (2026-10-21)
+
+- Docs: describe the landing film, promo/, and the larger web image
+- Landing page film, and the promo project that makes it
+- App pages: updates to Now, Money, Budget and Forecast, with matching feature logic and tests
+
 ## v1.2.1 (2026-10-21)
 
 - Demo: fix the seeder import and the sample spending
