@@ -144,21 +144,21 @@ The About page (`/`, shown to visitors who are not signed in) shows a sample mon
 
 ### The server
 
-How the Oracle Cloud VM is protected, from the outside in. The first-boot script is [`cloud-init.yaml`](infra/terraform/modules/compute/cloud-init.yaml); Terraform runs it once, when the VM starts for the first time.
+How the Oracle Cloud VM is locked down, outside in. [`cloud-init.yaml`](infra/terraform/modules/compute/cloud-init.yaml) sets it up once, on first boot.
 
-| Layer | What is done | Where |
+| Layer | What it does | Where |
 |---|---|---|
-| **Cloud network** | A network security group lets in only web ports 80 and 443 (from the addresses you allow, default everyone), SSH on 22 (from `ssh_ingress_cidrs`, default everyone: set it to `["your-ip/32"]` to allow only yourself) and ICMP type 3 for path MTU. Everything else, including the published local port 8088, is dropped before it reaches the VM. | `infra/terraform/modules/nsg` |
-| **Host firewall** | On first boot the script replaces Oracle's default rules with its own `iptables` set: default **DROP** for incoming traffic; allowed are loopback, replies to connections the VM started, ICMP, and *new* connections on 22, 80 and 443 only. Saved with `iptables-persistent`, so it survives a reboot. | `cloud-init.yaml` |
-| **SSH** | Keys only: `PasswordAuthentication no`, `KbdInteractiveAuthentication no`, `PermitRootLogin no`. Your public key is the only one placed on the VM, plus a separate **deploy key** that only GitHub Actions holds (as a GitHub secret). | `cloud-init.yaml`, `SECRETS` |
-| **Brute-force bans** | `fail2ban` is installed and enabled; Ubuntu's default setup watches SSH and bans addresses that keep failing. | `cloud-init.yaml` |
-| **Updates** | Package lists are updated and all packages upgraded on first boot. Later OS updates are yours to run (`sudo apt update && sudo apt upgrade`); the app updates through the Release workflow. | `cloud-init.yaml` |
-| **Containers** | One Docker network; only nginx publishes ports. The database and every service are reachable only inside it; the gateway is also bound to `127.0.0.1`. Python images run as an unprivileged `app` user, the web image as `node`. Images are public and hold no secrets. | `docker-compose.yml`, Dockerfiles |
-| **Public entry** | nginx is the only door: `/` to the web app; `/api`, `/ingest`, `/telegram/webhook` to the gateway. `server_tokens off`, HSTS, `nosniff`, `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`, 1 MB body limit. https from Let's Encrypt (certbot) or Cloudflare. | `infra/nginx` |
-| **Secrets** | `gen-secrets.py` makes random values for every password and key and writes `.env` with mode `600` on the VM. They never go in an image or in Git. GitHub holds only what the workflows need, listed in [Secrets](docs/infrastructure/SECRETS.md). | `infra/scripts`, `.env` |
-| **Backups** | A private Object Storage bucket (`NoPublicAccess`) is created for database backups. The backup script is not written yet. | `infra/terraform/modules/object_storage` |
+| **Cloud firewall** | Allows only web (80, 443) and SSH (22). Everything else is blocked. Set `ssh_ingress_cidrs = ["your-ip/32"]` to allow SSH from only you. | `infra/terraform/modules/nsg` |
+| **VM firewall** | Blocks all incoming traffic except 22, 80 and 443. Stays after reboot. | `cloud-init.yaml` |
+| **SSH** | Key login only: no passwords, no root. A separate deploy key lets GitHub Actions in. | `cloud-init.yaml`, `SECRETS` |
+| **Ban on failures** | `fail2ban` bans addresses that keep failing to log in over SSH. | `cloud-init.yaml` |
+| **Updates** | OS is updated on first boot. After that, run `sudo apt update && sudo apt upgrade` yourself. The app updates via the Release workflow. | `cloud-init.yaml` |
+| **Containers** | Only nginx is reachable from outside. Everything else stays on a private Docker network, runs as a non-root user and holds no secrets. | `docker-compose.yml`, Dockerfiles |
+| **nginx** | The only public entry, with security headers, HTTPS (Let's Encrypt or Cloudflare) and a 1 MB request limit. | `infra/nginx` |
+| **Secrets** | `gen-secrets.py` makes random passwords and keys into a private `.env` on the VM, never in an image or Git. See [Secrets](docs/infrastructure/SECRETS.md). | `infra/scripts`, `.env` |
+| **Backups** | A private bucket is ready for database backups, but the backup script is not written yet. | `infra/terraform/modules/object_storage` |
 
-Not done yet, so you know: SSH is open to the whole internet by default (fail2ban and key-only login limit the risk), unattended OS updates are not switched on, and backups are not scheduled.
+Not done yet: SSH is open to everyone by default, OS updates are not automatic, and backups are not scheduled.
 
 ## Deployment
 
