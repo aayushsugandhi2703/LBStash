@@ -5,8 +5,8 @@ import { ErrorLine } from '@/components/ui';
 import { api, ApiError } from '@/lib/api';
 import { APP_HOME, demoFailure } from '@/features/landing';
 
-/** Starts the read-only demo session (`POST /auth/demo`) and opens the app. `link` is the quiet footer version; `className` adds to the look. */
-export function DemoButton({ link = false, className = '', children = 'Try the demo' }: { link?: boolean; className?: string; children?: string }) {
+/** Starts the read-only demo session (`POST /auth/demo`) and opens the app. `link` is the quiet footer version; `arrow` adds the arrow; `className` adds to the look. */
+export function DemoButton({ link = false, arrow = false, className = '', children = 'Try the demo' }: { link?: boolean; arrow?: boolean; className?: string; children?: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -26,6 +26,7 @@ export function DemoButton({ link = false, className = '', children = 'Try the d
     <span>
       <button type="button" className={`${link ? 'link' : 'btn lg'} ${className}`} disabled={busy} onClick={() => void open()}>
         {busy ? 'Opening the demo…' : children}
+        {arrow && !busy && <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>}
       </button>
       {error && <ErrorLine>{error}</ErrorLine>}
     </span>

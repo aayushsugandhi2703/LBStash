@@ -63,7 +63,7 @@ export function Landing() {
               visual={
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14 }}>
                   <div className={`mono ${s.sms}`} style={{ flex: '1 1 240px' }}>HDFCBK: Rs 85,000.00 credited to a/c XX4321 by ACME TECHNOLOGIES.</div>
-                  <span className="mono" style={{ color: 'var(--accent)', fontSize: 20 }} aria-hidden="true">→</span>
+                  <span className="mono" style={{ color: 'var(--green-text)', fontSize: 20 }} aria-hidden="true">→</span>
                   <div><div className={s.big}>+85,000</div><span className={`mono ${s.chip}`} data-g="true" style={{ marginTop: 8 }}>#salary</span></div>
                 </div>
               }
@@ -88,7 +88,7 @@ export function Landing() {
               visual={
                 <div style={{ border: '1px solid var(--ink)', padding: '16px 18px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}><b style={{ fontWeight: 500, fontSize: 17 }}>UPI · RAMESH K</b><span className="mono">−1,200</span></div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12, flexWrap: 'wrap' }}><span className={s.fix}>needs a tag</span><span className={`mono ${s.chip}`} data-g="true">#other</span><span className="mono" style={{ fontSize: 13, color: 'var(--accent)' }}>remembered</span></div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12, flexWrap: 'wrap' }}><span className={s.fix}>needs a tag</span><span className={`mono ${s.chip}`} data-g="true">#other</span><span className="mono" style={{ fontSize: 13, color: 'var(--green-text)' }}>remembered</span></div>
                 </div>
               }
             >
@@ -121,7 +121,7 @@ export function Landing() {
                 <div className={`mono ${s.tally}`}>
                   <div className={s.tallyRow}><span>bank says</span><span>38,251</span></div>
                   <div className={s.tallyRow}><span>app says</span><span>39,101</span></div>
-                  <div className={s.tallyRow} style={{ borderBottom: 0, fontWeight: 500 }}><span style={{ color: 'inherit' }}>Unaccounted</span><span style={{ color: 'var(--danger)' }}>−850</span></div>
+                  <div className={s.tallyRow} style={{ borderBottom: 0, fontWeight: 500 }}><span style={{ color: 'inherit' }}>Unaccounted</span><span style={{ color: 'var(--red-text)' }}>−850</span></div>
                 </div>
               }
             >
@@ -176,7 +176,7 @@ export function Landing() {
               <h2 id="demo-h">Step into <b>a month.</b></h2>
               <p>Six months of sample payments, a plan, limits and a forecast, in a copy you cannot break. Like it? Make your own account. It starts empty and private.</p>
               <div className={s.actions}>
-                <DemoButton className={`${s.bigBtn} ${s.bandBtn}`} />
+                <DemoButton arrow className={`${s.bigBtn} ${s.bandBtn}`} />
                 <Link href="/create-account" className={`ghost ${s.bigGhost} ${s.bandGhost}`}>Create account</Link>
               </div>
             </div>

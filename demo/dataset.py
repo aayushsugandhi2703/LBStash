@@ -87,6 +87,8 @@ RATES: dict[str, tuple[float, float]] = {
     'other': (0.14, 0.14),
 }
 FLEXIBLE = tuple(RATES)
+# Scales every rate so a typical month keeps ₹5-15k of the ₹82-94k income after ₹42k of repeats (tuned with the data tests).
+RATE_SCALE = 0.52
 
 # What a typical hour looks like for each kind of spend (inclusive).
 HOURS: dict[str, tuple[int, int]] = {
@@ -244,7 +246,7 @@ def build(now: datetime) -> Dataset:
         weekend = day.weekday() >= 5
         n = 0
         for c in FLEXIBLE:
-            lam = RATES[c][1 if weekend else 0] * month_mult[c]
+            lam = RATES[c][1 if weekend else 0] * month_mult[c] * RATE_SCALE
             for _ in range(_poisson(rng, lam)):
                 m = rng.choices(by_cat[c], weights=[x.weight for x in by_cat[c]])[0]
                 rupees = int(round(rng.triangular(m.low, m.high, m.low + (m.high - m.low) * 0.3)))
@@ -412,6 +414,43 @@ def _planning(ds: Dataset, cat: dict[str, str]) -> None:
     for n in LIMITED:
         ds.budgets.append({'id': uid('budget', n), 'category_id': cat[n], 'category': n, 'limit_minor': plan_this[cat[n]]})
 
+    _top_up(ds, cat)
+    _alerts(ds)
+
+
+# How far through its limit each limited category should be at "day 21" of the sample (scaled down earlier in the month),
+# so the Limits and Forecast pages have a warning and a limit about to be hit whatever the random spending did.
+TARGETS = {'shopping': 0.9, 'fun': 0.78, 'food': 0.7}
+
+
+def _top_up(ds: Dataset, cat: dict[str, str]) -> None:
+    this = ds.months[-1]
+    time_share = min(1.0, ds.today.day / 21)
+    first = datetime.combine(ds.today.replace(day=1), time(12, 0), tzinfo=TZ)
+    for name, share in TARGETS.items():
+        budget = next(b for b in ds.budgets if b['category'] == name)
+        have = sum(t['amount_minor'] for t in ds.transactions if t['type'] == 'debit' and t['category_id'] == cat[name] and month_key(t['occurred_at'].date()) == this)
+        gap = int(budget['limit_minor'] * share * time_share) - have
+        if gap < 100 * PAISE:
+            continue
+        rng = random.Random(f'{SEED}:topup:{name}')
+        merchants = [m for m in MERCHANTS if m.category == name]
+        n = max(1, min(4, gap // (1500 * PAISE)))
+        each = max(100 * PAISE, round(gap / n / PAISE) * PAISE)
+        for i in range(n):
+            at = min(ds.now - timedelta(hours=2), max(first, ds.now - timedelta(days=1 + 2 * i, hours=3 + i)))
+            m = merchants[i % len(merchants)]
+            ref = _reference(rng)
+            ds.transactions.append(_tx(
+                type='debit', amount_minor=each, occurred_at=at, payee=m.payee, reference=ref, account_last4=ACCOUNT_LAST4,
+                category_id=cat[name], source='captured', status='confirmed', dedupe_key=f'ref:{ref}', device_id=ds.device['id'],
+                captured_at=at + timedelta(seconds=9), classified_by='memory',
+            ))
+    ds.transactions.sort(key=lambda t: (t['occurred_at'], t['dedupe_key']))
+
+
+def _alerts(ds: Dataset) -> None:
+    this = ds.months[-1]
     # alerts as `evaluate` raises them: once per month and level, when spending first reaches 80% and 100% of the limit
     for b in ds.budgets:
         for month in ds.months[-3:]:
