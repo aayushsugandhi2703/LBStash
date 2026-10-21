@@ -6,8 +6,7 @@
 
 .sections { display: flex; flex-direction: column; gap: 34px; }
 .section { flex: none; }
-.head { display: flex; flex-wrap: wrap; gap: 6px 24px; align-items: baseline; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid var(--ink); }
-.sentence { max-width: 880px; line-height: 1.35; margin-top: 8px; }
+.sentence { margin-top: 8px; }
 
 .legend { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: var(--fs-label); color: var(--text-2); margin: 12px 0 8px; }
 .legend span { display: inline-flex; align-items: center; gap: 8px; }
@@ -71,7 +70,7 @@
 .more { font-size: var(--fs-s); color: var(--accent); }
 
 .cols { position: relative; height: 300px; display: flex; flex-direction: column; }
-.headline { margin: 14px 0 0; max-width: 900px; line-height: 1.45; color: var(--text-2); }
+.headline { margin: 14px 0 0; }
 .list { flex: none; }
 .listHead { padding-bottom: 7px; border-bottom: 1px solid var(--ink); }
 .urow { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 20px; padding: var(--row-pad) 0; border-bottom: 1px solid var(--rule); }

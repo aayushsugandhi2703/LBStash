@@ -133,35 +133,25 @@ export function forecast(i: ForecastInput): Forecast {
   return { ...f, headline: headline(i, f) };
 }
 
-const WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
-const word = (n: number): string => WORDS[n] ?? String(n);
-
 /** "Oct 29" for a day of the month. */
 export const dayLabel = (month: string, day: number): string => `${shortMonth(month)} ${day}`;
 
-/** "two days before the month ends", "the day before the month ends", "on the last day of the month". */
-export function earlyText(daysEarly: number): string {
-  if (daysEarly <= 0) return 'on the last day of the month';
-  return daysEarly === 1 ? 'the day before the month ends' : `${word(daysEarly)} days before the month ends`;
-}
-
 /** The sentence above the chart. */
 function headline(i: ForecastInput, f: Pick<Forecast, 'flexSpentMinor' | 'daysLeft' | 'expected' | 'empty'>): string {
-  const month = monthName(i.month);
-  if (f.empty) return `Nothing flexible is spent yet in ${month}, so there is nothing to project. Log a payment in Telegram and this fills in.`;
+  if (f.empty) return 'Nothing spent yet. Log a payment in Telegram to see the forecast.';
   const end = f.expected.flexEndMinor;
   if (f.daysLeft === 0) {
-    const base = `${month} ends today with ${inr(f.flexSpentMinor)} of flexible spending`;
-    return i.planFlexMinor > 0 ? `${base}, against a plan of ${inr(i.planFlexMinor)}.` : `${base}.`;
+    const base = `${monthName(i.month)} ends with ${inr(f.flexSpentMinor)} spent`;
+    return i.planFlexMinor > 0 ? `${base} of a ${inr(i.planFlexMinor)} plan.` : `${base}.`;
   }
-  if (i.planFlexMinor <= 0) return `At this pace your flexible spending reaches ${inr(end)} by the end of ${month}. Give it a plan in Budget to see when it runs out.`;
+  if (i.planFlexMinor <= 0) return `On pace for ${inr(end)}. Set a plan in Budget to see when it runs out.`;
   const diff = end - i.planFlexMinor;
   const vs = diff > 0 ? `${inr(diff)} over` : diff < 0 ? `${inr(-diff)} under` : 'exactly on';
-  const first = `At this pace your flexible spending reaches ${inr(end)}, which is ${vs} your ${inr(i.planFlexMinor)} plan.`;
+  const first = `On pace for ${inr(end)}, ${vs} your ${inr(i.planFlexMinor)} plan.`;
   const r = f.expected.runOut;
-  if (r.kind === 'day') return `${first} The plan runs out on ${dayLabel(i.month, r.day)}, ${earlyText(r.daysEarly)}.`;
-  if (r.kind === 'over') return `${first} The plan has already run out.`;
-  return `${first} It stays inside the plan.`;
+  if (r.kind === 'day') return `${first} It runs out ${dayLabel(i.month, r.day)}.`;
+  if (r.kind === 'over') return `${first} The plan is already spent.`;
+  return first;
 }
 
 type RunOutDay = Extract<RunOut, { kind: 'day' }>;
@@ -170,12 +160,10 @@ const isDay = (r: RunOut): r is RunOutDay => r.kind === 'day';
 /** Aside figure for the run-out date. */
 export function runOutStat(f: Forecast, month: string): { value: string; note: string; tone: 'bad' | 'plain' } {
   const r = f.expected.runOut;
-  const fast = f.hasRange && isDay(f.high.runOut) ? f.high.runOut : null;
-  if (r.kind === 'noplan') return { value: '—', note: 'no plan for flexible spending', tone: 'plain' };
-  if (r.kind === 'over') return { value: 'Now', note: 'the plan is already spent', tone: 'bad' };
-  if (!isDay(r)) return { value: 'Not this month', note: fast ? `as early as ${dayLabel(month, fast.day)} if the last 7 days continue` : 'the plan lasts at this pace', tone: 'plain' };
-  const early = fast && fast.day < r.day ? `as early as ${dayLabel(month, fast.day)} · ` : '';
-  return { value: dayLabel(month, r.day), note: `${early}${r.daysEarly === 0 ? 'last day' : `${r.daysEarly} ${r.daysEarly === 1 ? 'day' : 'days'} short`}`, tone: 'bad' };
+  if (r.kind === 'noplan') return { value: '—', note: 'no plan set', tone: 'plain' };
+  if (r.kind === 'over') return { value: 'Now', note: 'plan is spent', tone: 'bad' };
+  if (!isDay(r)) return { value: 'Not this month', note: 'plan lasts', tone: 'plain' };
+  return { value: dayLabel(month, r.day), note: r.daysEarly === 0 ? 'on the last day' : `${r.daysEarly} ${r.daysEarly === 1 ? 'day' : 'days'} before month end`, tone: 'bad' };
 }
 
 /** Aside figure for the balance on the last day: "₹10,040" and its range. */
@@ -183,7 +171,7 @@ export function endStat(f: Forecast): { value: string; note: string } {
   const value = inrSigned(roundTen(f.expected.balanceEndMinor));
   if (!f.hasRange) return { value, note: 'at this pace' };
   const balances = f.scenarios.map((s) => s.balanceEndMinor);
-  return { value, note: `between ${inrSigned(roundTen(Math.min(...balances)))} and ${inrSigned(roundTen(Math.max(...balances)))}` };
+  return { value, note: `${inrSigned(roundTen(Math.min(...balances)))} to ${inrSigned(roundTen(Math.max(...balances)))}` };
 }
 
 export interface CategoryRow {

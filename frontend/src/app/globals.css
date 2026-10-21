@@ -51,6 +51,7 @@
   --fs-page-title: var(--cv-26-4-34);
   --row-pad: var(--cv-6-1p3-12);
   --bar-s: 4px;
+  --bar-m: 6px;
   --bar-l: var(--cv-10-1p7-14);
 
   /* narrow same-hue bar gradients: deeper at the base/start, normal tone at the tip/end */
@@ -289,7 +290,12 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 
 .lbl { font-family: var(--font-geist-mono), 'Geist Mono', ui-monospace, monospace; font-size: var(--fs-label); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .cap { font-size: var(--fs-s); color: var(--muted); line-height: 1.5; }
-.lead { font-size: var(--fs-lead); letter-spacing: -0.01em; line-height: 1.35; }
+.lead { font-size: var(--fs-lead); letter-spacing: -0.01em; line-height: 1.35; max-width: 880px; }
+/* the same three blocks on every page: tabs with a one-line hint, a section heading, a table header row */
+.tabbar { flex: none; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
+.sechead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 24px; padding-bottom: 10px; }
+.sechead.ruled { border-bottom: 1px solid var(--ink); }
+.th-row { padding: 10px 0; border-bottom: 1px solid var(--ink); }
 .h2 { font-size: var(--fs-h2); font-weight: 500; letter-spacing: -0.02em; }
 .fig-lg { font-size: var(--fs-fig-lg); font-weight: 300; letter-spacing: -0.035em; }
 .fig-md { font-size: var(--fs-fig-md); font-weight: 300; letter-spacing: -0.03em; }
@@ -305,7 +311,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .row-sub { font-size: var(--fs-s); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .bar-track { background: var(--track); position: relative; }
-.bar-track.s { height: var(--bar-s); }
+.bar-track.m { height: var(--bar-m); }
 .bar-track.l { height: var(--bar-l); }
 .bar-fill { height: 100%; transform-origin: left; animation: growx .9s cubic-bezier(.2, .8, .2, 1) both; transition: width .35s cubic-bezier(.2, .8, .2, 1); }
 .bar-fill[data-c="ink"] { background: var(--g-ink-h); }
@@ -319,11 +325,11 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .vbar:hover { filter: brightness(1.45); }
 .hatch { background: repeating-linear-gradient(135deg, var(--ink) 0 1.5px, transparent 1.5px 6px); }
 
-.btn { display: inline-flex; align-items: center; justify-content: center; height: 36px; padding: 0 16px; background: var(--ink); color: var(--on-ink); border: 0; font-size: var(--fs-s); font-weight: 500; cursor: pointer; transition: background .15s ease; white-space: nowrap; }
+.btn { display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 16px; background: var(--ink); color: var(--on-ink); border: 0; font-size: var(--fs-s); font-weight: 500; cursor: pointer; transition: background .15s ease; white-space: nowrap; }
 .btn.lg { height: 44px; padding: 0 28px; font-size: var(--fs-body); }
 .btn:hover:not(:disabled) { background: var(--accent); }
 .btn:disabled { opacity: .3; cursor: default; }
-.ghost { display: inline-flex; align-items: center; justify-content: center; height: 36px; padding: 0 16px; background: var(--raised); color: var(--ink); border: 1px solid var(--ink); font-size: var(--fs-s); font-weight: 500; cursor: pointer; white-space: nowrap; transition: background .12s ease, color .12s ease; }
+.ghost { display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 16px; background: var(--raised); color: var(--ink); border: 1px solid var(--ink); font-size: var(--fs-s); font-weight: 500; cursor: pointer; white-space: nowrap; transition: background .12s ease, color .12s ease; }
 .ghost:hover:not(:disabled) { background: var(--ink); color: var(--on-ink); }
 .ghost:disabled { opacity: .3; cursor: default; }
 .ghost.bad { border-color: var(--danger); color: var(--danger); }
@@ -359,6 +365,11 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .idx-bar > span { display: block; height: 100%; background: var(--g-ink-h); transform-origin: left; animation: growx .9s cubic-bezier(.2, .8, .2, 1) both; transition: width .35s cubic-bezier(.2, .8, .2, 1); }
 .idx[aria-current="true"] .idx-bar > span, .idx[aria-current="page"] .idx-bar > span { background: var(--g-accent-h); }
 .field { display: block; }
+.fld { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.boxin { height: 40px; border: 1px solid var(--disabled); border-radius: 0; background: var(--raised); padding: 0 12px; font-size: var(--fs-body); max-width: 100%; }
+.boxin:focus { border-color: var(--ink); }
+.boxin::placeholder { color: var(--placeholder); }
+.formrow { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px; margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--ink); }
 .field .lbl { display: block; margin-bottom: 4px; }
 .uline { width: 100%; border: 0; border-bottom: 1px solid var(--disabled); background: transparent; padding: 0; height: var(--cv-34-5-42); font-size: var(--fs-h2); font-weight: 300; border-radius: 0; outline-offset: 3px; }
 .uline:focus { border-bottom-color: var(--ink); }
@@ -472,6 +483,7 @@ button, a, [role="button"], [role="checkbox"] { touch-action: manipulation; }
 @media (max-width: 640px) {
   /* iOS Safari zooms into any field under 16px; classes that already set a larger size still win */
   input, select, textarea { font-size: 16px; }
+  .boxin { font-size: 16px; }
   .hdr, .signin-header { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
   .signin-header { margin-left: 0; margin-right: 0; }
   .scroller, .signin-body { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); padding-bottom: calc(var(--cv-16-3-32) + env(safe-area-inset-bottom)); }

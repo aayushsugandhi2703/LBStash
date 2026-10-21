@@ -69,8 +69,10 @@ function DemoBar() {
 }
 
 function Header({ home }: { home: Home }) {
-  const { data: me } = useMe();
+  const { data: me, error } = useMe();
   const tz = me?.timezone ?? TZ;
+  // the demo has no account to open (the bar under the header offers sign-up and exit); wait for /me so it never flashes in
+  const showAccount = me ? !me.demo : Boolean(error);
   return (
     <header className="hdr">
       <div className="hdr-row">
@@ -85,9 +87,11 @@ function Header({ home }: { home: Home }) {
             ))}
           </nav>
         </div>
-        <div className="hdr-right">
-          <AccountMenu acctPage={home === 'acct'} />
-        </div>
+        {showAccount && (
+          <div className="hdr-right">
+            <AccountMenu acctPage={home === 'acct'} />
+          </div>
+        )}
       </div>
       <MonthRuler tz={tz} />
     </header>
@@ -138,7 +142,6 @@ function AccountMenu({ acctPage }: { acctPage: boolean }) {
   }, [open]);
 
   async function signOut() {
-    if (me?.demo) { await leaveDemo(); return; }
     try { await api.post('/auth/logout'); } catch { /* the cookie is gone either way once the server answers */ }
     router.replace('/sign-in');
   }

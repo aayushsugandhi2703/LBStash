@@ -30,16 +30,19 @@ export function Segmented<T extends string>({ value, options, onChange, label }:
   );
 }
 
-/** Sub-pages of one nav item (Money: Activity | Repeats). Links, not state, so each tab keeps its own address. */
-export function SectionTabs({ label, tabs }: { label: string; tabs: { href: string; label: string; count?: number; active: boolean }[] }) {
+/** Sub-pages of one nav item (Money: Activity | Repeats). Links, not state, so each tab keeps its own address. `hint` is the one line beside the tabs. */
+export function SectionTabs({ label, tabs, hint }: { label: string; tabs: { href: string; label: string; count?: number; active: boolean }[]; hint?: ReactNode }) {
   return (
-    <nav className="tabs" aria-label={label}>
-      {tabs.map((t) => (
-        <Link key={t.href} href={t.href} className="tab" aria-current={t.active ? 'page' : undefined}>
-          {t.label}{t.count !== undefined && <span className="n mono">{t.count}</span>}
-        </Link>
-      ))}
-    </nav>
+    <div className="tabbar">
+      <nav className="tabs" aria-label={label}>
+        {tabs.map((t) => (
+          <Link key={t.href} href={t.href} className="tab" aria-current={t.active ? 'page' : undefined}>
+            {t.label}{t.count !== undefined && <span className="n mono">{t.count}</span>}
+          </Link>
+        ))}
+      </nav>
+      {hint && <span className="cap">{hint}</span>}
+    </div>
   );
 }
 
@@ -145,8 +148,8 @@ export function TallyMath({ rows, total }: { rows: { k: string; v: ReactNode; to
 }
 
 type BarColour = 'ink' | 'accent' | 'warn' | 'danger';
-/** Horizontal progress bar (small 4px / large). Fill colour is semantic and identical everywhere. */
-export function ProgressBar({ ratio, colour, size = 's', tick, label }: { ratio: number; colour: BarColour; size?: 's' | 'l'; tick?: number; label?: string }) {
+/** Horizontal progress bar (medium 6px / large 12px). Fill colour is semantic and identical everywhere. */
+export function ProgressBar({ ratio, colour, size = 'm', tick, label }: { ratio: number; colour: BarColour; size?: 'm' | 'l'; tick?: number; label?: string }) {
   const w = Math.max(0, Math.min(1, ratio)) * 100;
   return (
     <div className={`bar-track ${size}`} role="img" aria-label={label}>

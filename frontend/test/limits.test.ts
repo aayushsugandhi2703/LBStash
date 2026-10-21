@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BudgetDto } from '@/contracts';
-import { daysLeftText, headline, hitText, limitRow, limitRows, warningText } from '@/features/limits';
+import { closest, daysLeftText, headline, heading, hitDay, limitRow, limitRows, warningText } from '@/features/limits';
 
 const R = (n: number) => n * 100;
 const display = (n: string) => n.charAt(0).toUpperCase() + n.slice(1);
@@ -49,11 +49,14 @@ describe('limit rows', () => {
 });
 
 describe('headline', () => {
-  it('names the one that needs a look, then counts the others', () => {
-    expect(headline(limitRows(sample, 80, true), display)).toBe('Fun needs a look. The other 3 are fine.');
+  it('lists every limit that is close, over or spending fast', () => {
+    expect(headline(limitRows(sample, 80, true), display)).toBe('2 limits need a look: Fun and Food.');
   });
-  it('says all are on track when none are close', () => {
-    expect(headline(limitRows(sample, 90, true), display)).toBe('All four limits are on track.');
+  it('names the one that needs a look, then counts the others', () => {
+    expect(headline(limitRows([sample[0]!, sample[1]!, sample[2]!], 80, true), display)).toBe('Fun needs a look. The other 2 are fine.');
+  });
+  it('says all are on track when none are close or fast', () => {
+    expect(headline(limitRows(sample, 90, false), display)).toBe('All four limits are on track.');
     expect(headline([], display)).toBe('No limits yet.');
   });
   it('lists several', () => {
@@ -62,7 +65,7 @@ describe('headline', () => {
   });
   it('speaks about a single limit and a pair', () => {
     expect(headline(limitRows([sample[2]!], 80, true), display)).toBe('Your limit is on track.');
-    expect(headline(limitRows(sample.slice(2), 80, true), display)).toBe('Both limits are on track.');
+    expect(headline(limitRows(sample.slice(2), 80, false), display)).toBe('Both limits are on track.');
     expect(headline(limitRows([sample[1]!], 80, true), display)).toBe('Fun needs a look.');
   });
 });
@@ -82,21 +85,40 @@ describe('small copy', () => {
   });
 });
 
-describe('hitText', () => {
+describe('hitDay', () => {
   // October, day 21 of 31
   const t = { month: '2026-10', day: 21, days: 31 };
   it('names the day the pace reaches the limit and how far away it is', () => {
-    expect(hitText({ spentMinor: R(6420), limitMinor: R(7000) }, t)).toBe('At this pace you hit it on Oct 23, in 2 days');
-    expect(hitText({ spentMinor: R(4280), limitMinor: R(5500) }, t)).toBe('At this pace you hit it on Oct 27, in 6 days');
+    expect(hitDay({ spentMinor: R(6420), limitMinor: R(7000) }, t)).toEqual({ day: 23, away: 2 });
+    expect(hitDay({ spentMinor: R(4280), limitMinor: R(5500) }, t)).toEqual({ day: 27, away: 6 });
   });
   it('is null when the pace stays inside, or nothing is spent', () => {
-    expect(hitText({ spentMinor: R(1180), limitMinor: R(2500) }, t)).toBeNull();
-    expect(hitText({ spentMinor: 0, limitMinor: R(2500) }, t)).toBeNull();
+    expect(hitDay({ spentMinor: R(1180), limitMinor: R(2500) }, t)).toBeNull();
+    expect(hitDay({ spentMinor: 0, limitMinor: R(2500) }, t)).toBeNull();
   });
   it('is null once the limit is passed', () => {
-    expect(hitText({ spentMinor: R(7000), limitMinor: R(7000) }, t)).toBeNull();
+    expect(hitDay({ spentMinor: R(7000), limitMinor: R(7000) }, t)).toBeNull();
   });
-  it('says in 1 day when it lands tomorrow', () => {
-    expect(hitText({ spentMinor: R(6900), limitMinor: R(7000) }, { month: '2026-10', day: 21, days: 31 })).toBe('At this pace you hit it on Oct 22, in 1 day');
+  it('lands tomorrow when one more day is enough', () => {
+    expect(hitDay({ spentMinor: R(6900), limitMinor: R(7000) }, t)).toEqual({ day: 22, away: 1 });
+  });
+});
+
+describe('the rows of the table', () => {
+  const t = { month: '2026-10', day: 21, days: 31 };
+  const shop = limitRow(b('shopping', 6420, 7000, 9480), 80, true);
+  it('says when the limit is hit and what pace keeps it', () => {
+    expect(heading(shop, t)).toEqual({ text: 'Hits the limit Oct 23', when: 'in 2 days', bad: true, note: 'Safe pace ₹58 a day. You spend ₹306.' });
+  });
+  it('says a limit stays inside when the pace is under it', () => {
+    expect(heading(limitRow(b('health', 1180, 2500, 1740), 80, true), t)).toMatchObject({ text: 'Stays inside the limit', bad: false });
+  });
+  it('says by how much a limit is passed', () => {
+    expect(heading(limitRow(b('food', 8350, 8000, 14000), 80, true), t)).toEqual({ text: 'Over by ₹350', when: '', bad: true, note: '' });
+  });
+  it('names the limit that is hit first', () => {
+    const rows = [shop, limitRow(b('fun', 4280, 5500, 6320), 80, true)];
+    expect(closest(rows, t)).toEqual({ name: 'shopping', date: 'Oct 23' });
+    expect(closest([limitRow(b('health', 1180, 2500, 1740), 80, true)], t)).toBeNull();
   });
 });

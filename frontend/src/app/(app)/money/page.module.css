@@ -1,11 +1,10 @@
-/* tab bar above the strips, apart from the page's first rule */
-.tabs { margin-bottom: 16px; }
 .strip { margin-top: 0; border-top: 0; }
 .top { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid var(--ink); margin-top: 12px; }
 .count { font-size: var(--fs-s); color: var(--muted); }
 .tableWrap { overflow-x: auto; flex: 1; display: flex; flex-direction: column; min-height: 200px; }
 .table { min-width: 640px; flex: 1; display: flex; flex-direction: column; min-height: 0; }
-.thead { display: flex; gap: 20px; padding: 10px 12px 10px 0; border-bottom: 1px solid var(--rule); }
+.thead { display: flex; gap: 20px; }
+.tableWrap .thead { padding-right: 12px; }
 .panel { flex: 1; min-height: 150px; overflow-y: auto; border-bottom: 1px solid var(--rule); }
 .stale { opacity: .5; }
 .cDate { width: 58px; flex: none; }

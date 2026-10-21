@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { BudgetDto, RecurringRuleDto } from '@/contracts';
 import {
-  categoryRows, dailyRates, earlyText, endStat, flexibleEnd, flexibleLines, forecast, forecastChart, type ForecastInput, limitsById, repeatsLeft, roundTen, runOut, runOutStat, verdictText,
+  categoryRows, dailyRates, endStat, flexibleEnd, flexibleLines, forecast, forecastChart, type ForecastInput, limitsById, repeatsLeft, roundTen, runOut, runOutStat, verdictText,
 } from '@/features/forecast';
 
 const R = (n: number) => n * 100;
@@ -118,35 +118,35 @@ describe('forecast', () => {
     expect(f.spendingNowMinor).toBe(R(1250));
   });
   it('writes the headline', () => {
-    expect(f.headline).toBe('At this pace your flexible spending reaches ₹38,820, which is ₹2,820 over your ₹36,000 plan. The plan runs out on Oct 29, two days before the month ends.');
+    expect(f.headline).toBe('On pace for ₹38,820, ₹2,820 over your ₹36,000 plan. It runs out Oct 29.');
   });
   it('writes the aside figures', () => {
-    expect(runOutStat(f, '2026-10')).toEqual({ value: 'Oct 29', note: expect.stringContaining('2 days short'), tone: 'bad' });
+    expect(runOutStat(f, '2026-10')).toEqual({ value: 'Oct 29', note: '2 days before month end', tone: 'bad' });
     expect(endStat(f).value).toBe('₹10,050');
-    expect(endStat(f).note).toMatch(/^between ₹\d/);
+    expect(endStat(f).note).toMatch(/^₹[\d,]+ to ₹[\d,]+$/);
   });
 
   it('says it stays inside the plan when it does', () => {
     const calm = forecast(input({ planFlexMinor: R(50000) }));
-    expect(calm.headline).toContain('₹11,180 under your ₹50,000 plan. It stays inside the plan.');
+    expect(calm.headline).toBe('On pace for ₹38,820, ₹11,180 under your ₹50,000 plan.');
     expect(runOutStat(calm, '2026-10').value).toBe('Not this month');
   });
   it('says the plan has run out when it is spent', () => {
     const spent = forecast(input({ planFlexMinor: R(20000) }));
     expect(spent.expected.runOut).toEqual({ kind: 'over' });
-    expect(spent.headline).toContain('The plan has already run out.');
+    expect(spent.headline).toContain('The plan is already spent.');
     expect(spent.safePerDayMinor).toBe(0);
   });
   it('works without a plan', () => {
     const none = forecast(input({ planFlexMinor: 0 }));
     expect(none.safePerDayMinor).toBeNull();
-    expect(none.headline).toBe('At this pace your flexible spending reaches ₹38,820 by the end of October. Give it a plan in Budget to see when it runs out.');
+    expect(none.headline).toBe('On pace for ₹38,820. Set a plan in Budget to see when it runs out.');
     expect(runOutStat(none, '2026-10').value).toBe('—');
   });
   it('is honest before anything is spent', () => {
     const empty = forecast(input({ dailyMinor: Array<number>(31).fill(0), spentSoFarMinor: 0 }));
     expect(empty.empty).toBe(true);
-    expect(empty.headline).toContain('Nothing flexible is spent yet in October');
+    expect(empty.headline).toContain('Nothing spent yet');
     expect(JSON.stringify(empty)).not.toMatch(/NaN|null.*Infinity/);
   });
   it('copes with day 1', () => {
@@ -159,16 +159,7 @@ describe('forecast', () => {
     const last = forecast(input({ dayOfMonth: 31, dailyMinor: [...DAILY, ...Array<number>(10).fill(R(100))], repeatsLeftMinor: 0 }));
     expect(last.daysLeft).toBe(0);
     expect(last.hasRange).toBe(false);
-    expect(last.headline).toBe('October ends today with ₹27,300 of flexible spending, against a plan of ₹36,000.');
-  });
-});
-
-describe('earlyText', () => {
-  it('reads as a phrase', () => {
-    expect(earlyText(0)).toBe('on the last day of the month');
-    expect(earlyText(1)).toBe('the day before the month ends');
-    expect(earlyText(2)).toBe('two days before the month ends');
-    expect(earlyText(12)).toBe('12 days before the month ends');
+    expect(last.headline).toBe('October ends with ₹27,300 spent of a ₹36,000 plan.');
   });
 });
 

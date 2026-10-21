@@ -53,14 +53,15 @@ export default function RepeatsPage() {
     : !data || !today ? <Loading>loading…</Loading> : null;
 
   return (
-    <AppShell home="money" glyph="money" title="Money" description="Payments that leave on their own post on the due date. Everything else is in Activity." aside={aside}>
-      <div className={s.tabs}>
-        <SectionTabs label="Money" tabs={[
+    <AppShell home="money" glyph="money" title="Money" description="Everything that left or came in, and what repeats next." aside={aside}>
+      <SectionTabs
+        label="Money" hint="Payments that leave on their own. They post on the due date."
+        tabs={[
           { href: '/money', label: 'Activity', active: false },
           { href: '/money/repeats', label: 'Repeats', count: data ? rules.length : undefined, active: true },
-        ]} />
-      </div>
-      <div className={s.head}>
+        ]}
+      />
+      <div className="sechead">
         <h2 className="h2">The next 30 days</h2>
         <div className="lbl" style={{ textTransform: 'none' }}>stem height = amount{today ? ` · ${rangeText(today.today)}` : ''}</div>
       </div>

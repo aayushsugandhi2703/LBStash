@@ -41,16 +41,16 @@ export function trendStats(m: ReportMonthsRes): TrendStat[] {
   ];
 }
 
-/** "You keep about ₹5,940 a month. October is heading for ₹3,280, a tighter month than usual." (null before a full month). */
+/** "You keep about ₹5,940 a month. October is on pace for ₹3,280, below usual." (null before a full month). */
 export function headline(m: ReportMonthsRes): string | null {
   const cur = m.items[m.items.length - 1];
   if (m.averages.fullMonths === 0 || !cur?.pace) return null;
   const avg = wholeRupees(m.averages.avgKeptMinor);
   const pace = wholeRupees(cur.pace.paceKeptMinor);
   const diff = pace - avg;
-  const verdict = diff < 0 ? 'a tighter month than usual' : diff > 0 ? 'a better month than usual' : 'a usual month';
+  const verdict = diff < 0 ? 'below usual' : diff > 0 ? 'above usual' : 'a usual month';
   const s1 = avg >= 0 ? `You keep about ${inr(avg)} a month.` : `You spend about ${inr(avg)} more than you earn in a month.`;
-  const s2 = pace >= 0 ? `${monthName(cur.month)} is heading for ${inr(pace)}` : `${monthName(cur.month)} is heading for ${inr(pace)} short`;
+  const s2 = pace >= 0 ? `${monthName(cur.month)} is on pace for ${inr(pace)}` : `${monthName(cur.month)} is on pace for ${inr(pace)} short`;
   return `${s1} ${s2}, ${verdict}.`;
 }
 
