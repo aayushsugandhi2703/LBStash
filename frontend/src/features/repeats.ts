@@ -98,6 +98,12 @@ export function ticks(today: string): { day: number; leftPct: number; label: str
 export function committedRows(rules: RecurringRuleDto[]): { id: string; label: string; amountMinor: number; off: boolean }[] {
   return rules.map((r, i) => ({ id: r.id, label: `${i === 0 ? '' : '+ '}${r.name.toLowerCase()}`, amountMinor: r.amountMinor, off: !isOn(r) }));
 }
+/** The running rule that leaves next (earliest due day, then name), or null when none is running. */
+export function nextRule(rules: RecurringRuleDto[]): RecurringRuleDto | null {
+  const on = rules.filter(isOn);
+  return on.length === 0 ? null : on.reduce((a, b) => (b.nextDue < a.nextDue || (b.nextDue === a.nextDue && b.name < a.name) ? b : a));
+}
+
 export const committedTotal = (rules: RecurringRuleDto[]): number => rules.filter(isOn).reduce((s, r) => s + r.amountMinor, 0);
 
 /** The list as the server keeps it: next due first, then by name. */

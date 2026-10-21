@@ -30,6 +30,8 @@ Every backend service is Python 3.12 + FastAPI. The web app is the only TypeScri
 
 Web code: logo, name and icons in `frontend/src/brand` (import from `@/brand`; SVGs in `frontend/public/brand`). The web app keeps browser-side copies in `src/common` (money, month maths, tag and password rules, so pages promise what the server enforces) and `src/contracts` (response types). The Python models are the source of truth; `infra/scripts/e2e.py` keeps the two honest.
 
+Web pages: `/welcome` (About, shown at `/` to visitors without a session by `src/proxy.ts`), the auth pages, and the signed-in app: Now (`/`), Money (`/money`, `/money/repeats`, `/money/unread`), Budget (`/budget`, `/budget/limits`), Forecast (`/forecast`), Account and Setup. The old addresses (`/transactions`, `/repeats`, `/plan`, `/limits`, `/trends`, `/credit`) redirect in `next.config.mjs`. The Forecast is worked out in the browser (`src/features/forecast.ts`) from existing report, plan, limit and repeat endpoints; no new backend route.
+
 ## Rules of the road
 
 1. **A service owns its data.** One Postgres, one schema and one login role per service (`svc_transactions` owns `transactions`). Never read another service's tables; call its API. Cross-service joins happen in code (usually `reports`).
@@ -41,6 +43,8 @@ Web code: logo, name and icons in `frontend/src/brand` (import from `@/brand`; S
 7. **Derive, don't duplicate.** Balance, spend, pace and trends are computed on read, with no cached totals. The metric functions live in `lbstash.common`.
 8. **No sensitive data in logs.** Ids and outcome codes only (the logger also redacts common fields).
 9. **Reuse before writing.** Logic two services need goes in `backend/packages/lbstash`, not copied.
+
+**Public demo (opt-in).** With `DEMO_MODE=true` (set only by the `demo/` docker-compose overlay, never by the main compose file) `POST /auth/demo` starts a normal session for the one account `DEMO_USER_ID`, with no password or second step; with the flag off the route answers 404 like any unknown path. The gateway then refuses every write (POST, PUT, PATCH, DELETE) of that user with 403 except sign-out, so the demo can look but not change, link a bot or touch security settings, and `GET /me` reports `demo: true` for the web banner. The route takes no input, so it can never sign in another account; the address list, cookies and refresh rotation work as for anyone. The demo user does not close `REGISTRATION=first-only`.
 
 ## Request paths
 
@@ -76,7 +80,7 @@ Typed in `lbstash.clients`; payloads in `lbstash.contracts`. Paths are the contr
 | Name | From → To | Meaning |
 |---|---|---|
 | `transaction.changed` (event) | transactions → planning, telegram | insert / update / tag / delete; carries affected category ids |
-| `credit.added` (event) | transactions → planning | hand-added credit with "add to plan" |
+| `credit.added` (event) | transactions → planning | credit added through `POST /credits` with "add to plan" (the web app no longer has an Add credit page: money in is logged in Telegram, which uses the internal manual-entry path) |
 | `alert.created` (event) | planning → telegram | a limit crossed its level (once per budget, period, level) |
 | `unparsed.created` (event) | ingest → telegram | a message could not be read |
 | `account.deleted` (event) | auth → all data services | purge the user's rows |
@@ -121,4 +125,4 @@ Health checks run on every container (`docker compose ps`). Logs hold ids and ou
 - `frontend/Dockerfile` is self-contained (Node 24, Next.js standalone build, context `frontend`).
 - `docker-compose.yml` is the only compose file: `db` → `db-init` → services → `gateway` → `nginx`, plus `web`. `docker compose up --build` starts it all. On the host: `nginx` (80 and 443, plus plain http on `PUBLIC_PORT`, default 8088) and the gateway on `127.0.0.1` only (`GATEWAY_PORT`, default 3010, used by `infra/scripts/e2e.py`). Images are `${REGISTRY}lbstash-<name>:${IMAGE_TAG}`, so `docker compose build && docker compose push` publishes them all.
 - The `test` profile adds `test-db`: throwaway Postgres on `127.0.0.1:5544` (`docker compose --profile test up -d test-db`).
-- Hosting: `infra/terraform` builds a free Oracle Cloud VM that runs this compose file. Images are built for amd64 and arm64 and stored on Docker Hub; the server pulls `:latest`. See [SERVER_SETUP](../infrastructure/SERVER_SETUP.md) and [RELEASE](RELEASE.md).
+- Hosting: `infra/terraform` builds a free Oracle Cloud VM that runs this compose file. Images are built for amd64 and arm64 and stored on Docker Hub; the server pulls `:latest`. See [Server setup](../infrastructure/SERVER_SETUP.md) and [Release and deploy](RELEASE.md).

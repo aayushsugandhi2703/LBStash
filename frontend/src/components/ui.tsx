@@ -30,6 +30,19 @@ export function Segmented<T extends string>({ value, options, onChange, label }:
   );
 }
 
+/** Sub-pages of one nav item (Money: Activity | Repeats). Links, not state, so each tab keeps its own address. */
+export function SectionTabs({ label, tabs }: { label: string; tabs: { href: string; label: string; count?: number; active: boolean }[] }) {
+  return (
+    <nav className="tabs" aria-label={label}>
+      {tabs.map((t) => (
+        <Link key={t.href} href={t.href} className="tab" aria-current={t.active ? 'page' : undefined}>
+          {t.label}{t.count !== undefined && <span className="n mono">{t.count}</span>}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
 export function Stepper({ glyph, label, onClick, disabled }: { glyph: string; label: string; onClick: () => void; disabled?: boolean }) {
   return <button type="button" className="stepper" aria-label={label} disabled={disabled} onClick={onClick}>{glyph}</button>;
 }

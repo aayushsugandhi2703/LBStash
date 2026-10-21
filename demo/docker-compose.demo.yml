@@ -1,0 +1,37 @@
+# The public demo, as an overlay on the main compose file. Nothing in the main file changes.
+#
+#   python3 demo/setup.py                      (once: writes demo/.env with the demo password and authenticator secret)
+#   docker compose --env-file .env --env-file demo/.env \
+#     -f docker-compose.yml -f demo/docker-compose.demo.yml up -d --build
+#
+# Run from the lbstash folder. It does three things:
+#   - turns DEMO_MODE on for auth and the gateway: "Try the demo" signs in the demo user without a password and every
+#     write by that user is refused (read-only);
+#   - starts `demo-seed`, which fills the database with six months of sample data and moves the dates forward every few hours;
+#   - leaves everything else (your own account, Telegram, the database) as it is.
+# To remove the demo: start the stack again without this file. The demo user's rows stay until you delete them (see demo/README.md).
+
+services:
+  auth:
+    environment:
+      DEMO_MODE: "true"
+
+  gateway:
+    environment:
+      DEMO_MODE: "true"
+
+  demo-seed:
+    image: ${REGISTRY:-}lbstash-base:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    networks: [internal]
+    depends_on:
+      db-init: { condition: service_completed_successfully }
+    volumes: ["./demo:/demo:ro"]
+    command: ["python", "/demo/seed.py", "--loop"]
+    environment:
+      ADMIN_DATABASE_URL: postgres://${POSTGRES_USER:-lbstash_admin}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-lbstash}
+      FIELD_KEY: ${FIELD_KEY}
+      DEMO_EMAIL: ${DEMO_EMAIL:-demo@lbstash.site}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:?run python3 demo/setup.py and pass --env-file demo/.env}
+      DEMO_TOTP_SECRET: ${DEMO_TOTP_SECRET:-}
+      DEMO_REFRESH_HOURS: ${DEMO_REFRESH_HOURS:-6}

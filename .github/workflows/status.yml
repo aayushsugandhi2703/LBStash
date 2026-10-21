@@ -4,7 +4,7 @@ name: Update status badge
 # "status" branch (so it never clutters main). The README badge reads that file
 # through shields.io. No extra account or secret: it uses the workflow's own token.
 # The address comes from DOMAIN in .env.example, the same place the server gets it.
-# Setup: see docs/SECRETS.md.
+# Setup: see docs/infrastructure/SECRETS.md.
 
 on:
   schedule:
@@ -25,7 +25,8 @@ jobs:
         run: |
           CHECK_URL="https://$(grep -E '^DOMAIN=' .env.example | cut -d= -f2)/"
           # curl prints "000 <seconds>" when the site cannot be reached, so this never fails the step.
-          read -r code secs < <(curl -s -o /dev/null -w "%{http_code} %{time_total}" --max-time 10 "$CHECK_URL" || true)
+          # Its output has no trailing newline, so `read` hits EOF and returns 1: the `|| true` keeps `bash -e` going.
+          read -r code secs < <(curl -s -o /dev/null -w "%{http_code} %{time_total}" --max-time 10 "$CHECK_URL" || true) || true
           code="${code:-000}"
           ms=$(awk -v s="${secs:-0}" 'BEGIN { printf "%d", s * 1000 }')
 

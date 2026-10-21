@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from .base import Int, Model, TimeStr
+from .base import Bool, Int, Model, TimeStr
 from .planning import PlanningSettings, PlanningSettingsPatch
 from .telegram import TelegramSettings, TelegramSettingsPatch
 from .transactions import TransactionSettings, TransactionSettingsPatch
@@ -30,3 +30,5 @@ class MeDto(Model):
     alert_badge_count: Int
     needs_look_count: Int
     untagged_count: Int
+    # the public read-only demo account (see DEMO_MODE): the web app shows a banner and expects writes to be refused
+    demo: Bool = False

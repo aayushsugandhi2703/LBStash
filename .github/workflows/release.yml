@@ -13,9 +13,9 @@ name: Release
 #   2. Builds every image for amd64 and arm64 and pushes :<version> and :latest to Docker Hub.
 #   3. Deploys to the Oracle Cloud server: it pulls :latest and restarts (untick "deploy" to skip).
 #   4. Deletes older version tags from Docker Hub.
-#   5. Bumps frontend/package.json, adds an entry to docs/application/CHANGELOG.md, commits and tags vX.Y.Z.
+#   5. Bumps frontend/package.json, adds an entry to docs/release/CHANGELOG.md, commits and tags vX.Y.Z.
 # Steps 4 and 5 only run when everything before them worked.
-# Setup (secrets, variables, first run): see docs/SECRETS.md, docs/infrastructure/SERVER_SETUP.md and docs/application/RELEASE.md.
+# Setup (secrets, variables, first run): see docs/infrastructure/SECRETS.md, docs/infrastructure/SERVER_SETUP.md and docs/application/RELEASE.md.
 
 on:
   workflow_dispatch:
@@ -168,6 +168,8 @@ jobs:
     env:
       VM_HOST: ${{ secrets.VM_HOST }}
       LETSENCRYPT_EMAIL: ${{ vars.LETSENCRYPT_EMAIL }}
+      # "true" starts the public read-only demo (demo/docker-compose.demo.yml) next to the app; anything else leaves it off.
+      DEMO_ENABLED: ${{ vars.DEMO_ENABLED }}
     steps:
       - uses: actions/checkout@v4
 
@@ -187,13 +189,14 @@ jobs:
           ssh vm 'mkdir -p ~/lbstash'
           rsync -az --relative \
             docker-compose.yml .env.example infra/scripts/gen-secrets.py \
+            demo/docker-compose.demo.yml demo/seed.py demo/dataset.py demo/setup.py \
             infra/nginx/entrypoint.sh infra/nginx/templates infra/nginx/snippets infra/nginx/certbot/entrypoint.sh \
             vm:lbstash/
 
       # The images are public on Docker Hub, so the server needs no login to pull them.
       - name: Update the app
         run: |
-          ssh vm "REGISTRY='$REGISTRY' IMAGE_TAG='latest' LETSENCRYPT_EMAIL='$LETSENCRYPT_EMAIL' bash -s" <<'REMOTE'
+          ssh vm "REGISTRY='$REGISTRY' IMAGE_TAG='latest' LETSENCRYPT_EMAIL='$LETSENCRYPT_EMAIL' DEMO_ENABLED='$DEMO_ENABLED' bash -s" <<'REMOTE'
           set -euo pipefail
           cd ~/lbstash
 
@@ -211,8 +214,16 @@ jobs:
           set_env DOMAIN "$domain"
           set_env PUBLIC_URL "https://$domain"
 
-          docker compose pull
-          docker compose up -d --remove-orphans
+          # With the demo on, the demo overlay and its secrets (made once, kept in demo/.env) are part of every compose call.
+          if [ "${DEMO_ENABLED:-}" = "true" ]; then
+            [ -f demo/.env ] || python3 demo/setup.py
+            COMPOSE="docker compose --env-file .env --env-file demo/.env -f docker-compose.yml -f demo/docker-compose.demo.yml"
+          else
+            COMPOSE="docker compose"
+          fi
+          echo "$COMPOSE" > .compose-cmd # the check step below, and rollbacks by hand, use the same files
+          $COMPOSE pull
+          $COMPOSE up -d --remove-orphans
           docker image prune -f
           REMOTE
 
@@ -220,7 +231,7 @@ jobs:
       - name: Check the app is up
         run: |
           ssh vm 'port=$(grep -E "^PUBLIC_PORT=" ~/lbstash/.env | cut -d= -f2); curl -fsS --retry 120 --retry-delay 5 --retry-connrefused -o /dev/null "http://127.0.0.1:${port:-8088}/"'
-          ssh vm 'cd ~/lbstash && docker compose ps'
+          ssh vm 'cd ~/lbstash && $(cat .compose-cmd) ps'
 
   # ---------------------------------------------------------------
   # 5. Finish: clean up old tags, then record the release
@@ -266,7 +277,7 @@ jobs:
         working-directory: frontend
 
       # Built from the commit log since the last vX.Y.Z tag. A plain record of what shipped.
-      - name: Update docs/application/CHANGELOG.md
+      - name: Update docs/release/CHANGELOG.md
         run: |
           PREV_TAG=$(git tag --list 'v*' --sort=-v:refname | head -n1)
           if [ -n "$PREV_TAG" ]; then
@@ -281,7 +292,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add frontend/package.json frontend/package-lock.json docs/application/CHANGELOG.md
+          git add frontend/package.json frontend/package-lock.json docs/release/CHANGELOG.md
           git commit -m "Release v$VERSION"
           git tag "v$VERSION"
           git pull --rebase origin main

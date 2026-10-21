@@ -20,6 +20,7 @@ from gateway_helpers import (
     login,
     raw_status,
 )
+from lbstash.common import DEMO_USER_ID
 from lbstash.crypto import InternalClaims, sign_access_token
 
 MakeGw = Callable[..., Awaitable[Gateway]]
@@ -366,7 +367,7 @@ class TestComposedRoutes:
         lg = signed_in()
         res = await gw.get('/api/me', headers=lg.headers)
         assert res.status_code == 200
-        assert res.json() == {**self.user, 'alertBadgeCount': 2, 'needsLookCount': 3, 'untaggedCount': 4}
+        assert res.json() == {**self.user, 'alertBadgeCount': 2, 'needsLookCount': 3, 'untaggedCount': 4, 'demo': False}
         assert fakes.transactions.last().url == f'/internal/aggregates/summary?month={self.month}'
         assert fakes.auth.claims().proxied is False  # the gateway's own calls are not "from outside"
 
@@ -374,7 +375,7 @@ class TestComposedRoutes:
         fakes.planning.handler = lambda _s: Reply(500, {'error': {'code': 'internal', 'message': 'x'}})
         res = await gw.get('/me', headers=signed_in().headers)
         assert res.status_code == 200
-        assert res.json() == {**self.user, 'alertBadgeCount': 0, 'needsLookCount': 3, 'untaggedCount': 4}
+        assert res.json() == {**self.user, 'alertBadgeCount': 0, 'needsLookCount': 3, 'untaggedCount': 4, 'demo': False}
 
     async def test_get_me_degrades_a_slow_optional_dependency_to_0_after_2_5_seconds(self, gw: Gateway, fakes: Fakes, signed_in, monkeypatch) -> None:
         from lbstash_gateway import compose
@@ -667,3 +668,66 @@ class TestRateLimits:
             assert (await gw.get('/transactions', headers={'cookie': 'lbstash_access=garbage'})).status_code == 401
         assert (await gw.get('/transactions', headers={'cookie': 'lbstash_access=garbage'})).status_code == 429
         assert session_checks(fakes) == 0
+
+
+class TestDemoAccount:
+    """DEMO_MODE: the demo user may read and sign out, nothing else; with it off, or for anyone else, nothing changes."""
+
+    refused = 'This is a demo, so it is read-only. Create an account to make changes.'
+
+    @pytest.fixture(autouse=True)
+    def _me(self, fakes: Fakes, alive: set[str]) -> None:
+        summary = {'month': '2026-10', 'untaggedCount': 0, 'unaccountedCount': 0, 'carriedOverMinor': 0, 'incomeMinor': 0, 'spentMinor': 0, 'availableMinor': 0, 'lastCapturedAt': None}
+        user = {'id': DEMO_USER_ID, 'email': 'demo@example.com', 'name': 'Demo', 'timezone': 'Asia/Kolkata', 'pendingEmail': None, 'deleteAfter': None}
+        auth_fake(fakes.auth, alive, lambda s: Reply(body={'user': user}) if s.url == '/internal/me' else None)
+        fakes.planning.handler = lambda _s: Reply(body={'unreadCount': 0, 'items': []})
+        fakes.ingest.handler = lambda _s: Reply(body={'open': 0})
+        fakes.transactions.handler = lambda _s: Reply(body=summary)
+
+    async def test_refuses_every_write_of_the_demo_user_before_anything_is_forwarded(self, make_gw: MakeGw, fakes: Fakes, signed_in) -> None:
+        gw = await make_gw(DEMO_MODE=True)
+        lg = signed_in(sub=DEMO_USER_ID)
+        for method, url in [('POST', '/credits'), ('PUT', '/plans/2026-10'), ('PATCH', '/settings'), ('PATCH', '/me'), ('DELETE', '/recurring/x'), ('POST', '/account/delete')]:
+            res = await gw.request(method, url, headers={**lg.headers, **JSON}, content='{}')
+            assert res.status_code == 403, (method, url)
+            assert res.json()['error']['message'] == self.refused
+            assert res.json()['error']['details'] == {'demoReadOnly': True}
+        assert fakes.non_check() == []
+
+    async def test_still_lets_the_demo_user_read_and_sign_out_and_renew_or_restart_the_session(self, make_gw: MakeGw, fakes: Fakes, signed_in) -> None:
+        gw = await make_gw(DEMO_MODE=True)
+        lg = signed_in(sub=DEMO_USER_ID)
+        assert (await gw.get('/transactions', headers=lg.headers)).status_code == 200
+        assert (await gw.get('/settings', headers=lg.headers)).status_code == 200
+        assert (await gw.request('POST', '/auth/logout', headers=lg.headers)).status_code == 200
+        assert fakes.auth.last().url == '/auth/logout'
+        # public paths are never stopped for the demo cookie
+        assert (await gw.request('POST', '/auth/refresh', headers={'cookie': lg.cookie})).status_code == 200
+        assert (await gw.request('POST', '/auth/demo', headers={'cookie': lg.cookie})).status_code == 200
+
+    async def test_leaves_other_users_alone_and_does_nothing_when_demo_mode_is_off(self, make_gw: MakeGw, signed_in) -> None:
+        on = await make_gw(DEMO_MODE=True)
+        other = signed_in(sub=USER)
+        assert (await on.request('POST', '/credits', headers={**other.headers, **JSON}, content='{}')).status_code == 200
+        off = await make_gw()
+        demo = signed_in(sub=DEMO_USER_ID)
+        assert (await off.request('POST', '/credits', headers={**demo.headers, **JSON}, content='{}')).status_code == 200
+
+    async def test_get_me_says_demo_only_for_the_demo_user_in_demo_mode(self, make_gw: MakeGw, fakes: Fakes, alive: set[str], signed_in) -> None:
+        assert (await (await make_gw(DEMO_MODE=True)).get('/me', headers=signed_in(sub=DEMO_USER_ID).headers)).json()['demo'] is True
+        assert (await (await make_gw()).get('/me', headers=signed_in(sub=DEMO_USER_ID).headers)).json()['demo'] is False
+        not_demo = {'id': USER, 'email': 'a@b.c', 'name': None, 'timezone': 'Asia/Kolkata', 'pendingEmail': None, 'deleteAfter': None}
+        auth_fake(fakes.auth, alive, lambda s: Reply(body={'user': not_demo}) if s.url == '/internal/me' else None)
+        assert (await (await make_gw(DEMO_MODE=True)).get('/me', headers=signed_in(sub=USER).headers)).json()['demo'] is False
+
+    async def test_the_demo_sign_in_has_its_own_per_ip_limit(self, make_gw: MakeGw) -> None:
+        gw = await make_gw(RATE_LIMIT_DEMO_PER_15_MIN=2)
+
+        def start(ip: str):
+            return gw.request('POST', '/auth/demo', headers={**JSON, 'x-forwarded-for': ip}, content='{}')
+
+        assert [(await start('7.7.7.7')).status_code for _ in range(2)] == [200, 200]
+        assert (await start('7.7.7.7')).status_code == 429
+        assert (await start('8.8.8.8')).status_code == 200
+        # login keeps its own bucket
+        assert (await gw.request('POST', '/auth/login', headers={**JSON, 'x-forwarded-for': '7.7.7.7'}, content='{}')).status_code == 200

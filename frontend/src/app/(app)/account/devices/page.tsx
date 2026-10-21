@@ -61,7 +61,7 @@ export default function DevicesPage() {
           <Sq kind={bank.kind === 'wait' ? 'wait' : bank.kind === 'none' ? 'wait' : 'ok'} />
           <span><span style={{ display: 'block', fontSize: 'var(--fs-body)', fontWeight: 500 }}>Last balance check</span><span className={`mono ${s.mono11}`} style={{ display: 'block', marginTop: 2, lineHeight: 1.5 }}>{checks.data ? bank.text : checks.error ? 'could not read the last check' : 'loading…'}</span></span>
         </span>
-        <GhostLink href="/transactions?check=1">Check now</GhostLink>
+        <GhostLink href="/money?check=1">Check now</GhostLink>
       </div>
       <SettingsRow title="Wait before booking a gap" sub="Wait this long for a late message before booking the gap as Unaccounted.">
         <span className={`mono ${s.mono13}`}>{settings.data ? `${settings.data.reconcileGraceHours} ${settings.data.reconcileGraceHours === 1 ? 'hour' : 'hours'}` : '—'}</span>

@@ -1,5 +1,6 @@
 import { limitStatus, type LimitStatus } from '@/common';
 import type { BudgetDto } from '@/contracts';
+import { dayLabel, runOut } from './forecast';
 
 /** Limits page logic. Statuses are recomputed here so changing the alert level or the pace switch answers at once. */
 
@@ -79,4 +80,12 @@ export function warningText(a: AlertItem, budgets: BudgetDto[], level: number, d
   if (a.level === 'exceeded') return `${display(a.categoryName)} went over its limit`;
   const b = budgets.find((x) => x.id === a.budgetId);
   return `${display(a.categoryName)} passed ${b?.warnPct ?? level}%`;
+}
+
+/** "At this pace you hit it on Oct 23, in 2 days". Null when the pace stays inside the limit, or it is already passed (the status says so). */
+export function hitText(r: Pick<LimitRow, 'spentMinor' | 'limitMinor'>, t: { month: string; day: number; days: number }): string | null {
+  const o = runOut({ planMinor: r.limitMinor, spentMinor: r.spentMinor, rateMinor: t.day > 0 ? r.spentMinor / t.day : 0, dayOfMonth: t.day, daysInMonth: t.days });
+  if (o.kind !== 'day') return null;
+  const away = o.day - t.day;
+  return `At this pace you hit it on ${dayLabel(t.month, o.day)}${away > 0 ? `, in ${away} ${away === 1 ? 'day' : 'days'}` : ', today'}`;
 }

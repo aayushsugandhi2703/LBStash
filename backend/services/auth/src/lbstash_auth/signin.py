@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Literal
 from zoneinfo import ZoneInfo
 
-from lbstash.common import DEFAULT_TZ, AppError, Errors, check_password, password_acceptable
+from lbstash.common import DEFAULT_TZ, DEMO_USER_ID, AppError, Errors, check_password, password_acceptable
 from lbstash.contracts import AuthMethod, AuthSessionRes, PasskeyLoginOptionsRes, SetupState
 from lbstash.crypto import dummy_hash, hash_password, needs_rehash, new_hashed_token, sha256_hex, verify_password
 from lbstash.db import Row, Tx
@@ -70,7 +70,8 @@ async def register(svc: Svc, email: str, password: str, name: str | None, timezo
     async with svc.deps.as_system() as tx:
         # serialize sign-ups so "first-only" and the unique e-mail hold under concurrency
         await tx.execute("SELECT pg_advisory_xact_lock(hashtext('auth:register'))")
-        if svc.deps.env.REGISTRATION == 'first-only' and await tx.maybe_one('SELECT 1 FROM users LIMIT 1'):
+        # the public demo account is not "the app's account": an owner can still register where the demo is installed
+        if svc.deps.env.REGISTRATION == 'first-only' and await tx.maybe_one('SELECT 1 FROM users WHERE id <> $1 LIMIT 1', [DEMO_USER_ID]):
             raise Errors.forbidden('This app already has its account. Sign in instead.')
         if await find_user_by_email(tx, email):
             raise Errors.conflict('An account with this email already exists')

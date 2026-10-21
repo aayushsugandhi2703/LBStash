@@ -14,4 +14,6 @@ export const MeDto = z.object({
   pendingEmail: z.string().nullable(), deleteAfter: z.string().nullable(),
   /** unread limit alerts + messages that need a look, for the nav badge and the Account menu */
   alertBadgeCount: z.number().int(), needsLookCount: z.number().int(), untaggedCount: z.number().int(),
+  /** true only for the sample-data demo account (read-only) */
+  demo: z.boolean().default(false),
 });

@@ -20,7 +20,7 @@ export function StepFirstMonth({ f, settings }: { f: Fields; settings: Settings 
       <div>
         <label htmlFor="plan" className="lbl">MONEY TO PLAN THIS MONTH</label>
         <div className={s.rupee}><span aria-hidden="true">₹</span><input id="plan" type="text" placeholder="0" {...f.plan.inputProps} onBlur={() => void f.flush()} /></div>
-        <div className={`cap ${s.help}`}>Split it into categories later, on Plan.</div>
+        <div className={`cap ${s.help}`}>Split it into categories later, on Budget.</div>
       </div>
       <div>
         <div className="lbl" style={{ marginBottom: 8 }}>WARN ME AT</div>

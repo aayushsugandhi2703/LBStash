@@ -39,7 +39,7 @@ Each icon has two files: an **image** (`<name>.svg`, fine line, for docs and car
 | <img src="../../frontend/public/brand/services/telegram.svg" width="28" alt=""> | `telegram` | a paper plane |
 | <img src="../../frontend/public/brand/services/ingest.svg" width="28" alt=""> | `ingest` | an arrow into a tray |
 
-**Pages** (`public/brand/pages/`): `now`, `transactions`, `plan`, `limits`, `repeats`, `trends`, `credit`, `account`, `security`, `devices`, `setup` in the accent green; `sign-in`, `create-account`, `reset`, `secure` in graphite `#2B3236`, so they read as a separate area.
+**Pages** (`public/brand/pages/`): `now`, `money`, `budget`, `forecast`, `account`, `security`, `devices`, `setup` in the accent green; `sign-in`, `create-account`, `reset`, `secure` in graphite `#2B3236`, so they read as a separate area.
 
 ## Colours
 
@@ -56,7 +56,7 @@ Change a variable in `globals.css`, then rebuild the web image (`docker compose 
 | Warning | `--warn` `#E9A800`, text `#8A6200` | close to the limit, "Needs a look" |
 | Danger | `--danger` `#C93030` | errors, over the limit |
 
-The Plan page colours its categories with a grey ramp (`--ramp-0` to `--ramp-8`, `RAMP` in `frontend/src/features/plan.ts`). The Google Pay hand-off page (`frontend/src/app/pay/route.ts`) has its own small dark palette.
+The Budget page (Plan tab) colours its categories with a grey ramp (`--ramp-0` to `--ramp-8`, `RAMP` in `frontend/src/features/plan.ts`). The Google Pay hand-off page (`frontend/src/app/pay/route.ts`) has its own small dark palette.
 
 ### Dark mode
 
