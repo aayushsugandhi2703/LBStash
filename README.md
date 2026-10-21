@@ -144,15 +144,17 @@ The About page (`/`, shown to visitors who are not signed in) shows a sample mon
 
 ### The server
 
-How the free Oracle Cloud server is kept safe:
+What we did to keep the free Oracle Cloud server safe, and why:
 
-- Only web (80, 443) and SSH (22) are open. Everything else is blocked.
-- Login is by SSH key only. No passwords.
-- Repeated wrong logins get banned (`fail2ban`).
-- Only nginx faces the internet. The other services stay private.
-- Secrets live in a private `.env` on the server, never in Git.
+- **Two firewalls (cloud + server):** only web and SSH ports are open, so attackers have almost nothing to reach.
+- **SSH keys, no passwords:** passwords can be guessed, keys can't.
+- **fail2ban:** bans anyone who keeps failing to log in, which stops guessing attacks.
+- **nginx as the only public door:** one place to guard and add security headers, while the rest stays hidden.
+- **Private Docker network:** the database and services can't be reached from the internet.
+- **Non-root containers:** if one is hacked, it can't take over the server.
+- **Secrets in a private `.env`:** keys never end up in Git or in an image where others could read them.
 
-To do: limit SSH to your IP (`ssh_ingress_cidrs`), turn on automatic OS updates, and schedule database backups.
+Still to do: limit SSH to your IP, turn on automatic OS updates, and schedule database backups.
 
 ## Deployment
 
