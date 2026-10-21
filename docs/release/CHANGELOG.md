@@ -2,6 +2,14 @@
 
 Written by the Release workflow from the commit log. Do not edit by hand.
 
+## v1.2.1 (2026-10-21)
+
+- Demo: fix the seeder import and the sample spending
+- About page: match the design (sizes, colours, buttons), keep content visible
+- Enhance server documentation on security measures; clarify firewall setup and SSH access protocols
+- Update server documentation for security measures; clarify firewall settings and SSH access
+- Refine server documentation for security measures; clarify firewall settings and update descriptions for better understanding.
+
 ## v1.2.0 (2026-10-21)
 
 - About page: no month names or weekdays anywhere
