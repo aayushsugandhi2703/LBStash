@@ -144,21 +144,15 @@ The About page (`/`, shown to visitors who are not signed in) shows a sample mon
 
 ### The server
 
-How the Oracle Cloud VM is locked down, outside in. [`cloud-init.yaml`](infra/terraform/modules/compute/cloud-init.yaml) sets it up once, on first boot.
+How the free Oracle Cloud server is kept safe:
 
-| Layer | What it does | Where |
-|---|---|---|
-| **Cloud firewall** | Allows only web (80, 443) and SSH (22). Everything else is blocked. Set `ssh_ingress_cidrs = ["your-ip/32"]` to allow SSH from only you. | `infra/terraform/modules/nsg` |
-| **VM firewall** | Blocks all incoming traffic except 22, 80 and 443. Stays after reboot. | `cloud-init.yaml` |
-| **SSH** | Key login only: no passwords, no root. A separate deploy key lets GitHub Actions in. | `cloud-init.yaml`, `SECRETS` |
-| **Ban on failures** | `fail2ban` bans addresses that keep failing to log in over SSH. | `cloud-init.yaml` |
-| **Updates** | OS is updated on first boot. After that, run `sudo apt update && sudo apt upgrade` yourself. The app updates via the Release workflow. | `cloud-init.yaml` |
-| **Containers** | Only nginx is reachable from outside. Everything else stays on a private Docker network, runs as a non-root user and holds no secrets. | `docker-compose.yml`, Dockerfiles |
-| **nginx** | The only public entry, with security headers, HTTPS (Let's Encrypt or Cloudflare) and a 1 MB request limit. | `infra/nginx` |
-| **Secrets** | `gen-secrets.py` makes random passwords and keys into a private `.env` on the VM, never in an image or Git. See [Secrets](docs/infrastructure/SECRETS.md). | `infra/scripts`, `.env` |
-| **Backups** | A private bucket is ready for database backups, but the backup script is not written yet. | `infra/terraform/modules/object_storage` |
+- Only web (80, 443) and SSH (22) are open. Everything else is blocked.
+- Login is by SSH key only. No passwords.
+- Repeated wrong logins get banned (`fail2ban`).
+- Only nginx faces the internet. The other services stay private.
+- Secrets live in a private `.env` on the server, never in Git.
 
-Not done yet: SSH is open to everyone by default, OS updates are not automatic, and backups are not scheduled.
+To do: limit SSH to your IP (`ssh_ingress_cidrs`), turn on automatic OS updates, and schedule database backups.
 
 ## Deployment
 
