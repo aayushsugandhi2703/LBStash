@@ -1,6 +1,6 @@
 # Release and deploy (the app)
 
-The **Release** workflow builds the images, stores them on Docker Hub, and updates the server. The server must exist first: [SERVER_SETUP](../infrastructure/SERVER_SETUP.md).
+The **Release** workflow builds the images, stores them on Docker Hub, and updates the server. The server must exist first: [Server setup](../infrastructure/SERVER_SETUP.md).
 
 ```
 Release workflow --> builds images (amd64 + arm64) --> Docker Hub --> server pulls :latest and restarts
@@ -8,7 +8,7 @@ Release workflow --> builds images (amd64 + arm64) --> Docker Hub --> server pul
 
 ## First time
 
-1. **Add the secrets.** Make the Docker Hub token and run **step B** in [SECRETS](../SECRETS.md) (step A was done before Terraform).
+1. **Add the secrets.** Make the Docker Hub token and run **step B** in [Secrets](../infrastructure/SECRETS.md) (step A was done before Terraform).
 
 2. **Set up Cloudflare.**
    DNS: add an `A` record, name `@`, value the `public_ip`, proxy on.
@@ -29,15 +29,24 @@ Release workflow --> builds images (amd64 + arm64) --> Docker Hub --> server pul
 1. Merge your pull request into `main`.
 2. Actions > **Release** > Run workflow > the next version.
 
-Release pushes `lbstash-<name>:<version>` and `:latest` for all 10 images to Docker Hub, deploys (the server pulls the new `:latest`), deletes older version tags, bumps the version, updates [CHANGELOG](CHANGELOG.md) and tags `vX.Y.Z`. Nothing deploys until you run it. Run it from `main`. Each version works once. To skip the deploy, untick **deploy**.
+Release pushes `lbstash-<name>:<version>` and `:latest` for all 10 images to Docker Hub, deploys (the server pulls the new `:latest`), deletes older version tags, bumps the version, updates [Changelog](../release/CHANGELOG.md) and tags `vX.Y.Z`. Nothing deploys until you run it. Run it from `main`. Each version works once. To skip the deploy, untick **deploy**.
 
 Versions are `x.y.z`: x = major change or new feature, y = UI change or fix, z = bug fix.
 
 Images are created as **public** repos on the first push (the free plan allows unlimited public repos). They hold no secrets, so the server pulls them without logging in.
 
-To roll back, set `IMAGE_TAG=<old version>` in the server's `.env` and run `docker compose up -d`. Only the latest version's tags are kept, so roll back to the most recent one.
+To roll back, set `IMAGE_TAG=<old version>` in the server's `.env` and run `$(cat .compose-cmd) up -d` in `~/lbstash` (the Release workflow writes the exact compose command there: with the demo files when the demo is on). Only the latest version's tags are kept, so roll back to the most recent one.
 
 The **Update status badge** workflow checks the site every 15 minutes for the README badge. It reads the address from `DOMAIN` in `.env.example`.
+
+## Public demo (optional)
+
+The About page has a **Try the demo** button. It needs the demo running on the server:
+
+1. Set the GitHub variable `DEMO_ENABLED` to `true` ([Secrets](../infrastructure/SECRETS.md)).
+2. Run **Release** as usual. The deploy copies the `demo/` files, makes `demo/.env` once, and starts the demo next to the app.
+
+To turn it off, delete the variable (or set it to anything but `true`) and release again; to also delete the sample data, see `demo/README.md`. Without the variable nothing changes and the button shows "The demo is not available on this server."
 
 ## Problems
 

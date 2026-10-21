@@ -55,7 +55,7 @@ lbstash/
 │   └── .dockerignore
 │
 ├── frontend/                    Next.js web app
-│   ├── src/app/                 pages (sign-in, create-account, reset, pay, the app screens)
+│   ├── src/app/                 pages (welcome/About, sign-in, create-account, reset, pay, the app screens)
 │   ├── src/components/          shared UI pieces
 │   ├── src/features/            data and logic for each screen
 │   ├── src/lib/                 API calls and hooks
@@ -71,8 +71,9 @@ lbstash/
 │   ├── terraform/               builds the Oracle Cloud server (see its README): modules/, policies.txt
 │   └── scripts/                 gen-secrets.py (makes .env), e2e.py (end-to-end test), update-changelog.py (used by Release)
 │
+├── demo/                        the read-only demo: sample-data builder and loader, compose overlay, tests (see its README)
 ├── .github/workflows/           terraform.yml (builds the server), release.yml (builds, deploys, tags), status.yml (live-site badge)
-├── docs/                        SECRETS.md, application/ (architecture, service guide, release, brand, changelog), infrastructure/ (server setup)
+├── docs/                        application/ (architecture, service guide, release and deploy, brand), infrastructure/ (server setup, secrets), release/ (changelog)
 ├── docker-compose.yml           starts the whole stack (kept at the top so `docker compose up` just works)
 ├── .env, .env.example           secrets and settings (.env is never committed)
 └── README.md
@@ -97,11 +98,15 @@ How they work together:
 - **Calls** are typed HTTP clients. Reads may retry; writes are never blindly retried.
 - **Events** are saved with the change (outbox), then moved to a Postgres queue. Failed jobs retry; every consumer is safe to run twice.
 - **Money** is whole paise as integers, never floats. Months and "today" use your time zone.
-- More: [ARCHITECTURE](docs/application/ARCHITECTURE.md) (where the code lives and how the flows work), [SERVICE_GUIDE](docs/application/SERVICE_GUIDE.md).
+- More: [Architecture](docs/application/ARCHITECTURE.md) (where the code lives and how the flows work), [Service guide](docs/application/SERVICE_GUIDE.md).
 
 ## Frontend
 
-A Next.js app with these pages: Now · Transactions · Plan · Limits · Repeats · Trends · Add credit · Needs a look · Account · Setup guide. It only talks to the gateway. Logo, name and colours: [BRAND](docs/application/BRAND.md).
+A Next.js app with these pages: About (with a demo of sample data) · Now · Money (Activity, Repeats, Needs a look) · Budget (Plan, Limits) · Forecast · Account · Setup guide. Money in is logged in Telegram (`+1500 salary`); there is no Add credit page. It only talks to the gateway. Logo, name and colours: [Brand](docs/application/BRAND.md).
+
+## Demo
+
+The About page (`/`, shown to visitors who are not signed in) shows a sample October you can scrub with a slider, tells the product as one month in days, and has a **Try the demo** button. It opens a read-only account with six months of sample data (payments, plan, limits, repeats, forecast), so people can see the app before making an account. It is opt-in and lives in [`demo/`](demo/README.md): a data builder and loader, a compose overlay and tests. Turning it on sets `DEMO_MODE` for auth and the gateway; the demo user can look but never change anything.
 
 ## Infra
 
@@ -130,7 +135,7 @@ Pick one. Always **back up `FIELD_KEY`** from the `.env`: encrypted data cannot 
 
 An always-on server for about ₹0/month. Terraform builds it; GitHub Actions builds the images (amd64 + arm64), stores them on Docker Hub and updates the server.
 
-Add the GitHub secrets first ([SECRETS](docs/SECRETS.md), one place for all of them), then follow [server setup](docs/infrastructure/SERVER_SETUP.md) and [release and deploy](docs/application/RELEASE.md).
+Add the GitHub secrets first ([Secrets](docs/infrastructure/SECRETS.md), one place for all of them), then follow [Server setup](docs/infrastructure/SERVER_SETUP.md) and [Release and deploy](docs/application/RELEASE.md).
 
 In short: create the server with **Actions > Terraform**, point your domain at it, then run **Actions > Release** with a version (`x.y.z`) after each merge to `main`.
 

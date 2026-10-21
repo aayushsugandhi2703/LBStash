@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Adds one release entry to the top of docs/application/CHANGELOG.md (standard library only).
+"""Adds one release entry to the top of docs/release/CHANGELOG.md (standard library only).
 
 Run by the Release workflow with RELEASE_VERSION (x.y.z) and RELEASE_LOG (the commit lines).
 """
@@ -18,7 +18,7 @@ log = os.environ.get("RELEASE_LOG", "").strip()
 if not version or not log:
     sys.exit("RELEASE_VERSION and RELEASE_LOG must be set")
 
-path = Path(os.environ.get("CHANGELOG", "docs/application/CHANGELOG.md"))
+path = Path(os.environ.get("CHANGELOG", "docs/release/CHANGELOG.md"))
 text = path.read_text() if path.exists() else HEADER
 if not text.startswith("# Changelog"):
     text = HEADER + "\n" + text

@@ -1,6 +1,6 @@
 # Building a service
 
-Read [ARCHITECTURE](ARCHITECTURE.md) first. Services are Python 3.12 and FastAPI. Shared code is the library in `backend/packages/lbstash` (`import lbstash.*`).
+Read [Architecture](ARCHITECTURE.md) first. Services are Python 3.12 and FastAPI. Shared code is the library in `backend/packages/lbstash` (`import lbstash.*`).
 
 ## Layout
 

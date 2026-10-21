@@ -19,8 +19,9 @@ Where: GitHub > Settings > Secrets and variables > Actions. Or use the commands 
 | `VM_SSH_PRIVATE_KEY` | secret | Release | file `~/.ssh/lbstash_deploy` |
 | `VM_HOST` | secret | Release | `public_ip` from the Terraform run |
 | `LETSENCRYPT_EMAIL` | variable | Release | your email (empty if you use the Cloudflare Tunnel) |
+| `DEMO_ENABLED` | variable | Release | `true` to run the public read-only demo next to the app (optional, leave unset to keep it off) |
 
-10 secrets and 1 variable. `GITHUB_TOKEN` is automatic.
+10 secrets and 1 variable, plus the optional `DEMO_ENABLED`. `GITHUB_TOKEN` is automatic.
 
 Only real credentials and private IDs are here. Your email stays a variable because the repo is public.
 
@@ -62,6 +63,7 @@ gh secret set DEPLOY_SSH_PUBLIC_KEY < ~/.ssh/lbstash_deploy.pub
 gh secret set VM_SSH_PRIVATE_KEY < ~/.ssh/lbstash_deploy
 gh secret set DOCKERHUB_TOKEN        # paste the token when asked
 gh variable set LETSENCRYPT_EMAIL --body "<your email>"
+gh variable set DEMO_ENABLED --body true     # optional: the public read-only demo (see demo/README.md)
 ```
 
 **Step B: after Terraform** (the server's IP is known only then):
@@ -74,11 +76,11 @@ gh secret set VM_HOST --body "<public_ip from the Terraform run summary>"
 
 ```bash
 gh secret list     # 10 after step B
-gh variable list   # LETSENCRYPT_EMAIL
+gh variable list   # LETSENCRYPT_EMAIL (and DEMO_ENABLED if you use the demo)
 ```
 
 ## Order of everything
 
 1. Make the two things above. Run step A.
-2. Create the `lbstash-tfstate` bucket and run the Terraform workflow: [SERVER_SETUP](infrastructure/SERVER_SETUP.md).
-3. Run step B. Then release the app: [RELEASE](application/RELEASE.md).
+2. Create the `lbstash-tfstate` bucket and run the Terraform workflow: [Server setup](SERVER_SETUP.md).
+3. Run step B. Then release the app: [Release and deploy](../application/RELEASE.md).
