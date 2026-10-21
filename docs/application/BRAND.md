@@ -6,6 +6,10 @@ The logo, the name, the icons and the colours. Files are in `frontend/public/bra
 
 Spell it **LBStash**: capital L, B and S, the rest lowercase. Never `LBSTASH`, `lbstash` or `Lbstash`. Two colours: **LB** in ink, **Stash** in the accent green. Font: Geist, weight 600, letter spacing `-0.03em`. On a dark background outside the app, or on the green, use all white.
 
+## Film
+
+The 46 s film on the About page (built in `promo/`) uses the same colours and the same logo, wordmark rules and mono labels. It is drawn with the macOS system font as a stand-in, because Geist is not installed on the build machine; with Geist installed, `promo/build.sh` takes `LB_FONT_SANS` and `LB_FONT_MONO` (see `promo/README.md`).
+
 ## Logo
 
 A lowercase **b** made of a stem and a coin, white on a square tile.

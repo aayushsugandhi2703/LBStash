@@ -61,7 +61,7 @@ lbstash/
 │   ├── src/lib/                 API calls and hooks
 │   ├── src/brand/               logo, name, icons
 │   ├── src/common/, contracts/  copies of money rules and response types
-│   ├── public/                  images and brand SVGs
+│   ├── public/                  images, brand SVGs, and the landing film (promo/)
 │   ├── test/                    web tests
 │   └── next.config.mjs, package.json, Dockerfile
 │
@@ -72,6 +72,7 @@ lbstash/
 │   └── scripts/                 gen-secrets.py (makes .env), e2e.py (end-to-end test), update-changelog.py (used by Release)
 │
 ├── demo/                        the read-only demo: sample-data builder and loader, compose overlay, tests (see its README)
+├── promo/                       the 46 s product film shown on the About page: builds it from source (see its README)
 ├── .github/workflows/           terraform.yml (builds the server), release.yml (builds, deploys, tags), status.yml (live-site badge)
 ├── docs/                        application/ (architecture, service guide, release and deploy, brand), infrastructure/ (server setup, secrets), release/ (changelog)
 ├── docker-compose.yml           starts the whole stack (kept at the top so `docker compose up` just works)
@@ -102,7 +103,7 @@ How they work together:
 
 ## Frontend
 
-A Next.js app. `lbstash.site` always opens the **About** page (a sample month, Try the demo, Sign in, Create account); the app starts at `/now`. Pages: About · Now · Money (Activity, Repeats, Needs a look) · Budget (Plan, Limits) · Forecast · Account · Setup guide. Money in is logged in Telegram (`+1500 salary`); there is no Add credit page. It only talks to the gateway. Which page asks which service:
+A Next.js app. `lbstash.site` always opens the **About** page (a sample month, a 46 s product film, Try the demo, Sign in, Create account); the app starts at `/now`. Pages: About · Now · Money (Activity, Repeats, Needs a look) · Budget (Plan, Limits) · Forecast · Account · Setup guide. Money in is logged in Telegram (`+1500 salary`); there is no Add credit page. It only talks to the gateway. Which page asks which service:
 
 | Page | Asks (through the gateway) | Services behind it |
 |---|---|---|
@@ -111,7 +112,7 @@ A Next.js app. `lbstash.site` always opens the **About** page (a sample month, T
 | Money · Activity `/money` | `/transactions`, `/categories`, `/balance-check`, `/recurring` | transactions, recurring |
 | Money · Repeats `/money/repeats` | `/recurring`, `/categories` | recurring (posts into transactions) |
 | Needs a look `/money/unread` | `/unparsed`, `/transactions` | ingest, transactions |
-| Budget · Plan `/budget` | `/plans/:month`, `/categories`, `/recurring` | planning (reads spend from transactions), recurring |
+| Budget · Plan `/budget` | `/plans/:month`, `/budgets`, `/categories`, `/recurring` | planning (reads spend from transactions), recurring |
 | Budget · Limits `/budget/limits` | `/budgets`, `/alerts`, `/settings` | planning, gateway |
 | Forecast `/forecast` | `/reports/daily`, `/reports/months`, `/reports/category-matrix`, `/plans/:month`, `/budgets`, `/recurring`, `/dashboard` | reports, planning, recurring |
 | Account, Security, Devices | `/me`, `/account`, `/sessions`, `/devices`, `/telegram` | auth, ingest, telegram |
@@ -121,12 +122,12 @@ Logo, name and colours: [Brand](docs/application/BRAND.md).
 
 ## Demo
 
-The About page (`/`, shown to visitors who are not signed in) shows a sample month you can scrub with a slider (it names no month and no weekday, so it never goes stale), tells the product as one month in days, and has a **Try the demo** button. It opens a read-only account with six months of sample data (payments, plan, limits, repeats, forecast), so people can see the app before making an account. It is opt-in and lives in [`demo/`](demo/README.md): a data builder and loader, a compose overlay and tests. Turning it on sets `DEMO_MODE` for auth and the gateway; the demo user can look but never change anything.
+The About page (`/`, shown to visitors who are not signed in) shows a sample month you can scrub with a slider (it names no month and no weekday, so it never goes stale), tells the product as one month in days, and has a **Try the demo** button. It opens a read-only account with six months of sample data (payments, plan, limits, repeats, forecast), so people can see the app before making an account. Above it, the page plays a 46 s film of the product (a muted loop with a **Watch with sound** button), made by [`promo/`](promo/README.md). The demo is opt-in and lives in [`demo/`](demo/README.md): a data builder and loader, a compose overlay and tests. Turning it on sets `DEMO_MODE` for auth and the gateway; the demo user can look but never change anything.
 
 ## Infra
 
 - **nginx** is the only public entry. `/` goes to the web app; `/api`, `/ingest`, `/telegram/webhook` go to the gateway. Nothing else is exposed.
-- **Docker images:** one per service on a shared, slimmed Python base (built from `backend/`; the web image from `frontend/`) (about 240MB each; web about 225MB). The 8 Python images share the same base layers, so together they take roughly one image of disk.
+- **Docker images:** one per service on a shared, slimmed Python base (built from `backend/`; the web image from `frontend/`) (about 240MB each; web about 300MB, of which 75MB is the landing film in `frontend/public/promo`). The 8 Python images share the same base layers, so together they take roughly one image of disk.
 - **Start order:** `db-init` creates roles and schemas, then the services, gateway, web and nginx start.
 - **https:** Cloudflare Tunnel or Let's Encrypt (see [Deployment](#deployment)).
 - **Server:** a free Oracle Cloud VM, built with [Terraform](infra/terraform/README.md).
