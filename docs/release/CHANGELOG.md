@@ -2,6 +2,11 @@
 
 Written by the Release workflow from the commit log. Do not edit by hand.
 
+## v1.3.1 (2026-10-21)
+
+- Add security scanning workflow and enhance container security in Docker Compose
+- Forecast in three tabs, Now with three cards
+
 ## v1.3.0 (2026-10-21)
 
 - Docs: describe the landing film, promo/, and the larger web image
