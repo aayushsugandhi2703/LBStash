@@ -34,3 +34,7 @@ To delete everything, run `destroy` and type `destroy` to confirm.
 | "Out of host capacity" (ARM only) | Run with `retry_minutes` = `300`, or try again later |
 
 Cost is about ₹0/month. Details of what gets built: [Terraform](../../infra/terraform/README.md).
+
+## What the VM does on first boot
+
+Terraform hands the VM [`cloud-init.yaml`](../../infra/terraform/modules/compute/cloud-init.yaml), which runs once: updates and upgrades packages, adds 4 GB of swap, installs Docker, Compose, `rsync`, `iptables-persistent` and `fail2ban`, locks SSH to keys only (no password, no root), replaces Oracle's firewall rules with a default-drop set that allows only ports 22, 80 and 443, and starts Docker and `fail2ban` on every boot. The README lists every protection layer: [The server](../../README.md#the-server).

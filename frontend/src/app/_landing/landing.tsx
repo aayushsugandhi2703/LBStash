@@ -44,7 +44,7 @@ export function Landing() {
           <nav className={s.topNav} aria-label="Main">
             <a href="#month" className={`${s.topLink} ${s.topJump}`}>A month in {BRAND.name}</a>
             <a href="#private" className={`${s.topLink} ${s.topJump}`}>What it never sees</a>
-            <AccountLinks linkClass={s.topLink ?? ''} />
+            <AccountLinks linkClass={s.topLink ?? ''} demoClass={s.topDemo ?? ''} />
           </nav>
         </div>
       </header>
@@ -204,7 +204,7 @@ export function Landing() {
             <nav className={s.footNav} aria-label="Footer">
               <Link href="/sign-in">Sign in</Link>
               <Link href="/create-account">Create account</Link>
-              <DemoButton link>Demo</DemoButton>
+              <DemoButton link>Try the demo</DemoButton>
             </nav>
           </div>
           <div className={s.giant} aria-hidden="true">{BRAND.wordmark.slice(0, 2)}<b>{BRAND.wordmark.slice(2)}</b></div>
