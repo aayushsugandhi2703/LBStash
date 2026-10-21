@@ -1,11 +1,12 @@
 'use client';
 import { type CSSProperties, useEffect, useState } from 'react';
+import Link from 'next/link';
 import type { DashboardRes, ReportDailyRes } from '@/contracts';
 import { figure, formatInr, inr, monthName, shortMonth } from '@/common';
 import { AppShell } from '@/components/shell';
-import { Empty, ErrorLine, TallyMath, Loading, Segmented, StripLink, TextLink, Tip } from '@/components/ui';
+import { Empty, ErrorLine, TallyMath, Loading, Segmented, TextLink, Tip } from '@/components/ui';
 import { errorText, useApi } from '@/lib/api';
-import { dayChart, degradedNote, flowGeometry, flowLabel, flowRows, heroSentence, leftStack, nowLinks } from '@/features/now';
+import { dayChart, degradedNote, flowGeometry, flowLabel, flowRows, heroSentence, leftStack, nowCards } from '@/features/now';
 import s from './page.module.css';
 
 type View = 'flow' | 'days';
@@ -23,7 +24,7 @@ export default function NowPage() {
       aside={d && <Aside d={d} />}
     >
       <Hero d={d} loading={dash.isLoading} error={dash.error ? errorText(dash.error, 'Could not load this page. Try again.') : null} retry={() => void dash.mutate()} />
-      {d && <Links d={d} />}
+      {d && <Cards d={d} />}
       <section className={s.panel} aria-label={view === 'flow' ? 'Where it went' : 'Day by day'}>
         <div className={s.panelHead}>
           <h2 className="h2">{view === 'flow' ? 'Where it went' : 'Day by day'}</h2>
@@ -86,19 +87,28 @@ function Hero({ d, loading, error, retry }: { d?: DashboardRes; loading: boolean
   );
 }
 
-function Links({ d }: { d: DashboardRes }) {
-  const links = nowLinks(d.attention);
+function Cards({ d }: { d: DashboardRes }) {
+  const cards = nowCards(d.attention);
   const note = degradedNote(d.degraded);
   return (
     <>
-      <div className={`strip ${s.links}`}>
-        {links.map((l) => (
-          <StripLink key={l.key} tag={l.tag} href={l.href}>
-            {l.marker && <span className={s.marker} data-k={l.marker} aria-hidden="true" />}
-            {l.text}
-          </StripLink>
-        ))}
-      </div>
+      {cards.length > 0 && (
+        <section className={s.looks} aria-label="Needs a look">
+          <div className="lbl">Needs a look</div>
+          <div className={s.cards}>
+            {cards.map((c) => (
+              <Link key={c.key} href={c.href} className={s.card}>
+                <span className={s.cardTop}>
+                  <span className="lbl">{c.marker && <span className={s.marker} data-k={c.marker} aria-hidden="true" />}{c.tag}</span>
+                  <span className={`mono ${s.go}`} aria-hidden="true">→</span>
+                </span>
+                <span className={s.msg}>{c.text}</span>
+                {c.note && <span className={s.note}>{c.note}</span>}
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
       {note && <p className={`cap ${s.degraded}`} role="status">{note}</p>}
     </>
   );

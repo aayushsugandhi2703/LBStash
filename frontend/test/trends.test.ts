@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { leadText } from '@/common';
 import type { ReportMatrixRes, ReportMonthsRes } from '@/contracts';
-import { fullMonthItems, headline, keptShort, trendsChart, trendStats, usualRows } from '@/features/trends';
+import { fullMonthItems, headlineParts, keptShort, trendsChart, trendStats, usualRows } from '@/features/trends';
 
 const R = (n: number) => n * 100;
 
@@ -39,24 +40,25 @@ describe('stats and headline', () => {
     const s = trendStats(empty);
     expect(s.map((x) => x.value)).toEqual(['—', '—', '—']);
     expect(s[0]!.note).toBe('no full month yet');
-    expect(headline(empty)).toBeNull();
+    expect(headlineParts(empty)).toBeNull();
   });
   it('a negative balance change is ink with a true minus', () => {
     const s = trendStats(months({ averages: { ...months().averages, balanceSinceMinor: R(-500) } }));
     expect(s[2]).toMatchObject({ value: '−₹500', tone: 'plain' });
   });
   it('headline: below usual', () => {
-    expect(headline(months())).toBe('You keep about ₹5,940 a month. October is on pace for ₹3,280, below usual.');
+    expect(leadText(headlineParts(months())!)).toBe('You usually keep ₹5,940 a month. October is on track for ₹3,280.');
   });
-  it('headline: above usual when the pace beats the average', () => {
+  it('headline: the pace figure is red only when it is below usual', () => {
     const m = months();
     m.items[5] = { ...m.items[5]!, pace: { ...m.items[5]!.pace!, paceKeptMinor: R(7000) } };
-    expect(headline(m)).toContain('above usual.');
+    expect(headlineParts(m)!.at(-2)).toEqual({ b: '₹7,000', bad: false });
+    expect(headlineParts(months())!.at(-2)).toMatchObject({ bad: true });
   });
   it('headline: handles a short month', () => {
     const m = months();
     m.items[5] = { ...m.items[5]!, pace: { ...m.items[5]!.pace!, paceKeptMinor: R(-400) } };
-    expect(headline(m)).toContain('October is on pace for ₹400 short, below usual.');
+    expect(leadText(headlineParts(m)!)).toContain('October is on track for ₹400 short.');
   });
   it('counts only finished months with activity', () => {
     expect(fullMonthItems(months()).map((i) => i.month)).toEqual(['2026-05', '2026-06', '2026-07', '2026-08', '2026-09']);
@@ -115,10 +117,10 @@ describe('October against a usual month', () => {
   it('lists Food, Fun, Bills, Travel with the spec figures', () => {
     const rows = usualRows(matrix([item('food', 7590, 9330), item('fun', 1430, 2820), item('bills', 2500, 2240), item('travel', 2940, 2330)]));
     expect(rows.map((r) => [r.name, r.usually, r.heading, r.change])).toEqual([
-      ['Food', 'usually ₹7,590', 'heading for ₹9,330', '▲ ₹1,740 more'],
-      ['Fun', 'usually ₹1,430', 'heading for ₹2,820', '▲ ₹1,390 more'],
-      ['Bills', 'usually ₹2,500', 'heading for ₹2,240', '▼ ₹260 less'],
-      ['Travel', 'usually ₹2,940', 'heading for ₹2,330', '▼ ₹610 less'],
+      ['Food', '₹7,590', '₹9,330', '▲ ₹1,740 more'],
+      ['Fun', '₹1,430', '₹2,820', '▲ ₹1,390 more'],
+      ['Bills', '₹2,500', '₹2,240', '▼ ₹260 less'],
+      ['Travel', '₹2,940', '₹2,330', '▼ ₹610 less'],
     ]);
   });
   it('sorts from most above to most below even if the input is not sorted', () => {
@@ -131,7 +133,7 @@ describe('October against a usual month', () => {
   });
   it('handles no change and no history', () => {
     const [fresh, same] = usualRows(matrix([item('rent', 100, 100), item('new', 0, 50)]));
-    expect(fresh).toMatchObject({ name: 'New', usually: 'usually —', change: '▲ ₹50 more', dir: 'more' });
+    expect(fresh).toMatchObject({ name: 'New', usually: '—', change: '▲ ₹50 more', dir: 'more' });
     expect(same).toMatchObject({ change: 'the same as usual', dir: 'same' });
   });
 });

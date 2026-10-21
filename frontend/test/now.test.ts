@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DashboardRes, ReportDailyRes } from '@/contracts';
-import { axisDays, dayChart, degradedNote, flowGeometry, flowLabel, flowRows, gapSentence, graceText, heroSentence, leftStack, nextDue, nowLinks } from '@/features/now';
+import { axisDays, dayChart, degradedNote, flowGeometry, flowLabel, flowRows, gapSentence, graceText, heroSentence, leftStack, nextDue, nowCards } from '@/features/now';
 
 const R = (n: number) => n * 100;
 
@@ -155,34 +155,31 @@ describe('hero sentence', () => {
   });
 });
 
-describe('action links', () => {
-  it('maps attention items to WATCH, TAG, LOOK, NEXT in order', () => {
-    const links = nowLinks([
+describe('cards under the hero', () => {
+  it('maps attention items to Watch, Fix in Money and Next', () => {
+    const cards = nowCards([
       { kind: 'limit', category: 'Fun', pct: 82, status: 'close' },
-      { kind: 'untagged', count: 1 },
+      { kind: 'untagged', count: 4 },
       { kind: 'needs_look', count: 2 },
+      { kind: 'unaccounted', count: 1 },
       { kind: 'recurring', name: 'Rent', amount: R(20000), due: '2026-11-01' },
     ]);
-    expect(links.map((l) => [l.tag, l.text, l.href])).toEqual([
-      ['WATCH', 'Fun is at 82% of its limit', '/limits'],
-      ['TAG', '1 payment needs a tag', '/transactions?cat=needs-tag'],
-      ['LOOK', '2 messages could not be read', '/transactions/unread'],
-      ['NEXT', 'Rent ₹20,000 on Nov 1', '/repeats'],
+    expect(cards.map((c) => [c.tag, c.text, c.note, c.href])).toEqual([
+      ['Watch', 'Fun is at 82% of its limit', undefined, '/budget/limits'],
+      ['Fix in Money', '7 things to sort', '4 to tag · 2 not read · 1 gap', '/money?cat=needs-tag'],
+      ['Next', 'Rent ₹20,000', 'on Nov 1', '/money/repeats'],
     ]);
-    expect(links[0]!.marker).toBe('warn');
+    expect(cards[0]!.marker).toBe('warn');
   });
-  it('speaks plurals, over-limit and extra limits', () => {
-    const links = nowLinks([
+  it('speaks over-limit, extra limits and a single thing to fix', () => {
+    const cards = nowCards([
       { kind: 'limit', category: 'Food', pct: 112, status: 'over' },
       { kind: 'limit', category: 'Fun', pct: 90, status: 'close' },
-      { kind: 'untagged', count: 3 },
       { kind: 'needs_look', count: 1 },
-      { kind: 'unaccounted', count: 2 },
     ]);
-    expect(links[0]).toMatchObject({ text: 'Food is over its limit, and 1 more', marker: 'danger' });
-    expect(links[1]!.text).toBe('3 payments need a tag');
-    expect(links[2]!.text).toBe('1 message could not be read');
-    expect(links[3]).toMatchObject({ tag: 'GAP', text: '2 gaps from a balance check still to tag' });
+    expect(cards[0]).toMatchObject({ text: 'Food is over its limit', note: 'and 1 more', marker: 'danger' });
+    expect(cards[1]).toMatchObject({ text: '1 thing to sort', note: '1 not read', href: '/money/unread' });
+    expect(nowCards([])).toEqual([]);
   });
   it('formats due dates without a zone shift', () => {
     expect(nextDue('2026-11-01')).toBe('Nov 1');

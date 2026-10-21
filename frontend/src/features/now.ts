@@ -1,7 +1,7 @@
 import { css3, dayScale, formatInr, inr, inSentence, joinPlain, monthDay, monthName, nextMonthName, type Paise, pct, shortMonth, wholeRupees } from '@/common';
 import type { AttentionItem, BalanceCheckDto, DashboardRes, ReportDailyRes } from '@/contracts';
 
-/** Now page view-model: flow diagram, day bars, hero copy, action links, balance-check wording. */
+/** Now page view-model: flow diagram, day bars, hero copy, the cards under it, balance-check wording. */
 
 const FLOW_H = 330;
 const FLOW_GAP = 22;
@@ -122,28 +122,36 @@ export function heroSentence(d: DashboardRes): { before: string; em?: string; af
   };
 }
 
-interface NowLink { key: string; tag: string; text: string; href: string; marker?: 'warn' | 'danger' }
+interface NowCard { key: 'limit' | 'fix' | 'next'; tag: string; href: string; text: string; note?: string; marker?: 'warn' | 'danger' }
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
-/** The strip under the hero: WATCH, TAG, LOOK, NEXT (and a line for balance-check gaps), from `attention` in the API's order. */
-export function nowLinks(attention: AttentionItem[]): NowLink[] {
-  const out: NowLink[] = [];
+/** The cards under the hero: Watch (closest limit), Fix in Money (tags, unread messages and gaps counted together) and Next (the next repeat). */
+export function nowCards(attention: AttentionItem[]): NowCard[] {
+  const out: NowCard[] = [];
   const limits = attention.filter((a): a is Extract<AttentionItem, { kind: 'limit' }> => a.kind === 'limit');
   const worst = limits[0];
   if (worst) {
-    const more = limits.length > 1 ? `, and ${limits.length - 1} more` : '';
     out.push({
-      key: 'limit', tag: 'WATCH', href: '/limits', marker: worst.status === 'over' ? 'danger' : 'warn',
-      text: worst.status === 'over' ? `${worst.category} is over its limit${more}` : `${worst.category} is at ${worst.pct}% of its limit${more}`,
+      key: 'limit', tag: 'Watch', href: '/budget/limits', marker: worst.status === 'over' ? 'danger' : 'warn',
+      text: worst.status === 'over' ? `${worst.category} is over its limit` : `${worst.category} is at ${worst.pct}% of its limit`,
+      note: limits.length > 1 ? `and ${limits.length - 1} more` : undefined,
     });
   }
-  for (const a of attention) {
-    if (a.kind === 'untagged') out.push({ key: 'untagged', tag: 'TAG', href: '/transactions?cat=needs-tag', text: `${plural(a.count, 'payment needs', 'payments need')} a tag` });
-    else if (a.kind === 'needs_look') out.push({ key: 'look', tag: 'LOOK', href: '/transactions/unread', text: `${plural(a.count, 'message', 'messages')} could not be read` });
-    else if (a.kind === 'unaccounted') out.push({ key: 'unaccounted', tag: 'GAP', href: '/transactions?src=unaccounted', text: `${plural(a.count, 'gap', 'gaps')} from a balance check still to tag` });
-    else if (a.kind === 'recurring') out.push({ key: 'next', tag: 'NEXT', href: '/repeats', text: `${a.name} ${inr(a.amount)} on ${nextDue(a.due)}` });
+  const count = (kind: 'untagged' | 'needs_look' | 'unaccounted'): number => attention.reduce((t, a) => t + (a.kind === kind ? a.count : 0), 0);
+  const tag = count('untagged');
+  const look = count('needs_look');
+  const gap = count('unaccounted');
+  const fix = tag + look + gap;
+  if (fix > 0) {
+    out.push({
+      key: 'fix', tag: 'Fix in Money', text: `${plural(fix, 'thing', 'things')} to sort`,
+      href: tag > 0 ? '/money?cat=needs-tag' : gap > 0 ? '/money?src=unaccounted' : '/money/unread',
+      note: [tag > 0 && `${tag} to tag`, look > 0 && `${look} not read`, gap > 0 && plural(gap, 'gap', 'gaps')].filter(Boolean).join(' · '),
+    });
   }
+  const next = attention.find((a): a is Extract<AttentionItem, { kind: 'recurring' }> => a.kind === 'recurring');
+  if (next) out.push({ key: 'next', tag: 'Next', href: '/money/repeats', text: `${next.name} ${inr(next.amount)}`, note: `on ${nextDue(next.due)}` });
   return out;
 }
 
