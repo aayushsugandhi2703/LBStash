@@ -1,4 +1,4 @@
-import { compactK, displayTag, inr, inrSigned, monthName, monthScale, type Paise, shortMonth } from '@/common';
+import { compactK, displayTag, inr, inrSigned, joinPlain, type LeadPart, leadText, monthName, monthScale, type Paise, shortMonth } from '@/common';
 import type { BudgetDto, ReportDailyRes, RecurringRuleDto } from '@/contracts';
 import { axisDays } from './now';
 import type { PlanResponse } from './plan';
@@ -103,6 +103,8 @@ export interface Forecast {
   spendingNowMinor: Paise;
   /** No flexible spending yet: nothing to project. */
   empty: boolean;
+  /** The sentence above the chart, with its figures marked for bold. */
+  lead: LeadPart[];
   headline: string;
 }
 
@@ -130,28 +132,27 @@ export function forecast(i: ForecastInput): Forecast {
   const safePerDayMinor = i.planFlexMinor <= 0 ? null : planLeft <= 0 ? 0 : floorTen(planLeft / Math.max(1, daysLeft + 1));
   const empty = flexSpentMinor <= 0;
   const f = { flexSpentMinor, daysLeft, rates, scenarios, expected, low, high, hasRange, safePerDayMinor, spendingNowMinor: roundTen(rates.average), empty };
-  return { ...f, headline: headline(i, f) };
+  const lead = leadParts(i, f);
+  return { ...f, lead, headline: leadText(lead) };
 }
 
 /** "Oct 29" for a day of the month. */
 export const dayLabel = (month: string, day: number): string => `${shortMonth(month)} ${day}`;
 
 /** The sentence above the chart. */
-function headline(i: ForecastInput, f: Pick<Forecast, 'flexSpentMinor' | 'daysLeft' | 'expected' | 'empty'>): string {
-  if (f.empty) return 'Nothing spent yet. Log a payment in Telegram to see the forecast.';
+function leadParts(i: ForecastInput, f: Pick<Forecast, 'flexSpentMinor' | 'daysLeft' | 'expected' | 'empty'>): LeadPart[] {
+  if (f.empty) return ['Nothing spent yet. Log a payment in Telegram to see the forecast.'];
   const end = f.expected.flexEndMinor;
   if (f.daysLeft === 0) {
     const base = `${monthName(i.month)} ends with ${inr(f.flexSpentMinor)} spent`;
-    return i.planFlexMinor > 0 ? `${base} of a ${inr(i.planFlexMinor)} plan.` : `${base}.`;
+    return [i.planFlexMinor > 0 ? `${base} of a ${inr(i.planFlexMinor)} plan.` : `${base}.`];
   }
-  if (i.planFlexMinor <= 0) return `On pace for ${inr(end)}. Set a plan in Budget to see when it runs out.`;
+  const first: LeadPart[] = ['At this pace you will spend ', { b: inr(end) }, '.'];
+  if (i.planFlexMinor <= 0) return [...first, ' Set a plan in Budget to see when it runs out.'];
   const diff = end - i.planFlexMinor;
-  const vs = diff > 0 ? `${inr(diff)} over` : diff < 0 ? `${inr(-diff)} under` : 'exactly on';
-  const first = `On pace for ${inr(end)}, ${vs} your ${inr(i.planFlexMinor)} plan.`;
-  const r = f.expected.runOut;
-  if (r.kind === 'day') return `${first} It runs out ${dayLabel(i.month, r.day)}.`;
-  if (r.kind === 'over') return `${first} The plan is already spent.`;
-  return first;
+  const plan = ` your ${inr(i.planFlexMinor)} plan.`;
+  const vs: LeadPart[] = diff > 0 ? [' That is ', { b: `${inr(diff)} over`, bad: true }, plan] : diff < 0 ? [' That is ', { b: `${inr(-diff)} under` }, plan] : [' That is exactly on', plan];
+  return f.expected.runOut.kind === 'over' ? [...first, ...vs, ' The plan is already spent.'] : [...first, ...vs];
 }
 
 type RunOutDay = Extract<RunOut, { kind: 'day' }>;
@@ -163,16 +164,11 @@ export function runOutStat(f: Forecast, month: string): { value: string; note: s
   if (r.kind === 'noplan') return { value: '—', note: 'no plan set', tone: 'plain' };
   if (r.kind === 'over') return { value: 'Now', note: 'plan is spent', tone: 'bad' };
   if (!isDay(r)) return { value: 'Not this month', note: 'plan lasts', tone: 'plain' };
-  return { value: dayLabel(month, r.day), note: r.daysEarly === 0 ? 'on the last day' : `${r.daysEarly} ${r.daysEarly === 1 ? 'day' : 'days'} before month end`, tone: 'bad' };
+  return { value: dayLabel(month, r.day), note: r.daysEarly === 0 ? 'on the last day' : `${r.daysEarly} ${r.daysEarly === 1 ? 'day' : 'days'} early`, tone: 'bad' };
 }
 
-/** Aside figure for the balance on the last day: "₹10,040" and its range. */
-export function endStat(f: Forecast): { value: string; note: string } {
-  const value = inrSigned(roundTen(f.expected.balanceEndMinor));
-  if (!f.hasRange) return { value, note: 'at this pace' };
-  const balances = f.scenarios.map((s) => s.balanceEndMinor);
-  return { value, note: `${inrSigned(roundTen(Math.min(...balances)))} to ${inrSigned(roundTen(Math.max(...balances)))}` };
-}
+/** Aside figure for the balance on the last day: "₹10,040 at this pace". */
+export const endStat = (f: Forecast): { value: string; note: string } => ({ value: inrSigned(roundTen(f.expected.balanceEndMinor)), note: 'at this pace' });
 
 export interface CategoryRow {
   id: string;
@@ -231,13 +227,25 @@ export function categoryRows(lines: PlanResponse['lines'], limits: ReadonlyMap<s
   return rows.sort((a, b) => order(a) - order(b) || a.name.localeCompare(b.name));
 }
 
-/** "Limit hit Oct 23" / "Plan reached Oct 30" / "Over its limit" / "Stays inside the plan". */
-export function verdictText(r: CategoryRow, month: string): { text: string; when: string } {
-  if (r.verdict === 'over') return { text: r.kind === 'limit' ? 'Over its limit' : 'Over its plan', when: '' };
-  if (r.verdict === 'inside' || r.day === null) return { text: `Stays inside the ${r.kind}`, when: '' };
-  const days = r.daysAway ?? 0;
-  const when = days === 0 ? 'today' : `in ${days} ${days === 1 ? 'day' : 'days'}`;
-  return { text: `${r.kind === 'limit' ? 'Limit hit' : 'Plan reached'} ${dayLabel(month, r.day)}`, when };
+/** "Out by Oct 23" / "Over its limit" / "On track". */
+export function verdictText(r: CategoryRow, month: string): string {
+  if (r.verdict === 'over') return r.kind === 'limit' ? 'Over its limit' : 'Over its plan';
+  if (r.verdict === 'inside' || r.day === null) return 'On track';
+  return `Out by ${dayLabel(month, r.day)}`;
+}
+
+/** The sentence above the category list: who runs out first and who follows. Empty when there is nothing to say. */
+export function categoriesLead(rows: readonly CategoryRow[], month: string): LeadPart[] {
+  if (rows.length === 0) return [];
+  const out = rows.filter((r) => r.verdict !== 'inside');
+  const first = out[0];
+  if (!first) return ['Every category is on track for the month.'];
+  const names = out.slice(1).map((r) => r.name);
+  const follow = names.length === 0 ? [] : [` ${names.length <= 3 ? joinPlain(names) : `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`} ${names.length === 1 ? 'follows' : 'follow'}.`];
+  const lead: LeadPart[] = first.day === null
+    ? [{ b: first.name }, ' is already over.']
+    : [{ b: first.name }, ' runs out first, on ', { b: dayLabel(month, first.day), bad: true }, '.'];
+  return [...lead, ...follow];
 }
 
 /** What `/reports/daily`, `/plans`, `/budgets`, `/dashboard` and `/recurring` add up to. */
@@ -273,22 +281,8 @@ export interface ForecastChart {
   todayY: number;
   todayLabel: string;
   runOut: Marker | null;
-  early: Marker | null;
   ends: { y: number; label: string; strong: boolean }[];
   summary: string;
-}
-
-/** Push labels apart so none sits closer than `gap` to the one above it. */
-function spread(ys: number[], gap: number): number[] {
-  const order = ys.map((y, i) => ({ y, i })).sort((a, b) => a.y - b.y);
-  let prev = -Infinity;
-  const out = [...ys];
-  for (const o of order) {
-    const y = Math.max(o.y, prev + gap);
-    out[o.i] = y;
-    prev = y;
-  }
-  return out;
 }
 
 export function forecastChart(i: ForecastInput, f: Forecast): ForecastChart {
@@ -315,15 +309,7 @@ export function forecastChart(i: ForecastInput, f: Forecast): ForecastChart {
     return { x: x(d), y: planY, label: label.replace('{day}', dayLabel(i.month, s.runOut.day)) };
   };
   const runOutMarker = crossing(f.expected, 'plan runs out {day}');
-  const faster = f.hasRange ? crossing(f.high, '{day} at the faster pace') : null;
-  const earlyDay = f.high.runOut.kind === 'day' ? f.high.runOut.day : Infinity;
-  const expectedDay = f.expected.runOut.kind === 'day' ? f.expected.runOut.day : Infinity;
-  const early = faster && earlyDay < expectedDay ? faster : null;
-
-  const shown = f.hasRange ? [f.high, f.expected, f.low] : [f.expected];
-  const endScenarios = projecting ? shown.filter((s, k) => shown.findIndex((o) => o.key === s.key) === k) : [];
-  const endYs = spread(endScenarios.map((s) => y(end(s.ratePerDay))), 17);
-  const ends = endScenarios.map((s, k) => ({ y: endYs[k]!, label: `${inr(s.flexEndMinor)} ${PACE_SHORT[s.key]}`, strong: s.key === 'month' }));
+  const ends = projecting ? [{ y: y(end(f.expected.ratePerDay)), label: `${inr(f.expected.flexEndMinor)} by ${dayLabel(i.month, i.daysInMonth)}`, strong: true }] : [];
 
   const days = axisDays(i.daysInMonth, i.dayOfMonth);
   const xTicks = [...days].sort((a, b) => a - b).map((d) => ({ label: d === 1 ? `${shortMonth(i.month)} 1` : String(d), x: x(d), today: d === i.dayOfMonth }));
@@ -340,6 +326,6 @@ export function forecastChart(i: ForecastInput, f: Forecast): ForecastChart {
     low: projecting && f.hasRange ? line(f.low.ratePerDay) : '',
     high: projecting && f.hasRange ? line(f.high.ratePerDay) : '',
     planY, todayX: tx, todayY: ty, todayLabel: `today · ${inr(spent)}`,
-    runOut: runOutMarker, early, ends, summary,
+    runOut: runOutMarker, ends, summary,
   };
 }

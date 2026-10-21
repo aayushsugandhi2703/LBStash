@@ -14,7 +14,15 @@ x-build: &build
   context: ./backend
   additional_contexts: { lbstash-base: "service:base" }
 
+# Locked-down containers: read-only filesystem (only /tmp is writable), no Linux capabilities, no privilege gain.
+x-hardened: &hardened
+  read_only: true
+  tmpfs: ["/tmp"]
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+
 x-service: &service
+  <<: *hardened
   restart: unless-stopped
   networks: [internal]
   depends_on:
@@ -35,9 +43,12 @@ services:
 
   # database
   db:
+    <<: *hardened
     image: postgres:17-alpine
     restart: unless-stopped
     networks: [internal]
+    tmpfs: ["/tmp", "/var/run/postgresql:mode=1777"]
+    cap_add: [CHOWN, SETUID, SETGID, DAC_OVERRIDE, FOWNER] # the entrypoint fixes ownership, then drops to the postgres user
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-lbstash_admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run python3 infra/scripts/gen-secrets.py}
@@ -51,6 +62,8 @@ services:
 
   # creates a database login per service, then exits
   db-init:
+    <<: *hardened
+    user: "10001" # the `app` user from the base image
     build: { context: ./backend, dockerfile: ../infra/docker/base.Dockerfile }
     image: ${REGISTRY:-}lbstash-base:${IMAGE_TAG:-latest}
     networks: [internal]
@@ -149,8 +162,10 @@ services:
       reports: { condition: service_healthy }
 
   web:
+    <<: *hardened
     restart: unless-stopped
     networks: [internal]
+    tmpfs: ["/tmp", "/app/.next/cache:uid=1000,gid=1000"] # Next.js cache, owned by the `node` user
     build: { context: frontend } # its own Node image
     image: ${REGISTRY:-}lbstash-web:${IMAGE_TAG:-latest}
     environment:
@@ -164,9 +179,12 @@ services:
 
   # public entry: nginx serves the site; certbot gets the https certificate (needs LETSENCRYPT_EMAIL)
   nginx:
+    <<: *hardened
     image: nginx:1.27-alpine
     restart: unless-stopped
     networks: [internal]
+    tmpfs: ["/tmp", "/run", "/var/cache/nginx", "/etc/nginx/conf.d"] # entrypoint.sh writes conf.d/default.conf
+    cap_add: [CHOWN, SETUID, SETGID, NET_BIND_SERVICE] # bind 80/443, then run workers as the nginx user
     ports: ["${HTTP_PORT:-80}:80", "${HTTPS_PORT:-443}:443", "${PUBLIC_PORT:-8088}:8088"]
     environment:
       DOMAIN: ${DOMAIN:-lbstash.site}
@@ -185,6 +203,9 @@ services:
     image: certbot/certbot:latest
     restart: unless-stopped
     networks: [internal]
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER] # writes certificates into the mounted folders
+    security_opt: ["no-new-privileges:true"]
     environment:
       DOMAIN: ${DOMAIN:-lbstash.site}
       LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-}
@@ -198,6 +219,7 @@ services:
 
   # optional https without open ports: needs TUNNEL_TOKEN and COMPOSE_PROFILES=tunnel
   cloudflared:
+    <<: *hardened
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
     networks: [internal]

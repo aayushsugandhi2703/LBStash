@@ -27,12 +27,27 @@ packages:
   - rsync                # lets GitHub Actions copy files here
   - iptables-persistent  # keeps firewall rules after a reboot
   - fail2ban             # bans IPs that keep guessing SSH logins
+  - unattended-upgrades  # installs security updates by itself
 
 # ---------------------------------------------------------------
 # Config files
 # ---------------------------------------------------------------
 
 write_files:
+  # Automatic security updates: check daily, install security patches, reboot at 21:30 UTC (03:00 IST) only if one needs it
+  # (a new kernel). The containers restart by themselves after a reboot.
+  - path: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+      APT::Periodic::AutocleanInterval "7";
+  - path: /etc/apt/apt.conf.d/52lbstash-unattended-upgrades
+    content: |
+      Unattended-Upgrade::Remove-Unused-Dependencies "true";
+      Unattended-Upgrade::Automatic-Reboot "true";
+      Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
+      Unattended-Upgrade::Automatic-Reboot-Time "21:30";
+
   # SSH: keys only, no root login
   - path: /etc/ssh/sshd_config.d/99-lbstash.conf
     content: |
@@ -73,5 +88,8 @@ runcmd:
   # 3. fail2ban: Ubuntu's default setup already watches SSH
   - systemctl enable --now fail2ban
 
-  # 4. SSH: apply the settings from the config file above
+  # 4. Security updates: run the upgrade timers
+  - systemctl enable --now unattended-upgrades
+
+  # 5. SSH: apply the settings from the config file above
   - systemctl restart ssh

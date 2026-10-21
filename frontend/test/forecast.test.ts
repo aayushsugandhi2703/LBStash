@@ -118,17 +118,17 @@ describe('forecast', () => {
     expect(f.spendingNowMinor).toBe(R(1250));
   });
   it('writes the headline', () => {
-    expect(f.headline).toBe('On pace for ₹38,820, ₹2,820 over your ₹36,000 plan. It runs out Oct 29.');
+    expect(f.headline).toBe('At this pace you will spend ₹38,820. That is ₹2,820 over your ₹36,000 plan.');
   });
   it('writes the aside figures', () => {
-    expect(runOutStat(f, '2026-10')).toEqual({ value: 'Oct 29', note: '2 days before month end', tone: 'bad' });
+    expect(runOutStat(f, '2026-10')).toEqual({ value: 'Oct 29', note: '2 days early', tone: 'bad' });
     expect(endStat(f).value).toBe('₹10,050');
-    expect(endStat(f).note).toMatch(/^₹[\d,]+ to ₹[\d,]+$/);
+    expect(endStat(f).note).toBe('at this pace');
   });
 
   it('says it stays inside the plan when it does', () => {
     const calm = forecast(input({ planFlexMinor: R(50000) }));
-    expect(calm.headline).toBe('On pace for ₹38,820, ₹11,180 under your ₹50,000 plan.');
+    expect(calm.headline).toBe('At this pace you will spend ₹38,820. That is ₹11,180 under your ₹50,000 plan.');
     expect(runOutStat(calm, '2026-10').value).toBe('Not this month');
   });
   it('says the plan has run out when it is spent', () => {
@@ -140,7 +140,7 @@ describe('forecast', () => {
   it('works without a plan', () => {
     const none = forecast(input({ planFlexMinor: 0 }));
     expect(none.safePerDayMinor).toBeNull();
-    expect(none.headline).toBe('On pace for ₹38,820. Set a plan in Budget to see when it runs out.');
+    expect(none.headline).toBe('At this pace you will spend ₹38,820. Set a plan in Budget to see when it runs out.');
     expect(runOutStat(none, '2026-10').value).toBe('—');
   });
   it('is honest before anything is spent', () => {
@@ -205,9 +205,9 @@ describe('categories', () => {
     expect(r[0]).toMatchObject({ verdict: 'inside', projectedMinor: 0 });
   });
   it('words each verdict', () => {
-    expect(verdictText(rows[0]!, '2026-10')).toEqual({ text: 'Limit hit Oct 23', when: 'in 2 days' });
-    expect(verdictText(rows[3]!, '2026-10')).toEqual({ text: 'Plan reached Oct 30', when: 'in 9 days' });
-    expect(verdictText(rows[4]!, '2026-10')).toEqual({ text: 'Stays inside the plan', when: '' });
+    expect(verdictText(rows[0]!, '2026-10')).toBe('Out by Oct 23');
+    expect(verdictText(rows[3]!, '2026-10')).toBe('Out by Oct 30');
+    expect(verdictText(rows[4]!, '2026-10')).toBe('On track');
   });
 });
 
@@ -228,11 +228,9 @@ describe('chart', () => {
     expect(c.runOut!.x).toBeGreaterThan(c.todayX);
     expect(c.runOut!.x).toBeLessThan(800);
     expect(c.runOut!.label).toBe('plan runs out Oct 29');
-    expect(c.early?.label).toMatch(/at the faster pace$/);
   });
-  it('labels the three end points without overlap', () => {
-    expect(c.ends.map((e) => e.label)).toEqual(['₹42,400 last 7 days', '₹38,820 this month', '₹35,100 best week']);
-    for (let k = 1; k < c.ends.length; k++) expect(c.ends[k]!.y - c.ends[k - 1]!.y).toBeGreaterThanOrEqual(17);
+  it('labels only where the month ends at this pace', () => {
+    expect(c.ends.map((e) => e.label)).toEqual(['₹38,820 by Oct 31']);
     expect(c.ends.filter((e) => e.strong)).toHaveLength(1);
   });
   it('has axis labels with today lit', () => {

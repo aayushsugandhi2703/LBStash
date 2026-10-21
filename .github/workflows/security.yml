@@ -1,0 +1,90 @@
+name: Security scan
+
+# Free scanners only, nothing to sign up for and no secrets needed. Runs on every pull request, on every push to main,
+# and every Monday (new vulnerabilities show up in old code, so a weekly run catches them without a code change).
+#   deps     known vulnerabilities in the Python (uv.lock) and npm (package-lock.json) packages
+#   iac      mistakes in Terraform, Dockerfiles and the workflows themselves (Checkov)
+#   secrets  passwords/keys committed to git, including old commits (Gitleaks)
+#   images   known vulnerabilities in the built Docker images (Grype)
+# A failing job means a real finding: read its log, then fix it or (if it is a false alarm) skip that one check.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Python packages (pip-audit)
+        run: |
+          pip install uv pip-audit
+          # the exact versions from uv.lock, without our own workspace packages
+          uv export --project backend --frozen --no-dev --all-packages --no-hashes --no-emit-workspace -o "$RUNNER_TEMP/requirements.txt"
+          pip-audit -r "$RUNNER_TEMP/requirements.txt" --no-deps --disable-pip
+
+      - name: npm packages (npm audit)
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
+
+  iac:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Terraform, Dockerfiles and workflows (Checkov)
+        run: |
+          pip install checkov
+          checkov -d . --framework terraform dockerfile github_actions --quiet --compact
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the whole history, so old commits are checked too
+
+      - name: Secrets in git (Gitleaks)
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/repo" -w /repo \
+            zricethezav/gitleaks:v8.28.0 git /repo --redact --no-banner
+
+  images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The backend services only add source code on top of the base image, so scanning the base covers them.
+      - name: Build the images
+        run: |
+          docker build -f infra/docker/base.Dockerfile -t lbstash-base:scan backend
+          docker build -t lbstash-web:scan frontend
+
+      # --only-fixed: skip vulnerabilities that have no fix yet (nothing to do about them).
+      - name: Scan the images (Grype)
+        run: |
+          for image in lbstash-base:scan lbstash-web:scan; do
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+              anchore/grype:v0.99.1 "$image" --fail-on high --only-fixed
+          done

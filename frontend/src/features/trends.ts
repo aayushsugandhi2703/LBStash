@@ -1,4 +1,4 @@
-import { compactK, css3, displayTag, formatInr, inr, inrSigned, monthName, monthScale, type Paise, pct, pct1, shortMonth, wholeRupees } from '@/common';
+import { compactK, css3, displayTag, formatInr, inr, inrSigned, type LeadPart, monthName, monthScale, type Paise, pct, pct1, shortMonth, wholeRupees } from '@/common';
 import type { ReportMatrixRes, ReportMonthsRes } from '@/contracts';
 
 /** Trends page view-model: stats, headline, in/out columns with pace, "against a usual month" list. */
@@ -41,17 +41,15 @@ export function trendStats(m: ReportMonthsRes): TrendStat[] {
   ];
 }
 
-/** "You keep about ₹5,940 a month. October is on pace for ₹3,280, below usual." (null before a full month). */
-export function headline(m: ReportMonthsRes): string | null {
+/** "You usually keep ₹5,940 a month. October is on track for ₹3,280." (null before a full month). The pace figure is red when it is below usual. */
+export function headlineParts(m: ReportMonthsRes): LeadPart[] | null {
   const cur = m.items[m.items.length - 1];
   if (m.averages.fullMonths === 0 || !cur?.pace) return null;
   const avg = wholeRupees(m.averages.avgKeptMinor);
   const pace = wholeRupees(cur.pace.paceKeptMinor);
-  const diff = pace - avg;
-  const verdict = diff < 0 ? 'below usual' : diff > 0 ? 'above usual' : 'a usual month';
-  const s1 = avg >= 0 ? `You keep about ${inr(avg)} a month.` : `You spend about ${inr(avg)} more than you earn in a month.`;
-  const s2 = pace >= 0 ? `${monthName(cur.month)} is on pace for ${inr(pace)}` : `${monthName(cur.month)} is on pace for ${inr(pace)} short`;
-  return `${s1} ${s2}, ${verdict}.`;
+  const first: LeadPart[] = avg >= 0 ? ['You usually keep ', { b: inr(avg) }, ' a month.'] : [`You usually spend ${inr(avg)} more than you earn in a month.`];
+  const figure = pace >= 0 ? inr(pace) : `${inr(pace)} short`;
+  return [...first, ` ${monthName(cur.month)} is on track for `, { b: figure, bad: pace < avg }, '.'];
 }
 
 interface MonthColumn {
@@ -121,8 +119,8 @@ export function usualRows(mx: ReportMatrixRes, limit = 4): UsualRow[] {
     const d = pace - usual;
     return {
       d, id: it.categoryId, name: displayTag(it.name),
-      usually: usual === 0 ? 'usually —' : `usually ${inr(usual)}`,
-      heading: `heading for ${inr(pace)}`,
+      usually: usual === 0 ? '—' : inr(usual),
+      heading: inr(pace),
       change: d === 0 ? 'the same as usual' : `${d > 0 ? '▲' : '▼'} ${inr(d)} ${d > 0 ? 'more' : 'less'}`,
       dir: d === 0 ? ('same' as const) : d > 0 ? ('more' as const) : ('less' as const),
     };
