@@ -18,7 +18,8 @@ from typing import Any
 
 from lbstash.common import create_logger
 from lbstash.crypto import FieldCipher, generate_recovery_codes, generate_totp_secret, hash_password, normalize_recovery_code, sha256_hex, verify_password
-from lbstash.db import Tx, connect
+from lbstash.db import Tx
+from lbstash.db.pool import connect
 
 import dataset as D
 
