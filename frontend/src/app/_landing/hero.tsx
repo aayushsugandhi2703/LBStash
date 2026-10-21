@@ -23,7 +23,7 @@ export function Hero() {
       <div className={s.heroRow}>
         <p className={s.lead}>LBStash takes what you log in Telegram and tells you where the month ends, <b>before it ends</b>. Scrub through a sample month below to see what it sees.</p>
         <div className={s.actions}>
-          <DemoButton className={s.bigBtn} />
+          <DemoButton arrow className={s.bigBtn} />
           <Link href="/create-account" className={`ghost ${s.bigGhost}`}>Create account</Link>
         </div>
       </div>

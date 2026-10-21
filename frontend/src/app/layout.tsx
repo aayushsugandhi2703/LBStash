@@ -8,7 +8,7 @@ import { ThemeSync } from '@/components/theme-sync';
 import { MODE_SCRIPT } from '@/lib/mode';
 
 // Self-hosted at build time by next/font: no request to Google from the browser (README 15.6).
-const geist = Geist({ subsets: ['latin'], weight: ['300', '400', '500', '600'], variable: '--font-geist', display: 'swap' });
+const geist = Geist({ subsets: ['latin'], weight: ['200', '300', '400', '500', '600'], variable: '--font-geist', display: 'swap' });
 const geistMono = Geist_Mono({ subsets: ['latin'], weight: ['400', '500'], variable: '--font-geist-mono', display: 'swap' });
 
 export const metadata: Metadata = { title: BRAND.name, description: BRAND.tagline, icons: { icon: [{ url: BRAND.mark, type: 'image/svg+xml', sizes: 'any' }, { url: BRAND.appleIcon, type: 'image/png', sizes: '180x180' }], apple: BRAND.appleIcon }, robots: { index: false, follow: false } };

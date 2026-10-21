@@ -1,30 +1,35 @@
 /* The About page: public, outside the app shell. A month you can scrub, told in days. Shared tokens everywhere, except the two
    bands that stay dark / deep green in both modes (their own variables below), so the chart and the redaction read the same. */
-.page { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; background: var(--surface); overflow-x: clip; }
+.page { --green-text: color-mix(in srgb, var(--accent) 80%, var(--ink)); --red-text: color-mix(in srgb, var(--danger) 80%, var(--ink));
+  min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; background: var(--surface); overflow-x: clip; font-size: 16px; }
 .wrap { padding-left: clamp(20px, 4.4vw, 72px); padding-right: clamp(20px, 4.4vw, 72px); }
 
 /* top bar */
 .top { position: sticky; top: 0; z-index: 10; background: var(--surface); border-bottom: 1px solid var(--ink); padding-top: env(safe-area-inset-top); }
-.topRow { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 64px; }
+.topRow { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 72px; }
+.topRow :global(.wordmark) { font-size: 22px; }
 .topNav { display: flex; align-items: center; gap: 4px 26px; flex-wrap: wrap; justify-content: flex-end; }
-.topLink { display: inline-flex; align-items: center; min-height: 44px; font-size: var(--fs-s); font-weight: 500; color: var(--muted); }
+.topLink { display: inline-flex; align-items: center; min-height: 44px; font-size: 15px; font-weight: 500; color: var(--text-2); }
 .topLink:hover { color: var(--accent); }
 
 /* hero */
 .hero { padding-top: clamp(24px, 5vh, 48px); padding-bottom: clamp(40px, 7vh, 80px); }
 .eyebrow { display: flex; flex-wrap: wrap; gap: 6px 18px; }
-.eyebrow .hint { color: var(--accent); }
-.h1 { margin: 22px 0 0; font-size: clamp(54px, 9.2vw, 148px); font-weight: 300; letter-spacing: -0.065em; line-height: .9; }
+.eyebrow .hint { color: var(--green-text); }
+.h1 { margin: 22px 0 0; font-size: clamp(56px, 9.4vw, 148px); font-weight: 300; letter-spacing: -0.065em; line-height: .9; }
 .h1 .dayNum { display: inline-block; min-width: 1.1em; color: var(--accent); font-weight: 500; font-variant-numeric: tabular-nums; }
-.h1 .soft { color: var(--disabled); }
+.h1 .soft { color: var(--ramp-4); }
 .heroRow { display: flex; flex-wrap: wrap; gap: 28px clamp(32px, 6vw, 96px); align-items: flex-end; justify-content: space-between; margin-top: clamp(24px, 4vh, 40px); }
 .lead { max-width: 600px; margin: 0; font-size: clamp(18px, 1.7vw, 25px); line-height: 1.38; letter-spacing: -0.015em; color: var(--text-2); }
-.lead b { font-weight: 500; color: var(--ink); }
+.lead b { font-weight: 500; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 16px; }
 /* One size for every big button on the page. The shared .btn / .ghost rules have the same weight as a single class, so these
    are written with three classes to win regardless of the order the style sheets load in. */
-.actions .bigBtn.btn, .actions .bigGhost.ghost { height: 64px; min-height: 64px; padding: 0 32px; font-size: 19px; font-weight: 500; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
-.topNav .topDemo.btn { height: 44px; padding: 0 20px; font-size: var(--fs-s); font-weight: 500; }
+.actions .bigBtn:global(.btn), .actions .bigGhost:global(.ghost) { height: 62px; min-height: 62px; padding: 0 34px; font-size: 19px; font-weight: 500; line-height: 1; display: inline-flex; align-items: center; justify-content: center; gap: 12px; }
+.actions .bigBtn:global(.btn) { background: var(--accent); color: var(--on-accent); }
+.actions .bigBtn:global(.btn):hover:not(:disabled) { background: var(--accent-dark); }
+.actions .bigGhost:global(.ghost) { padding: 0 30px; background: transparent; color: var(--ink); border-color: var(--ink); }
+.topNav .topDemo:global(.btn) { height: 44px; padding: 0 22px; font-size: 15px; font-weight: 500; }
 .note { margin: 14px 0 0; }
 
 /* the scrubber */
@@ -73,13 +78,13 @@
 .h2 b { font-weight: 500; }
 .sub { max-width: 420px; margin: 0; font-size: 18px; line-height: 1.45; color: var(--text-2); }
 .ev { display: grid; grid-template-columns: 200px minmax(0, 1fr) minmax(0, 1fr); gap: 24px clamp(24px, 4vw, 64px); padding: 44px 0 52px 48px; border-top: 1px solid var(--disabled); }
-.evNum { font-size: 128px; font-weight: 300; letter-spacing: -0.07em; line-height: .85; font-variant-numeric: tabular-nums; }
+.evNum { font-size: 128px; font-weight: 200; letter-spacing: -0.07em; line-height: .85; font-variant-numeric: tabular-nums; }
 .evDay { display: block; margin-top: 10px; }
 .ev h3 { margin: 0; font-size: 36px; font-weight: 500; letter-spacing: -0.04em; line-height: 1.05; }
 .ev p { margin: 14px 0 0; max-width: 440px; font-size: 17px; line-height: 1.5; color: var(--text-2); }
 .vis { align-self: center; min-width: 0; }
 .sms { padding: 14px 16px; background: var(--hover-index); border: 1px solid var(--rule); font-size: 12px; line-height: 1.55; color: var(--text-2); }
-.big { font-size: 44px; font-weight: 300; letter-spacing: -0.05em; line-height: 1; color: var(--accent); }
+.big { font-size: 44px; font-weight: 300; letter-spacing: -0.05em; line-height: 1; color: var(--green-text); }
 .chip { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border: 1px solid var(--ink); background: var(--raised); font-size: 13px; }
 .chip[data-g="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .fix { display: inline-block; font-size: 12px; font-weight: 500; color: var(--warn-text); border: 1px solid var(--warn); padding: 2px 8px; }
@@ -109,7 +114,7 @@
 .night .sub { color: #C9C9D2; }
 .nightWrap { padding-top: clamp(64px, 11vh, 112px); padding-bottom: clamp(64px, 11vh, 112px); }
 .climax { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 24px 56px; }
-.giant21 { font-size: clamp(110px, 16vw, 240px); font-weight: 300; letter-spacing: -0.08em; line-height: .8; color: #fff; font-variant-numeric: tabular-nums; }
+.giant21 { font-size: clamp(110px, 16vw, 240px); font-weight: 200; letter-spacing: -0.08em; line-height: .8; color: #fff; font-variant-numeric: tabular-nums; }
 .climaxText { flex: 1 1 440px; max-width: 760px; }
 .fcGrid { display: flex; flex-wrap: wrap; gap: 40px clamp(28px, 4vw, 56px); margin-top: clamp(40px, 7vh, 64px); }
 .chartBox { flex: 1 1 700px; min-width: 0; margin: 0; border: 1px solid var(--n-line); background: var(--n-panel); padding: 22px 22px 12px; }
@@ -140,11 +145,11 @@
 .line:last-child { border-bottom: 0; }
 .lineK { width: 150px; flex: none; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
 .lineBar { flex: 1; height: 26px; background: var(--ink); transform-origin: left; }
-.lineSt { font-size: 12px; color: var(--danger); font-weight: 500; white-space: nowrap; }
+.lineSt { font-size: 12px; color: var(--red-text); font-weight: 500; white-space: nowrap; }
 .keeps { flex: 1 1 420px; min-width: 300px; list-style: none; margin: 0; padding: 0; }
 .keep { display: flex; gap: 18px; padding: 16px 0; border-bottom: 1px solid var(--ink); }
 .keep:first-child { border-top: 1px solid var(--ink); }
-.keepN { width: 34px; flex: none; font-size: 13px; color: var(--accent); padding-top: 3px; }
+.keepN { width: 34px; flex: none; font-size: 13px; color: var(--green-text); padding-top: 3px; }
 .keep h3 { margin: 0; font-size: 19px; font-weight: 500; letter-spacing: -0.02em; }
 .keep p { margin: 4px 0 0; font-size: 14px; line-height: 1.5; color: var(--text-2); }
 
@@ -156,10 +161,10 @@
 .band h2 b { font-weight: 500; color: var(--b-green); }
 .band p { margin: 24px 0 0; max-width: 520px; font-size: 20px; line-height: 1.45; color: var(--b-soft); }
 .band .actions { margin-top: 36px; }
-.band .actions .bandBtn.btn { background: #fff; color: #0E0E10; }
-.band .actions .bandBtn.btn:hover:not(:disabled) { background: var(--b-green); }
-.band .actions .bandGhost.ghost { background: transparent; color: #fff; border-color: #fff; }
-.band .actions .bandGhost.ghost:hover { background: #fff; color: #0E0E10; }
+.band .actions .bandBtn:global(.btn) { background: #fff; color: #0E0E10; }
+.band .actions .bandBtn:global(.btn):hover:not(:disabled) { background: var(--b-green); }
+.band .actions .bandGhost:global(.ghost) { background: transparent; color: #fff; border-color: #fff; }
+.band .actions .bandGhost:global(.ghost):hover { background: #fff; color: #0E0E10; }
 .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; width: min(100%, 460px); }
 .calC { aspect-ratio: 1; display: flex; align-items: flex-start; padding: 6px 7px; border: 1px solid rgba(45, 200, 144, .5); font-size: 13px; color: #fff; }
 .calC[data-s="past"] { background: rgba(0, 0, 0, .28); }
@@ -195,17 +200,36 @@
   .rdV { font-size: 34px; }
   .actions > span, .actions > a { flex: 1 1 100%; }
   .actions > span > button { width: 100%; }
-  .topNav .topDemo.btn { padding: 0 14px; }
+  .topNav .topDemo:global(.btn) { padding: 0 14px; }
   .line { gap: 12px; }
   .lineK { width: 92px; font-size: 11px; }
   .doc { padding: 18px; }
   .climax .giant21 { font-size: 150px; }
-  .band h2 { font-size: 60px; }
+  /* phone sizes taken from the phone design board (390 wide) */
+  .topRow :global(.wordmark) { font-size: 20px; }
+  .h1 { font-size: 68px; }
+  .lead { font-size: 19px; }
+  .actions .bigBtn:global(.btn), .actions .bigGhost:global(.ghost) { height: 60px; min-height: 60px; padding: 0 24px; font-size: 18px; }
+  .h2 { font-size: 48px; }
+  .sub { font-size: 17px; }
+  .ev p { font-size: 16px; }
+  .big { font-size: 36px; }
+  .statV { font-size: 42px; }
+  .statN { font-size: 13px; }
+  .lineSt { font-size: 11px; }
+  .keep h3 { font-size: 18px; }
+  .band h2 { font-size: 64px; }
+  .band p { font-size: 18px; }
+  .calC { font-size: 12px; padding: 4px 5px; }
+  .giant { font-size: 104px; }
+  .footNav a, .footNav button { font-size: 15px; }
+  .verdict { font-size: 14px; }
 }
 
 /* Motion: scroll-driven, transform and opacity only. Everything is fully visible and still without support or with reduced motion. */
-@keyframes rise { from { opacity: 0; transform: translateY(var(--rise, 28px)); } to { opacity: 1; transform: none; } }
-@keyframes slideNum { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
+/* rise and slide only move things (no opacity): if a browser never advances the scroll timeline, nothing is left hidden */
+@keyframes rise { from { transform: translateY(var(--rise, 28px)); } to { transform: none; } }
+@keyframes slideNum { from { transform: translateX(-24px); } to { transform: none; } }
 @keyframes wipe { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes glide { to { transform: translateY(var(--glide, -40px)); } }
 @media (prefers-reduced-motion: no-preference) {
