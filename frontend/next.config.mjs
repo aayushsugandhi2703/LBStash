@@ -33,6 +33,10 @@ export default {
         { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), publickey-credentials-get=(self), publickey-credentials-create=(self)' },
         { key: 'Cache-Control', value: 'no-store' },
       ],
+    }, {
+      // The landing film: let browsers keep it for a day instead of fetching 9-22 MB on every visit. Listed last, so it wins over no-store above.
+      source: '/promo/:path*',
+      headers: [{ key: 'Cache-Control', value: 'public, max-age=86400' }],
     }];
   },
 };
