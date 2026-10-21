@@ -1,15 +1,12 @@
 import type { Paise } from '@/common';
 
-/** The About page's sample month ("scrub October"). Pure. Made-up numbers that add up: nothing here is read from an account. */
+/** The About page's sample month ("scrub a month"; it names no month and no weekday, so it never goes stale). Pure. Made-up numbers that add up: nothing here is read from an account. */
 
 const R = (rupees: number): Paise => rupees * 100;
 
 export const MONTH_DAYS = 31;
 /** The sample "today": days up to here are logged, the rest is the forecast. */
 export const LOGGED_DAYS = 21;
-/** October 2026 starts on a Thursday (Monday-first calendar: three blanks). */
-export const FIRST_WEEKDAY = 3;
-
 /** Flexible spending logged on days 1..21 (sums to ₹26,300). */
 const DAILY: readonly Paise[] = [1220, 900, 1400, 700, 1250, 1900, 1500, 800, 700, 1100, 600, 850, 1300, 810, 1700, 1550, 1543, 1800, 1452, 2619, 606].map(R);
 /** What a forecast day costs: the month's average so far, rounded (₹1,253). */
@@ -57,9 +54,9 @@ export function scrub(day: number): Scrub {
   const runOutDay = planRunsOutDay();
   const spentMinor = flexibleSpent(d);
   let verdict: Scrub['verdict'];
-  if (runOutDay !== null && d >= runOutDay) verdict = { tone: 'bad', text: `The flexible plan ran out on Oct ${runOutDay}. Everything since is over plan.` };
-  else if (d >= LOGGED_DAYS) verdict = { tone: 'warn', text: runOutDay === null ? 'Forecast: at this pace the plan lasts the month.' : `Forecast: at this pace the plan runs out on Oct ${runOutDay}.` };
-  else verdict = { tone: 'ok', text: runOutDay === null ? 'On track so far.' : `On track so far. Keep going and the plan runs out around Oct ${runOutDay}.` };
+  if (runOutDay !== null && d >= runOutDay) verdict = { tone: 'bad', text: `The flexible plan ran out on day ${runOutDay}. Everything since is over plan.` };
+  else if (d >= LOGGED_DAYS) verdict = { tone: 'warn', text: runOutDay === null ? 'Forecast: at this pace the plan lasts the month.' : `Forecast: at this pace the plan runs out on day ${runOutDay}.` };
+  else verdict = { tone: 'ok', text: runOutDay === null ? 'On track so far.' : `On track so far. Keep going and the plan runs out around day ${runOutDay}.` };
   return {
     day: d, phase: d <= LOGGED_DAYS ? 'logged' : 'forecast', availableMinor: STARTING - repeatsPaid(d) - spentMinor,
     spentMinor, planMinor: PLAN, runOutDay, verdict,
@@ -94,12 +91,11 @@ export function bars(day: number): Bar[] {
   });
 }
 
-export interface CalendarCell { day: number | null; state: 'blank' | 'past' | 'today' | 'future' }
+export interface CalendarCell { day: number; state: 'past' | 'today' | 'future' }
 
-/** Monday-first October grid: blanks, then the 31 days. */
+/** The 31 days of the sample month as a plain grid (no weekdays, so any month fits). */
 export function calendar(): CalendarCell[] {
   return [
-    ...Array.from({ length: FIRST_WEEKDAY }, (): CalendarCell => ({ day: null, state: 'blank' })),
     ...Array.from({ length: MONTH_DAYS }, (_, i): CalendarCell => ({ day: i + 1, state: i + 1 < LOGGED_DAYS ? 'past' : i + 1 === LOGGED_DAYS ? 'today' : 'future' })),
   ];
 }

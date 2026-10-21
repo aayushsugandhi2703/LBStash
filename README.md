@@ -117,11 +117,11 @@ A Next.js app. `lbstash.site` always opens the **About** page (a sample month, T
 | Account, Security, Devices | `/me`, `/account`, `/sessions`, `/devices`, `/telegram` | auth, ingest, telegram |
 | Setup | `/settings`, `/plans/:month`, `/telegram` | gateway, planning, telegram |
 
- Logo, name and colours: [Brand](docs/application/BRAND.md).
+Logo, name and colours: [Brand](docs/application/BRAND.md).
 
 ## Demo
 
-The About page (`/`, shown to visitors who are not signed in) shows a sample October you can scrub with a slider, tells the product as one month in days, and has a **Try the demo** button. It opens a read-only account with six months of sample data (payments, plan, limits, repeats, forecast), so people can see the app before making an account. It is opt-in and lives in [`demo/`](demo/README.md): a data builder and loader, a compose overlay and tests. Turning it on sets `DEMO_MODE` for auth and the gateway; the demo user can look but never change anything.
+The About page (`/`, shown to visitors who are not signed in) shows a sample month you can scrub with a slider (it names no month and no weekday, so it never goes stale), tells the product as one month in days, and has a **Try the demo** button. It opens a read-only account with six months of sample data (payments, plan, limits, repeats, forecast), so people can see the app before making an account. It is opt-in and lives in [`demo/`](demo/README.md): a data builder and loader, a compose overlay and tests. Turning it on sets `DEMO_MODE` for auth and the gateway; the demo user can look but never change anything.
 
 ## Infra
 
@@ -141,6 +141,24 @@ The About page (`/`, shown to visitors who are not signed in) shows a sample Oct
 - **Telegram:** only your account can link; your message is deleted after it is read; sensitive prompts stay hidden until you tap Reveal.
 - **Never collected:** bank logins, UPI PINs, card numbers, OTPs. The app never moves money.
 - **Yours:** export any time, delete your account (7-day grace), append-only audit log, logs hold ids only.
+
+### The server
+
+How the Oracle Cloud VM is protected, from the outside in. The first-boot script is [`cloud-init.yaml`](infra/terraform/modules/compute/cloud-init.yaml); Terraform runs it once, when the VM starts for the first time.
+
+| Layer | What is done | Where |
+|---|---|---|
+| **Cloud network** | A network security group lets in only web ports 80 and 443 (from the addresses you allow, default everyone), SSH on 22 (from `ssh_ingress_cidrs`, default everyone: set it to `["your-ip/32"]` to allow only yourself) and ICMP type 3 for path MTU. Everything else, including the published local port 8088, is dropped before it reaches the VM. | `infra/terraform/modules/nsg` |
+| **Host firewall** | On first boot the script replaces Oracle's default rules with its own `iptables` set: default **DROP** for incoming traffic; allowed are loopback, replies to connections the VM started, ICMP, and *new* connections on 22, 80 and 443 only. Saved with `iptables-persistent`, so it survives a reboot. | `cloud-init.yaml` |
+| **SSH** | Keys only: `PasswordAuthentication no`, `KbdInteractiveAuthentication no`, `PermitRootLogin no`. Your public key is the only one placed on the VM, plus a separate **deploy key** that only GitHub Actions holds (as a GitHub secret). | `cloud-init.yaml`, `SECRETS` |
+| **Brute-force bans** | `fail2ban` is installed and enabled; Ubuntu's default setup watches SSH and bans addresses that keep failing. | `cloud-init.yaml` |
+| **Updates** | Package lists are updated and all packages upgraded on first boot. Later OS updates are yours to run (`sudo apt update && sudo apt upgrade`); the app updates through the Release workflow. | `cloud-init.yaml` |
+| **Containers** | One Docker network; only nginx publishes ports. The database and every service are reachable only inside it; the gateway is also bound to `127.0.0.1`. Python images run as an unprivileged `app` user, the web image as `node`. Images are public and hold no secrets. | `docker-compose.yml`, Dockerfiles |
+| **Public entry** | nginx is the only door: `/` to the web app; `/api`, `/ingest`, `/telegram/webhook` to the gateway. `server_tokens off`, HSTS, `nosniff`, `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`, 1 MB body limit. https from Let's Encrypt (certbot) or Cloudflare. | `infra/nginx` |
+| **Secrets** | `gen-secrets.py` makes random values for every password and key and writes `.env` with mode `600` on the VM. They never go in an image or in Git. GitHub holds only what the workflows need, listed in [Secrets](docs/infrastructure/SECRETS.md). | `infra/scripts`, `.env` |
+| **Backups** | A private Object Storage bucket (`NoPublicAccess`) is created for database backups. The backup script is not written yet. | `infra/terraform/modules/object_storage` |
+
+Not done yet, so you know: SSH is open to the whole internet by default (fail2ban and key-only login limit the risk), unattended OS updates are not switched on, and backups are not scheduled.
 
 ## Deployment
 

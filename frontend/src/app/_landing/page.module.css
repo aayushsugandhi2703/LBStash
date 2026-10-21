@@ -21,8 +21,10 @@
 .lead { max-width: 600px; margin: 0; font-size: clamp(18px, 1.7vw, 25px); line-height: 1.38; letter-spacing: -0.015em; color: var(--text-2); }
 .lead b { font-weight: 500; color: var(--ink); }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 16px; }
-.bigBtn { height: 64px; padding: 0 34px; font-size: 19px; }
-.bigGhost { height: 64px; padding: 0 30px; font-size: 19px; }
+/* One size for every big button on the page. The shared .btn / .ghost rules have the same weight as a single class, so these
+   are written with three classes to win regardless of the order the style sheets load in. */
+.actions .bigBtn.btn, .actions .bigGhost.ghost { height: 64px; min-height: 64px; padding: 0 32px; font-size: 19px; font-weight: 500; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
+.topNav .topDemo.btn { height: 44px; padding: 0 20px; font-size: var(--fs-s); font-weight: 500; }
 .note { margin: 14px 0 0; }
 
 /* the scrubber */
@@ -154,14 +156,12 @@
 .band h2 b { font-weight: 500; color: var(--b-green); }
 .band p { margin: 24px 0 0; max-width: 520px; font-size: 20px; line-height: 1.45; color: var(--b-soft); }
 .band .actions { margin-top: 36px; }
-.bandBtn { background: #fff; color: #0E0E10; }
-.bandBtn:hover:not(:disabled) { background: var(--b-green); }
-.bandGhost { background: transparent; color: #fff; border-color: #fff; }
-.bandGhost:hover { background: #fff; color: #0E0E10; }
+.band .actions .bandBtn.btn { background: #fff; color: #0E0E10; }
+.band .actions .bandBtn.btn:hover:not(:disabled) { background: var(--b-green); }
+.band .actions .bandGhost.ghost { background: transparent; color: #fff; border-color: #fff; }
+.band .actions .bandGhost.ghost:hover { background: #fff; color: #0E0E10; }
 .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; width: min(100%, 460px); }
-.calWd { font-size: 11px; letter-spacing: .06em; color: var(--b-dim); text-align: center; padding-bottom: 4px; }
 .calC { aspect-ratio: 1; display: flex; align-items: flex-start; padding: 6px 7px; border: 1px solid rgba(45, 200, 144, .5); font-size: 13px; color: #fff; }
-.calC[data-s="blank"] { border-color: transparent; }
 .calC[data-s="past"] { background: rgba(0, 0, 0, .28); }
 .calC[data-s="today"] { background: #fff; color: #0E0E10; border-color: #fff; font-weight: 500; }
 .calC[data-s="future"] { background-image: repeating-linear-gradient(135deg, rgba(45, 200, 144, .5) 0 1px, transparent 1px 6px); }
@@ -194,8 +194,8 @@
   .scrubR { padding: 8px 16px 16px; }
   .rdV { font-size: 34px; }
   .actions > span, .actions > a { flex: 1 1 100%; }
-  .actions > span > button, .actions > span > :global(.btn) { width: 100%; }
-  .actions > a { justify-content: center; }
+  .actions > span > button { width: 100%; }
+  .topNav .topDemo.btn { padding: 0 14px; }
   .line { gap: 12px; }
   .lineK { width: 92px; font-size: 11px; }
   .doc { padding: 18px; }

@@ -23,7 +23,7 @@ describe('the sample month adds up', () => {
   });
 });
 
-describe('the plan runs out on Oct 29', () => {
+describe('the plan runs out on day 29', () => {
   it('first day the flexible spend reaches ₹36,000', () => {
     expect(planRunsOutDay()).toBe(29);
     expect(flexibleSpent(28)).toBeLessThan(R(36000));
@@ -31,10 +31,10 @@ describe('the plan runs out on Oct 29', () => {
   });
   it('the verdict moves from on track, to forecast, to ran out', () => {
     expect(scrub(10).verdict.tone).toBe('ok');
-    expect(scrub(21).verdict).toEqual({ tone: 'warn', text: 'Forecast: at this pace the plan runs out on Oct 29.' });
+    expect(scrub(21).verdict).toEqual({ tone: 'warn', text: 'Forecast: at this pace the plan runs out on day 29.' });
     expect(scrub(28).verdict.tone).toBe('warn');
     expect(scrub(29).verdict.tone).toBe('bad');
-    expect(scrub(31).verdict.text).toContain('Oct 29');
+    expect(scrub(31).verdict.text).toContain('day 29');
   });
   it('past today it is a forecast, up to today it is logged', () => {
     expect(scrub(LOGGED_DAYS).phase).toBe('logged');
@@ -72,12 +72,18 @@ describe('bars', () => {
 });
 
 describe('calendar', () => {
-  it('October 2026: three blanks (Thursday start), 31 days, day 21 is today', () => {
+  it('a plain grid of 31 days (no month, no weekday): 20 logged, day 21 is today, 10 forecast', () => {
     const c = calendar();
-    expect(c).toHaveLength(34);
-    expect(c.slice(0, 3).every((x) => x.state === 'blank')).toBe(true);
+    expect(c).toHaveLength(31);
+    expect(c.map((x) => x.day)).toEqual(Array.from({ length: 31 }, (_, i) => i + 1));
     expect(c.find((x) => x.state === 'today')?.day).toBe(21);
     expect(c.filter((x) => x.state === 'past')).toHaveLength(20);
     expect(c.filter((x) => x.state === 'future')).toHaveLength(10);
+  });
+});
+
+describe('no dates in the words', () => {
+  it('no verdict names a month, so the page never goes stale', () => {
+    for (let d = 1; d <= 31; d++) expect(scrub(d).verdict.text).not.toMatch(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/);
   });
 });

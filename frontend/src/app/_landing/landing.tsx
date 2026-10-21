@@ -10,8 +10,6 @@ import s from './page.module.css';
 
 export const landingMetadata: Metadata = { title: `${BRAND.name}: ${BRAND.tagline.toLowerCase()}`, description: 'Log a payment in Telegram. LBStash saves it, tags it and shows the day your plan runs out, before the month ends.' };
 
-const WEEKDAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-
 const KEEPS = [
   { name: 'Two-step sign-in', text: 'An authenticator app is required. Passkeys and recovery codes are supported.' },
   { name: 'Walled-off data', text: 'Row-level security on user tables, and one database login and schema per service.' },
@@ -44,7 +42,7 @@ export function Landing() {
           <nav className={s.topNav} aria-label="Main">
             <a href="#month" className={`${s.topLink} ${s.topJump}`}>A month in {BRAND.name}</a>
             <a href="#private" className={`${s.topLink} ${s.topJump}`}>What it never sees</a>
-            <AccountLinks linkClass={s.topLink ?? ''} />
+            <AccountLinks linkClass={s.topLink ?? ''} demoClass={s.topDemo ?? ''} />
           </nav>
         </div>
       </header>
@@ -61,7 +59,7 @@ export function Landing() {
             </div>
 
             <Day
-              n="01" day="Oct · Thu" title="Salary lands."
+              n="01" day="Day of the month" title="Salary lands."
               visual={
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14 }}>
                   <div className={`mono ${s.sms}`} style={{ flex: '1 1 240px' }}>HDFCBK: Rs 85,000.00 credited to a/c XX4321 by ACME TECHNOLOGIES.</div>
@@ -74,11 +72,11 @@ export function Landing() {
             </Day>
 
             <Day
-              n="05" day="Oct · Mon" title="Rent leaves by itself."
+              n="05" day="Day of the month" title="Rent leaves by itself."
               visual={
-                <div className={s.stems} role="img" aria-label="Repeats on a month line: rent 24,000 on Oct 5, SIP 15,000 on Oct 28">
+                <div className={s.stems} role="img" aria-label="Repeats on a month line: rent 24,000 on day 5, SIP 15,000 on day 28">
                   <div className={s.stem} style={{ left: '8%', height: 112 }} /><span className={`mono ${s.stemLbl}`} style={{ left: 'calc(8% + 18px)', top: -4 }}>Rent −24,000</span>
-                  <div className={s.stem} style={{ left: '46%', height: 30 }} /><span className={`mono ${s.stemLbl}`} style={{ left: 'calc(46% + 12px)', bottom: 34 }}>SIP −15,000 · Oct 28</span>
+                  <div className={s.stem} style={{ left: '46%', height: 30 }} /><span className={`mono ${s.stemLbl}`} style={{ left: 'calc(46% + 12px)', bottom: 34 }}>SIP −15,000 · day 28</span>
                 </div>
               }
             >
@@ -86,7 +84,7 @@ export function Landing() {
             </Day>
 
             <Day
-              n="09" day="Oct · Fri" title="A payment it doesn’t know yet."
+              n="09" day="Day of the month" title="A payment it doesn’t know yet."
               visual={
                 <div style={{ border: '1px solid var(--ink)', padding: '16px 18px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}><b style={{ fontWeight: 500, fontSize: 17 }}>UPI · RAMESH K</b><span className="mono">−1,200</span></div>
@@ -98,19 +96,19 @@ export function Landing() {
             </Day>
 
             <Day
-              n="12" day="Oct · Mon" title="Three seconds, from Telegram."
+              n="12" day="Day of the month" title="Three seconds, from Telegram."
               visual={<div className={s.msgs}><div className={`mono ${s.msg}`} data-who="me">/350 food</div><div className={s.msg} data-who="bot">Logged <b className="mono">₹350</b> in <b className="mono">#food</b>. Safe to spend today: ₹880.</div></div>}
             >
               You do not open an app to log a coffee. Type the amount and a word. It replies with what is safe to spend today.
             </Day>
 
             <Day
-              n="18" day="Oct · Sun" title="Shopping crosses 80%."
+              n="18" day="Day of the month" title="Shopping crosses 80%."
               visual={
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}><b style={{ fontWeight: 500 }}>Shopping</b><span className="mono" style={{ fontSize: 13 }}>5,650 of 7,000</span></div>
                   <div className={s.limTrack}><div className={s.limFill} style={{ width: '56.5%' }} /><div className={s.limHatch} style={{ left: '56.5%', width: '38%' }} /><div className={s.limTick} /></div>
-                  <div className={s.limNote}><b style={{ fontWeight: 500 }}>Hits the limit Oct 23</b> <span>· in 5 days</span></div>
+                  <div className={s.limNote}><b style={{ fontWeight: 500 }}>Hits the limit on day 23</b> <span>· in 5 days</span></div>
                 </div>
               }
             >
@@ -118,7 +116,7 @@ export function Landing() {
             </Day>
 
             <Day
-              n="20" day="Oct · Tue" title="The bank says ₹850 less."
+              n="20" day="Day of the month" title="The bank says ₹850 less."
               visual={
                 <div className={`mono ${s.tally}`}>
                   <div className={s.tallyRow}><span>bank says</span><span>38,251</span></div>
@@ -135,19 +133,19 @@ export function Landing() {
         <section className={s.night} aria-labelledby="fc-h">
           <div className={`${s.wrap} ${s.nightWrap}`}>
             <div className={s.climax}>
-              <div><div className="lbl">Oct · Wed</div><div className={`mono ${s.giant21}`}>21</div></div>
+              <div><div className="lbl">Day of the month</div><div className={`mono ${s.giant21}`}>21</div></div>
               <div className={s.climaxText}>
                 <div className="lbl">Today</div>
-                <h2 id="fc-h" className={s.h2}>The plan runs out <b style={{ color: 'var(--n-red)' }}>Oct 29.</b> Two days early.</h2>
+                <h2 id="fc-h" className={s.h2}>The plan runs out <b style={{ color: 'var(--n-red)' }}>on day 29.</b> Two days early.</h2>
                 <p className={s.sub} style={{ marginTop: 20, maxWidth: 560 }}>That is the whole point. Not what you spent, but what your pace does to the rest of the month, while there is still time to change it.</p>
               </div>
             </div>
             <div className={s.fcGrid}>
               <ForecastChart />
               <div className={s.stats}>
-                <div className={s.stat}><div className="lbl">Spend ₹880 a day, not ₹1,250</div><div className={s.statV} style={{ color: 'var(--n-green)' }}>and it lasts</div><div className={`mono ${s.statN}`}>the plan survives to Oct 31</div></div>
+                <div className={s.stat}><div className="lbl">Spend ₹880 a day, not ₹1,250</div><div className={s.statV} style={{ color: 'var(--n-green)' }}>and it lasts</div><div className={`mono ${s.statN}`}>the plan survives to the last day</div></div>
                 <div className={s.stat}><div className="lbl">Month ends with</div><div className={s.statV}>₹10,040</div><div className={`mono ${s.statN}`}>between ₹6,470 and ₹13,770</div></div>
-                <div className={s.stat}><div className="lbl">Breaks first</div><div className={s.statV}>Shopping</div><div className={`mono ${s.statN}`}>limit hit on Oct 23</div></div>
+                <div className={s.stat}><div className="lbl">Breaks first</div><div className={s.statV}>Shopping</div><div className={`mono ${s.statN}`}>limit hit on day 23</div></div>
               </div>
             </div>
           </div>
@@ -175,16 +173,15 @@ export function Landing() {
           <div className={`${s.wrap} ${s.bandWrap}`}>
             <div style={{ flex: '1 1 520px', minWidth: 0 }}>
               <div className="lbl">No account. No card. Read-only.</div>
-              <h2 id="demo-h">Step into <b>October.</b></h2>
+              <h2 id="demo-h">Step into <b>a month.</b></h2>
               <p>Six months of sample payments, a plan, limits and a forecast, in a copy you cannot break. Like it? Make your own account. It starts empty and private.</p>
               <div className={s.actions}>
                 <DemoButton className={`${s.bigBtn} ${s.bandBtn}`} />
                 <Link href="/create-account" className={`ghost ${s.bigGhost} ${s.bandGhost}`}>Create account</Link>
               </div>
             </div>
-            <div className={`mono ${s.cal}`} role="img" aria-label="October 2026 calendar. Days up to the 21st are logged, the rest is forecast.">
-              {WEEKDAYS.map((d) => <span key={d} className={s.calWd}>{d}</span>)}
-              {calendar().map((c, i) => <span key={i} className={s.calC} data-s={c.state}>{c.day}</span>)}
+            <div className={`mono ${s.cal}`} role="img" aria-label="A sample month as a grid of days. Days up to the 21st are logged, the rest is forecast.">
+              {calendar().map((c) => <span key={c.day} className={s.calC} data-s={c.state}>{c.day}</span>)}
             </div>
           </div>
         </section>
@@ -204,7 +201,7 @@ export function Landing() {
             <nav className={s.footNav} aria-label="Footer">
               <Link href="/sign-in">Sign in</Link>
               <Link href="/create-account">Create account</Link>
-              <DemoButton link>Demo</DemoButton>
+              <DemoButton link>Try the demo</DemoButton>
             </nav>
           </div>
           <div className={s.giant} aria-hidden="true">{BRAND.wordmark.slice(0, 2)}<b>{BRAND.wordmark.slice(2)}</b></div>

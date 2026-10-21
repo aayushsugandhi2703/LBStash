@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { BRAND, PageIcon } from '@/brand';
 import { ScrollReveal } from '@/components/scroll-reveal';
+import { SmoothScroll } from '@/components/smooth-scroll';
 import { ThemeSync } from '@/components/theme-sync';
 import { MODE_SCRIPT } from '@/lib/mode';
 
@@ -21,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // jumps (not glides) to the top on a route change (Next 16 no longer does this by itself).
     <html lang="en" className={`${geist.variable} ${geistMono.variable}`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head><script dangerouslySetInnerHTML={{ __html: MODE_SCRIPT }} /></head>
-      <body>{children}<ScrollReveal /><PageIcon /><ThemeSync /></body>
+      <body>{children}<SmoothScroll /><ScrollReveal /><PageIcon /><ThemeSync /></body>
     </html>
   );
 }
