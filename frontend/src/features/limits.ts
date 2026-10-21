@@ -1,6 +1,7 @@
-import { limitStatus, type LimitStatus } from '@/common';
+import { displayTag, inr, limitStatus, type LimitStatus, wholeRupees } from '@/common';
 import type { BudgetDto } from '@/contracts';
 import { dayLabel, runOut } from './forecast';
+import type { PlanResponse } from './plan';
 
 /** Limits page logic. Statuses are recomputed here so changing the alert level or the pace switch answers at once. */
 
@@ -62,7 +63,7 @@ const list = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1)
 /** The sentence above the rows. `names` are display names, in row order. */
 export function headline(rows: LimitRow[], display: (n: string) => string): string {
   if (rows.length === 0) return 'No limits yet.';
-  const needs = rows.filter((r) => r.status === 'close' || r.status === 'over').map((r) => display(r.name));
+  const needs = rows.filter((r) => r.status !== 'ok').map((r) => display(r.name));
   if (needs.length === 0) return rows.length === 1 ? 'Your limit is on track.' : rows.length === 2 ? 'Both limits are on track.' : `All ${word(rows.length)} limits are on track.`;
   if (needs.length === 1) return rows.length === 1 ? `${needs[0]} needs a look.` : `${needs[0]} needs a look. The other ${rows.length - 1} ${rows.length === 2 ? 'is' : 'are'} fine.`;
   return `${needs.length} limits need a look: ${list(needs)}.`;
@@ -82,10 +83,41 @@ export function warningText(a: AlertItem, budgets: BudgetDto[], level: number, d
   return `${display(a.categoryName)} passed ${b?.warnPct ?? level}%`;
 }
 
-/** "At this pace you hit it on Oct 23, in 2 days". Null when the pace stays inside the limit, or it is already passed (the status says so). */
-export function hitText(r: Pick<LimitRow, 'spentMinor' | 'limitMinor'>, t: { month: string; day: number; days: number }): string | null {
+interface Clock { month: string; day: number; days: number }
+
+/** The day the pace reaches the limit and how many days away it is (0 = today). Null when the pace stays inside, or the limit is already passed (the state says so). */
+export function hitDay(r: Pick<LimitRow, 'spentMinor' | 'limitMinor'>, t: Pick<Clock, 'day' | 'days'>): { day: number; away: number } | null {
   const o = runOut({ planMinor: r.limitMinor, spentMinor: r.spentMinor, rateMinor: t.day > 0 ? r.spentMinor / t.day : 0, dayOfMonth: t.day, daysInMonth: t.days });
-  if (o.kind !== 'day') return null;
-  const away = o.day - t.day;
-  return `At this pace you hit it on ${dayLabel(t.month, o.day)}${away > 0 ? `, in ${away} ${away === 1 ? 'day' : 'days'}` : ', today'}`;
+  return o.kind === 'day' ? { day: o.day, away: o.day - t.day } : null;
+}
+
+const awayText = (away: number): string => (away > 0 ? `in ${away} ${away === 1 ? 'day' : 'days'}` : 'today');
+
+/** The limit that is hit first, for the sentence above the rows. Null when no pace reaches its limit. */
+export function closest(rows: LimitRow[], t: Clock): { name: string; date: string } | null {
+  const hits = rows.flatMap((r) => { const h = hitDay(r, t); return h ? [{ name: r.name, day: h.day }] : []; }).sort((a, b) => a.day - b.day);
+  return hits[0] ? { name: hits[0].name, date: dayLabel(t.month, hits[0].day) } : null;
+}
+
+/** The "Where it is heading" cell: a verdict, when it lands, and the daily pace that keeps the limit. */
+export function heading(r: LimitRow, t: Clock): { text: string; when: string; bad: boolean; note: string } {
+  if (r.status === 'over') return { text: r.leftMinor < 0 ? `Over by ${inr(-r.leftMinor)}` : 'Limit reached', when: '', bad: true, note: '' };
+  const daysLeft = Math.max(1, t.days - t.day);
+  const safe = Math.floor(r.leftMinor / daysLeft / 100) * 100;
+  const spend = wholeRupees(t.day > 0 ? r.spentMinor / t.day : 0);
+  const note = `Safe pace ${inr(safe)} a day. You spend ${inr(spend)}.`;
+  const h = hitDay(r, t);
+  return h ? { text: `Hits the limit ${dayLabel(t.month, h.day)}`, when: awayText(h.away), bad: true, note } : { text: 'Stays inside the limit', when: '', bad: false, note };
+}
+
+export const STATE_MARK: Record<LimitStatus, string> = { ok: '●', fast: '»', close: '◆', over: '■' };
+
+export interface LimitChoice { tag: string; name: string; planMinor: number }
+
+/** Plan categories that can take a limit: not a repeat (Rent, SIP), and no limit yet. */
+export function limitChoices(lines: PlanResponse['lines'], fixedIds: ReadonlySet<string>, budgets: readonly BudgetDto[]): LimitChoice[] {
+  const limited = new Set(budgets.filter((b) => b.active).map((b) => b.categoryId));
+  return lines
+    .filter((l) => !fixedIds.has(l.categoryId) && !limited.has(l.categoryId))
+    .map((l) => ({ tag: l.categoryName, name: displayTag(l.categoryName), planMinor: l.allocatedMinor }));
 }

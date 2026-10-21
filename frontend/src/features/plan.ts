@@ -1,6 +1,6 @@
 import { parseTag } from '@/common';
 import type { PlanPutReq } from '@/contracts';
-import { roundTen } from './forecast';
+import { dayLabel, roundTen, runOut } from './forecast';
 
 /** Plan page logic. Pure: the page keeps a draft and calls these. All money is paise. */
 
@@ -46,6 +46,29 @@ export function lineView(l: DraftLine): LineView {
   const over = remainMinor < 0;
   const pct = l.allocatedMinor > 0 ? Math.min(100, (l.spentMinor / l.allocatedMinor) * 100) : 0;
   return { remainMinor, over, pct, colour: over ? 'danger' : pct >= 80 ? 'warn' : 'accent' };
+}
+
+export interface Placed { line: DraftLine; /** Position in `Draft.lines`, which the steppers and the bar colours use. */ index: number }
+export interface Groups { flexible: Placed[]; fixed: Placed[]; flexibleMinor: number; fixedMinor: number; flexibleSpentMinor: number }
+
+/** Flexible lines first, then the fixed ones (categories of your repeats: Rent, SIP). A tag typed just now is flexible. */
+export function groupLines(d: Draft, fixed: ReadonlySet<string>): Groups {
+  const placed = d.lines.map((line, index) => ({ line, index }));
+  const isFixed = (p: Placed) => p.line.categoryId !== undefined && fixed.has(p.line.categoryId);
+  const flexible = placed.filter((p) => !isFixed(p));
+  const fix = placed.filter(isFixed);
+  const total = (ps: Placed[], f: (l: DraftLine) => number) => ps.reduce((t, p) => t + f(p.line), 0);
+  return {
+    flexible, fixed: fix, flexibleMinor: total(flexible, (l) => l.allocatedMinor), fixedMinor: total(fix, (l) => l.allocatedMinor),
+    flexibleSpentMinor: total(flexible, (l) => l.spentMinor),
+  };
+}
+
+/** The line under the table: when the flexible plan runs out at this month's pace, then the way to the Forecast. */
+export function forecastLink(g: Groups, month: string, day: number, days: number): string {
+  const o = runOut({ planMinor: g.flexibleMinor, spentMinor: g.flexibleSpentMinor, rateMinor: day > 0 ? g.flexibleSpentMinor / day : 0, dayOfMonth: day, daysInMonth: days });
+  const lead = o.kind === 'day' ? `flexible plan runs out ${dayLabel(month, o.day)} · ` : o.kind === 'over' ? 'flexible plan is spent · ' : '';
+  return `${lead}see the Forecast →`;
 }
 
 /** Where a category ends the month at its pace so far (to the nearest ₹10). A repeat (Rent, SIP) ends where it was planned, or where it is if that is more. */

@@ -33,6 +33,8 @@ Release pushes `lbstash-<name>:<version>` and `:latest` for all 10 images to Doc
 
 Versions are `x.y.z`: x = major change or new feature, y = UI change or fix, z = bug fix.
 
+The web image includes the About page film (`frontend/public/promo`, 75 MB), so it is larger than the others and takes a little longer to push and pull. To change the film, rebuild it in `promo/` (`./build.sh`, then `./sync-web.sh`) and commit the new file.
+
 Images are created as **public** repos on the first push (the free plan allows unlimited public repos). They hold no secrets, so the server pulls them without logging in.
 
 To roll back, set `IMAGE_TAG=<old version>` in the server's `.env` and run `$(cat .compose-cmd) up -d` in `~/lbstash` (the Release workflow writes the exact compose command there: with the demo files when the demo is on). Only the latest version's tags are kept, so roll back to the most recent one.

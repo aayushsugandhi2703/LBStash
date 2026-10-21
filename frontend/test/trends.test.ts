@@ -45,18 +45,18 @@ describe('stats and headline', () => {
     const s = trendStats(months({ averages: { ...months().averages, balanceSinceMinor: R(-500) } }));
     expect(s[2]).toMatchObject({ value: '−₹500', tone: 'plain' });
   });
-  it('headline: tighter month than usual', () => {
-    expect(headline(months())).toBe('You keep about ₹5,940 a month. October is heading for ₹3,280, a tighter month than usual.');
+  it('headline: below usual', () => {
+    expect(headline(months())).toBe('You keep about ₹5,940 a month. October is on pace for ₹3,280, below usual.');
   });
-  it('headline: better month when the pace beats the average', () => {
+  it('headline: above usual when the pace beats the average', () => {
     const m = months();
     m.items[5] = { ...m.items[5]!, pace: { ...m.items[5]!.pace!, paceKeptMinor: R(7000) } };
-    expect(headline(m)).toContain('a better month than usual.');
+    expect(headline(m)).toContain('above usual.');
   });
   it('headline: handles a short month', () => {
     const m = months();
     m.items[5] = { ...m.items[5]!, pace: { ...m.items[5]!.pace!, paceKeptMinor: R(-400) } };
-    expect(headline(m)).toContain('October is heading for ₹400 short, a tighter month than usual.');
+    expect(headline(m)).toContain('October is on pace for ₹400 short, below usual.');
   });
   it('counts only finished months with activity', () => {
     expect(fullMonthItems(months()).map((i) => i.month)).toEqual(['2026-05', '2026-06', '2026-07', '2026-08', '2026-09']);

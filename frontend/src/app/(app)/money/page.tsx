@@ -69,13 +69,14 @@ export default function TransactionsPage() {
   );
 
   return (
-    <AppShell home="money" glyph="money" title="Money" description="Every payment and credit you logged, and what repeats next." aside={aside}>
-      <div className={s.tabs}>
-        <SectionTabs label="Money" tabs={[
+    <AppShell home="money" glyph="money" title="Money" description="Everything that left or came in, and what repeats next." aside={aside}>
+      <SectionTabs
+        label="Money" hint="Everything you logged, newest first."
+        tabs={[
           { href: '/money', label: 'Activity', active: true },
           { href: '/money/repeats', label: 'Repeats', count: recurring.data?.items.length, active: false },
-        ]} />
-      </div>
+        ]}
+      />
       <div className={`strip ${s.strip}`}>
         <StripLink tag="LOOK" href="/money/unread">{lookText(me?.needsLookCount ?? 0)}</StripLink>
         <button type="button" aria-expanded={checkOpen} onClick={() => setCheckOpen((v) => !v)}>
@@ -98,7 +99,7 @@ export default function TransactionsPage() {
 
       <div className={s.tableWrap}>
         <div className={s.table}>
-          <div className={`${s.thead} lbl`}>
+          <div className={`${s.thead} th-row lbl`}>
             <div className={s.cDate}>Date</div>
             <div className={s.cWhat}>What</div>
             <div className={s.cTag}>Tag</div>

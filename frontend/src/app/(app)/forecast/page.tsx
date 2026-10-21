@@ -40,13 +40,13 @@ export default function ForecastPage() {
   return (
     <AppShell
       home="forecast" glyph="forecast" title="Forecast"
-      description="Where this month is heading if you keep spending like this."
+      description="Where this month ends at your pace."
       aside={<Aside model={model} month={month} />}
     >
       <div className={s.sections}>
         {model ? (
           <>
-            <Summary month={model.input.month} day={model.input.dayOfMonth} days={model.input.daysInMonth} text={model.f.headline} />
+            <Summary month={model.input.month} text={model.f.headline} />
             {!model.f.empty && (
               <>
                 <ChartSection f={model.f} chart={model.chart} hasPlan={model.input.planFlexMinor > 0} />
@@ -89,8 +89,8 @@ function Aside({ model, month }: { model: Model | null; month: string | null }) 
     { label: 'Plan runs out', value: run && !model?.f.empty ? run.value : '—', note: run && !model?.f.empty ? run.note : ' ', bad: run?.tone === 'bad' },
     { label: 'Month ends with', value: end ? end.value : '—', note: end ? end.note : ' ', bad: false },
     {
-      label: 'Safe a day, flexible only', value: model && safe !== null && safe !== undefined && !model.f.empty ? inr(safe) : '—',
-      note: model && !model.f.empty ? `you are spending ${inr(model.f.spendingNowMinor)}` : ' ', bad: false,
+      label: 'Safe per day', value: model && safe !== null && safe !== undefined && !model.f.empty ? inr(safe) : '—',
+      note: model && !model.f.empty ? `now ${inr(model.f.spendingNowMinor)} a day` : ' ', bad: false,
     },
   ];
   return (
@@ -104,15 +104,15 @@ function Aside({ model, month }: { model: Model | null; month: string | null }) 
           </div>
         ))}
       </div>
-      <p className={`cap opt2 ${s.how}`}>Flexible spending so far ÷ days gone, carried to the month end. Repeats are added on their due dates, not spread across the days.</p>
+      <p className={`cap opt2 ${s.how}`}>Pace = spent so far ÷ days gone. Repeats count on their due dates.</p>
     </>
   );
 }
 
-function Summary({ month, day, days, text }: { month: string; day: number; days: number; text: string }) {
+function Summary({ month, text }: { month: string; text: string }) {
   return (
     <section className={s.section} aria-label="Summary">
-      <div className="lbl">{monthName(month)} · day {day} of {days}</div>
+      <div className="lbl">{monthName(month)} · flexible spending</div>
       <p className={`lead ${s.sentence}`}>{text}</p>
     </section>
   );
@@ -120,15 +120,15 @@ function Summary({ month, day, days, text }: { month: string; day: number; days:
 
 function ChartSection({ f, chart, hasPlan }: { f: Forecast; chart: ForecastChart; hasPlan: boolean }) {
   return (
-    <section className={s.section} aria-label="Flexible spending this month">
-      <div className={s.head}>
-        <h2 className="h2">Flexible spending this month</h2>
-        <span className="lbl" style={{ textTransform: 'none' }}>running total, without repeats</span>
+    <section className={s.section} aria-label="Spending this month">
+      <div className="sechead ruled">
+        <h2 className="h2">Spending this month</h2>
+        <span className="lbl" style={{ textTransform: 'none' }}>running total, no repeats</span>
       </div>
       <div className={s.legend}>
         <span><i />so far</span>
-        {f.daysLeft > 0 && <span><i data-k="dash" />at this month’s pace</span>}
-        {f.hasRange && <span><i data-k="range" />range: {f.low.label.toLowerCase()} to {f.high.label.toLowerCase()}</span>}
+        {f.daysLeft > 0 && <span><i data-k="dash" />at your pace</span>}
+        {f.hasRange && <span><i data-k="range" />range</span>}
         {hasPlan && <span><i data-k="plan" />plan</span>}
       </div>
       <div className={s.chartBox}><Chart chart={chart} /></div>
@@ -181,9 +181,8 @@ function EndsTable({ f, month, days, left, spentSoFar }: { f: Forecast; month: s
   const cols = f.scenarios;
   return (
     <section className={s.section} aria-label={`How ${monthName(month)} ends`}>
-      <div className={s.head}>
+      <div className="sechead ruled">
         <h2 className="h2">How {monthName(month)} ends</h2>
-        <span className="lbl" style={{ textTransform: 'none' }}>three paces, the same repeats</span>
       </div>
       <div className={s.tableWrap}>
         <table className={s.table}>
@@ -194,14 +193,14 @@ function EndsTable({ f, month, days, left, spentSoFar }: { f: Forecast; month: s
             </tr>
           </thead>
           <tbody>
-            <Row label="Already spent" cells={cols.map(() => plain(spentSoFar))} cols={cols} />
-            <Row label={`+ flexible, next ${daysLeft} ${daysLeft === 1 ? 'day' : 'days'}`} cells={cols.map((c) => plain(c.flexLeftMinor))} cols={cols} />
-            <Row label="+ repeats still to leave" hint={repeats ? `(${repeats})` : ''} cells={cols.map(() => plain(repeatsTotal))} cols={cols} />
-            <Row label={`= spent in ${monthName(month)}`} cells={cols.map((c) => plain(c.spentEndMinor))} cols={cols} />
+            <Row label="Spent so far" cells={cols.map(() => plain(spentSoFar))} cols={cols} />
+            <Row label={`+ next ${daysLeft} ${daysLeft === 1 ? 'day' : 'days'}`} cells={cols.map((c) => plain(c.flexLeftMinor))} cols={cols} />
+            <Row label="+ repeats left" hint={repeats ? `(${repeats})` : ''} cells={cols.map(() => plain(repeatsTotal))} cols={cols} />
+            <Row label="= month total" cells={cols.map((c) => plain(c.spentEndMinor))} cols={cols} />
           </tbody>
           <tfoot>
             <tr>
-              <th scope="row" style={{ fontWeight: 500 }}>Balance on {shortMonth(month)} {days}</th>
+              <th scope="row" style={{ fontWeight: 500 }}>Left on {shortMonth(month)} {days}</th>
               {cols.map((c) => <td key={c.key} className={`mono ${s.big} ${c.key === 'month' ? s.mid : ''}`}>{inrSigned(c.balanceEndMinor).replace('₹', '')}</td>)}
             </tr>
           </tfoot>
@@ -224,17 +223,17 @@ function Row({ label, hint, cells, cols }: { label: string; hint?: string; cells
 function Categories({ rows, month }: { rows: CategoryRow[]; month: string }) {
   return (
     <section className={s.section} aria-label="Which category breaks first">
-      <div className={s.head}>
+      <div className="sechead ruled">
         <h2 className="h2">Which category breaks first</h2>
-        <TextLink mono href="/budget/limits">set or change limits →</TextLink>
+        <TextLink mono href="/budget/limits">limits →</TextLink>
       </div>
       <div className={s.legend}>
         <span><i data-k="spent" />spent</span>
-        <span><i data-k="proj" className="hatch" />added by month end at this pace</span>
+        <span><i data-k="proj" className="hatch" />to month end</span>
         <span><i data-k="tick" />limit or plan</span>
       </div>
       <div className={s.cats}>
-        <div className={`${s.cat} ${s.catHead} lbl`}><span>Category</span><span>Spent against the line</span><span style={{ textAlign: 'right' }}>Spent of line</span><span>Reaches the line</span></div>
+        <div className={`${s.cat} ${s.catHead} lbl`}><span>Category</span><span>Spent</span><span style={{ textAlign: 'right' }}>Of limit</span><span>Reaches it</span></div>
         {rows.map((r) => {
           const v = verdictText(r, month);
           const ratio = r.lineMinor > 0 ? r.spentMinor / r.lineMinor : 1;
@@ -272,20 +271,20 @@ function History() {
   return (
     <>
       <section className={s.section} aria-label={`The last ${RANGE} months`}>
-        <div className={s.head}>
+        <div className="sechead ruled">
           <h2 className="h2">The last {RANGE} months</h2>
           {m && m.averages.fullMonths > 0 && (
             <div className={s.legend} style={{ margin: 0 }}>
               <span><i data-k="in" />money in</span>
               <span><i data-k="out" />money out</span>
-              <span><i data-k="proj" className="hatch" />where {month} ends at this pace</span>
+              <span><i data-k="proj" className="hatch" />{month} at your pace</span>
             </div>
           )}
         </div>
         {sentence && <p className={`lead ${s.headline}`}>{sentence}</p>}
         {m ? (
           m.averages.fullMonths === 0
-            ? <Empty>The last six months appear after your first full month.</Empty>
+            ? <Empty>Shows after your first full month.</Empty>
             : <div className={s.cols}><MonthChart chart={trendsChart(m)} /></div>
         ) : months.error ? (
           <div style={{ padding: '12px 0' }}>

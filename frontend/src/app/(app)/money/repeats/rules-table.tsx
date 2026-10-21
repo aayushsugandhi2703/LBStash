@@ -34,7 +34,7 @@ export function RulesTable({ rules, tags, onPause, onChange, onSkip, onRemove }:
   return (
     <div className={s.tableWrap}>
       <div className={s.tableInner} role="table" aria-label="Repeating payments">
-        <div className={`${s.thead} mono lbl`} role="row">
+        <div className={`${s.thead} th-row mono lbl`} role="row">
           <div className={s.cPay} role="columnheader">Payment</div>
           <div className={s.cTag} role="columnheader">Tag</div>
           <div className={s.cAmt} role="columnheader">Amount</div>

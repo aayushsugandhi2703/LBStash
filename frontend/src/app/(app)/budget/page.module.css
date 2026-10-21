@@ -1,33 +1,27 @@
-/* tab bar above the page heading */
-.tabs { margin-bottom: 16px; flex: none; }
-.head { display: flex; flex-wrap: wrap; gap: 6px 24px; align-items: baseline; justify-content: space-between; padding-bottom: 12px; }
-.split { display: flex; gap: 2px; height: 32px; background: var(--wash-neutral); }
+.split { display: flex; gap: 2px; height: 16px; margin: 14px 0 6px; background: var(--wash-neutral); flex: none; }
 .split > span { display: block; height: 100%; transition: width .35s cubic-bezier(.2, .8, .2, 1); }
-.tableWrap { overflow-x: auto; margin-top: 22px; flex: 1; display: flex; flex-direction: column; min-height: 180px; }
-.tableInner { min-width: 700px; flex: 1; display: flex; flex-direction: column; min-height: 0; }
-.thead { display: flex; align-items: center; gap: 20px; padding: 10px 0; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--rule); }
-.body { flex: 1; min-height: 120px; overflow-y: auto; }
-.body .prow { gap: 20px; animation: pop .3s ease both; }
-.cCat { width: 140px; flex: none; }
-.cPlanned { width: 190px; flex: none; }
-.cSpent { width: 70px; flex: none; text-align: right; }
-.cLeft { width: 80px; flex: none; text-align: right; }
-.cUsed { flex: 1; min-width: 70px; }
-.cPace { width: 104px; flex: none; text-align: right; }
-.thead .cPlanned { text-align: center; }
+
+/* the table: a header, then two groups (flexible, fixed) of rows that share these columns */
+.tableWrap { overflow-x: auto; margin-top: 8px; }
+.tableInner { min-width: 820px; }
+.thead, .tableInner .prow { display: grid; grid-template-columns: minmax(150px, 1.2fr) 150px 84px 84px 140px 120px; gap: 16px; align-items: center; }
+.tableInner .prow { animation: pop .3s ease both; }
+.grp { display: flex; justify-content: space-between; padding: 16px 0 6px; border-bottom: 1px solid var(--ink); }
+.cSpent, .cLeft, .cPace { text-align: right; }
+.prow .cSpent, .prow .cLeft, .prow .cPace { font-size: var(--fs-s); }
+.prow .cLeft { font-weight: 500; }
 .name { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .name > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .swatch { width: 10px; height: 10px; flex: none; }
-.planned { display: flex; align-items: center; justify-content: space-between; }
-.planned .fig-md { font-variant-numeric: tabular-nums; }
-.add { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 12px 40px; align-items: flex-end; }
-.addMain { flex: 1 1 280px; max-width: 420px; }
-.addRow { display: flex; gap: 10px; align-items: flex-end; margin-top: 2px; border-bottom: 1px solid var(--ink); }
-.addRow input { flex: 1; min-width: 0; height: var(--cv-34-5-42); border: 0; background: transparent; padding: 0; font-size: var(--fs-h2); font-weight: 300; letter-spacing: -0.02em; }
-.addRow button { margin-bottom: 4px; }
-.suggest { display: flex; flex-wrap: wrap; gap: 0 18px; }
-.suggest button { min-height: 44px; font-size: var(--fs-s); }
-.saveline { min-height: 22px; margin-top: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; }
+.planned { display: flex; align-items: center; gap: 8px; }
+.planVal { min-width: 56px; text-align: center; font-size: var(--fs-h2); font-weight: 300; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.fixedVal { text-align: left; padding-left: 38px; }
+
+.saveline { min-height: 22px; margin-top: 14px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 24px; }
+.status { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; }
+.tagIn { width: 240px; }
+.suggest { display: flex; flex-wrap: wrap; gap: 0 16px; padding-bottom: 10px; }
+.suggest button { min-height: 28px; }
 .note { margin-top: 24px; border-top: 1px solid var(--rule); padding-top: 12px; line-height: 1.55; }
 .stepVal { min-width: 52px; text-align: right; }
 .totalRow { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; }
@@ -38,15 +32,17 @@
   .tableInner { min-width: 0; }
   .tableWrap { overflow-x: visible; }
   .thead { display: none; }
-  .body .prow { display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "cat cat" "planned planned" "spent left" "used used" "pace pace"; gap: 8px 16px; align-items: center; }
-  .cCat { grid-area: cat; width: auto; }
-  .cPlanned { grid-area: planned; width: auto; }
-  .cSpent { grid-area: spent; width: auto; text-align: left; }
-  .cLeft { grid-area: left; width: auto; text-align: right; }
-  .cUsed { grid-area: used; min-width: 0; }
-  .cPace { grid-area: pace; width: auto; text-align: left; }
-  .cPace::before { content: 'At this pace '; color: var(--muted); font-size: var(--fs-label); font-weight: 400; }
+  .tableInner .prow { grid-template-columns: 1fr 1fr; grid-template-areas: "cat cat" "planned planned" "spent left" "used used" "pace pace"; gap: 8px 16px; }
+  .cCat { grid-area: cat; }
+  .cPlanned { grid-area: planned; }
+  .cSpent { grid-area: spent; text-align: left; }
+  .cLeft { grid-area: left; }
+  .cUsed { grid-area: used; }
+  .cPace { grid-area: pace; text-align: left; }
+  .fixedVal { padding-left: 0; }
   .cSpent::before { content: 'Spent '; color: var(--muted); font-size: var(--fs-label); }
   .cLeft::before { content: 'Left '; color: var(--muted); font-size: var(--fs-label); font-weight: 400; }
-  .addMain { flex-basis: 100%; max-width: none; }
+  .cPace::before { content: 'At this pace '; color: var(--muted); font-size: var(--fs-label); font-weight: 400; }
+  .tagIn { width: 100%; }
+  :global(.formrow) > .fld { flex: 1 1 100%; }
 }

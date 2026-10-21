@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { formatInr } from '@/common';
 import { bars, LOGGED_DAYS, MONTH_DAYS, scrub } from '@/features/month';
 import { DemoButton } from './demo-button';
+import { HeroFilm } from './film';
 import s from './page.module.css';
 
 /** The top of the About page: "It's day N." and a slider that walks through a sample month. */
@@ -28,6 +29,8 @@ export function Hero() {
         </div>
       </div>
       <p className={`cap ${s.note}`}>The demo has sample data and is read-only. No sign-up needed.</p>
+
+      <HeroFilm />
 
       <div className={s.scrub} role="group" aria-label="A sample month. Move the slider to change the day.">
         <div className={s.scrubL}>

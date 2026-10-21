@@ -4,7 +4,7 @@
 
 .hero { flex: none; }
 .heroNumber { margin-top: 6px; color: var(--ink); }
-.sentence { margin-top: 12px; max-width: 900px; line-height: 1.45; color: var(--text-2); }
+.sentence { margin-top: 12px; color: var(--text-2); }
 .sentence em { font-style: normal; color: var(--ink); text-decoration: underline; text-decoration-color: var(--accent); text-decoration-thickness: 2px; text-underline-offset: 4px; }
 
 .links { margin-top: 20px; border-top: 1px solid var(--rule); border-bottom: 0; flex: none; }
@@ -67,5 +67,4 @@
   .rlabel { left: 10px; gap: 6px; }
   .rlabel .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-s); }
   .llabel .name { font-size: var(--fs-s); }
-  .sentence { max-width: 100%; }
 }
