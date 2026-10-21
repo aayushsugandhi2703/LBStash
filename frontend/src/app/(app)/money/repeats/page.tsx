@@ -1,7 +1,7 @@
 'use client';
 import type { RecurringRuleDto } from '@/contracts';
 import { AppShell } from '@/components/shell';
-import { ErrorLine, Loading, TextLink } from '@/components/ui';
+import { ErrorLine, Loading, SectionTabs, TextLink } from '@/components/ui';
 import { api, errorText, useApi } from '@/lib/api';
 import { plain } from '@/common';
 import { useToday } from '@/lib/me';
@@ -53,7 +53,13 @@ export default function RepeatsPage() {
     : !data || !today ? <Loading>loading…</Loading> : null;
 
   return (
-    <AppShell home="repeats" glyph="repeats" title="Repeats" description="Payments that leave on their own. They post on the due date." aside={aside}>
+    <AppShell home="money" glyph="money" title="Money" description="Payments that leave on their own post on the due date. Everything else is in Activity." aside={aside}>
+      <div className={s.tabs}>
+        <SectionTabs label="Money" tabs={[
+          { href: '/money', label: 'Activity', active: false },
+          { href: '/money/repeats', label: 'Repeats', count: data ? rules.length : undefined, active: true },
+        ]} />
+      </div>
       <div className={s.head}>
         <h2 className="h2">The next 30 days</h2>
         <div className="lbl" style={{ textTransform: 'none' }}>stem height = amount{today ? ` · ${rangeText(today.today)}` : ''}</div>

@@ -10,6 +10,18 @@ export default {
   async rewrites() {
     return [{ source: '/api/:path*', destination: `${GATEWAY_URL}/:path*` }];
   },
+  // The pages were merged (Money, Budget, Forecast) and Add credit went (Telegram logs money in): old addresses and the links Now builds still land. Query strings carry over.
+  async redirects() {
+    return [
+      { source: '/transactions', destination: '/money', permanent: false },
+      { source: '/transactions/unread', destination: '/money/unread', permanent: false },
+      { source: '/repeats', destination: '/money/repeats', permanent: false },
+      { source: '/plan', destination: '/budget', permanent: false },
+      { source: '/limits', destination: '/budget/limits', permanent: false },
+      { source: '/trends', destination: '/forecast', permanent: false },
+      { source: '/credit', destination: '/', permanent: false },
+    ];
+  },
   async headers() {
     return [{
       source: '/:path*',

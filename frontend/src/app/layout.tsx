@@ -17,8 +17,9 @@ export const viewport: Viewport = { width: 'device-width', initialScale: 1, view
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    // suppressHydrationWarning: the script in <head> sets data-mode before React hydrates.
-    <html lang="en" className={`${geist.variable} ${geistMono.variable}`} suppressHydrationWarning>
+    // suppressHydrationWarning: the script in <head> sets data-mode before React hydrates. data-scroll-behavior: with smooth scrolling on, Next
+    // jumps (not glides) to the top on a route change (Next 16 no longer does this by itself).
+    <html lang="en" className={`${geist.variable} ${geistMono.variable}`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head><script dangerouslySetInnerHTML={{ __html: MODE_SCRIPT }} /></head>
       <body>{children}<ScrollReveal /><PageIcon /><ThemeSync /></body>
     </html>

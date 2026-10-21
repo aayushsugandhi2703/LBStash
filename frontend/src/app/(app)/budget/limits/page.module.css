@@ -1,3 +1,5 @@
+/* tab bar above the page heading */
+.tabs { margin-bottom: 16px; flex: none; }
 .sectionLbl { margin-top: var(--cv-12-2p6-24); padding-bottom: 7px; border-bottom: 1px solid var(--ink); }
 .how { margin-top: 24px; }
 .howRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--rule); font-size: var(--fs-body); }

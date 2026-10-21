@@ -1,5 +1,6 @@
 import { parseTag } from '@/common';
 import type { PlanPutReq } from '@/contracts';
+import { roundTen } from './forecast';
 
 /** Plan page logic. Pure: the page keeps a draft and calls these. All money is paise. */
 
@@ -45,6 +46,12 @@ export function lineView(l: DraftLine): LineView {
   const over = remainMinor < 0;
   const pct = l.allocatedMinor > 0 ? Math.min(100, (l.spentMinor / l.allocatedMinor) * 100) : 0;
   return { remainMinor, over, pct, colour: over ? 'danger' : pct >= 80 ? 'warn' : 'accent' };
+}
+
+/** Where a category ends the month at its pace so far (to the nearest ₹10). A repeat (Rent, SIP) ends where it was planned, or where it is if that is more. */
+export function paceMinor(l: Pick<DraftLine, 'allocatedMinor' | 'spentMinor'>, repeats: boolean, day: number, days: number): number {
+  if (repeats || day <= 0) return Math.max(l.allocatedMinor, l.spentMinor);
+  return roundTen((l.spentMinor / day) * days);
 }
 
 /** Width in % of each split-bar segment and of the free (unassigned) tail. */

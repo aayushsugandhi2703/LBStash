@@ -33,12 +33,12 @@ export default function UnreadPage() {
         />
       </div>
       <div className={`opt2 cap ${s.note}`}>Kept encrypted for 30 days, then deleted. One-time codes are never kept.</div>
-      <div className={s.back}><TextLink href="/transactions" mono>← back to the transactions</TextLink></div>
+      <div className={s.back}><TextLink href="/money" mono>← back to Money</TextLink></div>
     </>
   );
 
   return (
-    <AppShell home="transactions" glyph="look" title="Needs a look" description="Bank messages the app could not read. Classify or delete them." aside={aside}>
+    <AppShell home="money" glyph="look" title="Needs a look" description="Bank messages the app could not read. Classify or delete them." aside={aside}>
       <div className={`rise ${s.head}`}>
         <div className="lbl">Unread messages</div>
         <h2 className={`fig-lg ${s.title}`}>Messages we could not read</h2>

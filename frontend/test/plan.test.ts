@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addTag, type Draft, draftFrom, lineView, MAX_LINES, planMath, segments, stepLine, stepTotal, suggestions, toPutBody } from '@/features/plan';
+import { addTag, type Draft, draftFrom, lineView, MAX_LINES, paceMinor, planMath, segments, stepLine, stepTotal, suggestions, toPutBody } from '@/features/plan';
 
 const R = (n: number) => n * 100;
 
@@ -97,5 +97,18 @@ describe('talking to the API', () => {
   it('turns a plan response back into a draft', () => {
     const d = draftFrom({ totalMinor: 100, lines: [{ categoryId: 'a', categoryName: 'food', allocatedMinor: 60, spentMinor: 10 }] });
     expect(d).toEqual({ totalMinor: 100, lines: [{ categoryId: 'a', name: 'food', allocatedMinor: 60, spentMinor: 10 }] });
+  });
+});
+
+describe('pace', () => {
+  it('projects spent so far to the month end, to the nearest ₹10', () => {
+    expect(paceMinor({ allocatedMinor: R(14000), spentMinor: R(9870) }, false, 21, 31)).toBe(R(14570));
+  });
+  it('a repeat ends where it was planned, or where it is if more', () => {
+    expect(paceMinor({ allocatedMinor: R(24000), spentMinor: 0 }, true, 21, 31)).toBe(R(24000));
+    expect(paceMinor({ allocatedMinor: R(1000), spentMinor: R(1200) }, true, 21, 31)).toBe(R(1200));
+  });
+  it('before the month starts it is the plan', () => {
+    expect(paceMinor({ allocatedMinor: R(5000), spentMinor: 0 }, false, 0, 31)).toBe(R(5000));
   });
 });

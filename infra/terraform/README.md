@@ -34,7 +34,7 @@ infra/terraform/
 
 ## Run it
 
-Easiest: GitHub > Actions > **Terraform** > Run workflow. Secrets: [SECRETS](../../docs/SECRETS.md). Steps: [Server setup](../../docs/infrastructure/SERVER_SETUP.md).
+Easiest: GitHub > Actions > **Terraform** > Run workflow. Secrets: [Secrets](../../docs/infrastructure/SECRETS.md). Steps: [Server setup](../../docs/infrastructure/SERVER_SETUP.md).
 
 From your Mac:
 

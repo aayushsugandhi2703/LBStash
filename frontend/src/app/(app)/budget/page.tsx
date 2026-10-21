@@ -2,10 +2,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { displayTag, figure, inr, plain } from '@/common';
 import { AppShell } from '@/components/shell';
-import { Button, Empty, ErrorLine, Loading, ProgressBar, StatusLine, Stepper, TextLink } from '@/components/ui';
+import { Button, Empty, ErrorLine, Loading, ProgressBar, SectionTabs, StatusLine, Stepper, TextLink } from '@/components/ui';
 import { api, errorText, useApi } from '@/lib/api';
 import { useToday } from '@/lib/me';
-import { addTag, type Draft, draftFrom, lineView, monthName, nextMonthName, planMath, type PlanResponse, RAMP, segments, stepLine, stepTotal, suggestions, toPutBody } from '@/features/plan';
+import { addTag, type Draft, draftFrom, lineView, monthName, nextMonthName, paceMinor, planMath, type PlanResponse, RAMP, segments, stepLine, stepTotal, suggestions, toPutBody } from '@/features/plan';
+import type { RecurringList } from '@/features/repeats';
 import s from './page.module.css';
 
 type Save = 'idle' | 'saving' | 'saved' | 'error';
@@ -17,6 +18,9 @@ export default function PlanPage() {
   const path = month ? `/plans/${month}` : null;
   const { data, error, mutate } = useApi<PlanResponse>(path);
   const { data: cats } = useApi<{ items: { name: string; archived: boolean }[] }>(month ? '/categories' : null);
+  // categories of your repeats (Rent, SIP) are fixed: they end the month where they were planned
+  const repeats = useApi<RecurringList>(month ? '/recurring' : null);
+  const fixed = new Set((repeats.data?.items ?? []).map((r) => r.categoryId));
 
   const [draft, setDraft] = useState<Draft | null>(null);
   const [save, setSave] = useState<Save>('idle');
@@ -90,6 +94,7 @@ export default function PlanPage() {
   const math = draft ? planMath(draft) : null;
   const seg = draft ? segments(draft) : null;
   const mName = month ? monthName(month) : 'this month';
+  const pace = (l: Draft['lines'][number]) => paceMinor(l, l.categoryId !== undefined && fixed.has(l.categoryId), today?.day ?? 0, today?.days ?? 0);
   const ideas = draft ? suggestions(draft, (cats?.items ?? []).filter((c) => !c.archived).map((c) => c.name)) : [];
 
   const aside = (
@@ -114,7 +119,13 @@ export default function PlanPage() {
   );
 
   return (
-    <AppShell home="plan" glyph="plan" title="Plan" description={`Give every rupee of ${mName} a job. Tags you type become categories.`} aside={aside}>
+    <AppShell home="budget" glyph="budget" title="Budget" description={`Step 1: give every rupee of ${mName} a job. Tags you type become categories. Step 2 is Limits.`} aside={aside}>
+      <div className={s.tabs}>
+        <SectionTabs label="Budget" tabs={[
+          { href: '/budget', label: 'Plan', active: true },
+          { href: '/budget/limits', label: 'Limits', active: false },
+        ]} />
+      </div>
       <div className={s.head}>
         <h2 className="h2">How {mName} is split</h2>
         <div className="lbl" style={{ textTransform: 'none' }}>green is money not yet given a job</div>
@@ -145,6 +156,7 @@ export default function PlanPage() {
                 <div className={s.cSpent} role="columnheader">Spent</div>
                 <div className={s.cLeft} role="columnheader">Left</div>
                 <div className={s.cUsed} role="columnheader">Used</div>
+                <div className={s.cPace} role="columnheader">At this pace</div>
               </div>
               <div className={s.body} role="rowgroup">
                 {draft.lines.length === 0 && <Empty>Nothing planned yet. Type a tag to create your first category.</Empty>}
@@ -166,6 +178,9 @@ export default function PlanPage() {
                       <div className={`${s.cLeft} mono ${v.over ? 'neg' : 'debit'}`} role="cell" style={{ fontSize: 'var(--fs-s)', fontWeight: 500 }}>{figure(v.remainMinor)}</div>
                       <div className={s.cUsed} role="cell">
                         <ProgressBar ratio={v.pct / 100} colour={v.colour} label={`${name}: ${Math.round(v.pct)}% of the plan used`} />
+                      </div>
+                      <div className={`${s.cPace} mono ${pace(l) > l.allocatedMinor ? 'neg' : ''}`} role="cell" style={{ fontSize: 'var(--fs-s)' }}>
+                        {today ? `${plain(pace(l))}${pace(l) > l.allocatedMinor ? ' ▲' : ''}` : '—'}
                       </div>
                     </div>
                   );

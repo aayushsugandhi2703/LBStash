@@ -62,7 +62,7 @@ export function sessionLead(l: LinkStatus, now: Date = new Date()): string {
 
 /** Aside word and row text for the last balance check. */
 export function balanceView(c: BalanceCheck | undefined, now: Date = new Date()): { short: string; kind: 'ok' | 'wait' | 'none'; text: string } {
-  if (!c) return { short: 'not checked', kind: 'none', text: 'no check yet · compare with your bank from the Transactions' };
+  if (!c) return { short: 'not checked', kind: 'none', text: 'no check yet · compare with your bank from Money' };
   const when = usedText(c.checkedAt, now);
   if (Math.abs(c.gapMinor) < 100) return { short: 'matched', kind: 'ok', text: `${when} · the bank's number matched the transactions` };
   const diff = `${inr(Math.abs(c.gapMinor))} ${c.gapMinor < 0 ? 'lower' : 'higher'}`;

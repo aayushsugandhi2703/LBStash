@@ -92,7 +92,7 @@ export function Message({ item, tz, onStatus, onSettled }: {
         <div className={s.done}>
           <StatusLine>{doneText(form, amount.paise, tagged)}</StatusLine>
           <span className={s.doneLinks}>
-            {done === 'added' && <Link href="/transactions?cat=needs-tag" className="link mono">tag it in the transactions →</Link>}
+            {done === 'added' && <Link href="/money?cat=needs-tag" className="link mono">tag it in Money →</Link>}
             {!settled && <TextLink mono onClick={undo}>Undo</TextLink>}
           </span>
         </div>

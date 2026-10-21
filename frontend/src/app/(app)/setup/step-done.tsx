@@ -18,7 +18,7 @@ export function StepDone({ rows }: { rows: SummaryRow[] }) {
       <div className={`lead ${s.next}`}>Send the bot /350 food to log a payment.</div>
       <div className={s.actions}>
         <Link href="/" className="btn lg">Open Now</Link>
-        <Link href="/transactions" className={s.quiet}>See the Transactions</Link>
+        <Link href="/money" className={s.quiet}>See your Money</Link>
       </div>
     </div>
   );

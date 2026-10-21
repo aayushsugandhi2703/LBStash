@@ -71,7 +71,7 @@ export function CheckPanel({ transactionsMinor, onChanged, listBelow }: { transa
       {result && stage === 'booked' && (
         <div className={s.result}>
           <StatusLine>
-            Booked as Unaccounted. Tag it, or split it, {listBelow ? 'in the list below' : <Link className="link" href="/transactions">in the Transactions</Link>}.
+            Booked as Unaccounted. Tag it, or split it, {listBelow ? 'in the list below' : <Link className="link" href="/money">in Money</Link>}.
           </StatusLine>
         </div>
       )}

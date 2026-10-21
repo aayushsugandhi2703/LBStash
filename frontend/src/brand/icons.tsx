@@ -3,12 +3,9 @@ import type { SVGProps } from 'react';
 /** 24-unit line icons: nav links (16px) and the big pale glyph in each aside. One map, used by both. */
 const ICONS = {
   now: 'M20 12a8 8 0 1 0-16 0a8 8 0 1 0 16 0Z M11 12a1 1 0 1 0 2 0a1 1 0 1 0-2 0Z',
-  transactions: 'M5 7h14 M5 12h14 M5 17h9',
-  plan: 'M4 4h7v7H4Z M13 4h7v7h-7Z M4 13h7v7H4Z M13 13h7v7h-7Z',
-  limits: 'M4 10h16v4H4Z M15 5v14',
-  repeats: 'M19 12a7 7 0 1 1-2.1-5 M19 4v4h-4',
-  trends: 'M4 20h16 M5 16l4.5-5 3.5 3L19 7',
-  credit: 'M12 5v14 M5 12h14',
+  money: 'M5 7h14 M5 12h14 M5 17h9',
+  budget: 'M4 4h7v7H4Z M13 4h7v7h-7Z M4 13h7v7H4Z M13 13h7v7h-7Z',
+  forecast: 'M4 20h16 M5 16l4.5-5 3.5 3L19 7 M15 7h4v4',
   account: 'M12 12a4 4 0 1 0 0-8a4 4 0 0 0 0 8Z M4 20c0-4 4-6 8-6s8 2 8 6',
   security: 'M12 3l7 3v6c0 4.5-3 7.5-7 9c-4-1.5-7-4.5-7-9V6Z M9 12l2 2l4-4',
   devices: 'M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z M11 18h2',

@@ -1,3 +1,5 @@
+/* tab bar above the strips, apart from the page's first rule */
+.tabs { margin-bottom: 16px; }
 .strip { margin-top: 0; border-top: 0; }
 .top { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid var(--ink); margin-top: 12px; }
 .count { font-size: var(--fs-s); color: var(--muted); }

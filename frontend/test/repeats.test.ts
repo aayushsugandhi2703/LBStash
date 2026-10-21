@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RecurringRuleDto } from '@/contracts';
-import { committedRows, committedTotal, createBody, dateLabel, dayAfterNext, daysBetween, emptyForm, formErrorsFrom, formFrom, isEnded, isOn, nextText, occurrences, patchBody, rangeText, scheduleSentence, scheduleText, stems, ticks, timelineLabel, withoutRule, withRule } from '@/features/repeats';
+import { committedRows, committedTotal, createBody, dateLabel, dayAfterNext, daysBetween, emptyForm, formErrorsFrom, formFrom, isEnded, isOn, nextRule, nextText, occurrences, patchBody, rangeText, scheduleSentence, scheduleText, stems, ticks, timelineLabel, withoutRule, withRule } from '@/features/repeats';
 
 // ui-spec dataset: October 2026, day 18 (a Sunday); Rent, Nifty 50, Cloud storage and Netflix commit ₹30,779 a month
 const TODAY = '2026-10-18';
@@ -217,5 +217,17 @@ describe('the change form', () => {
   it('validates like the add form', () => {
     const r = patchBody({ ...formFrom(rent()), amount: 'abc' });
     expect(!r.ok && r.errors.amount).toBe('Enter an amount like ₹649.');
+  });
+});
+
+describe('nextRule', () => {
+  it('is the running rule due first', () => {
+    expect(nextRule(sample())?.name).toBe('Rent');
+    expect(nextRule([rent(), { ...nifty(), nextDue: '2026-10-25' }])?.name).toBe('Nifty 50 index fund');
+  });
+  it('skips paused and ended rules; null when none runs', () => {
+    expect(nextRule([{ ...rent(), paused: true }, netflix()])?.name).toBe('Netflix');
+    expect(nextRule([{ ...rent(), paused: true }, { ...netflix(), active: false }])).toBeNull();
+    expect(nextRule([])).toBeNull();
   });
 });

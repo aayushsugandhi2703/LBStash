@@ -8,19 +8,17 @@ import { useMe } from '@/lib/me';
 import { Glyph, type IconName, LogoMark, NavIcon } from '@/brand';
 import { IndexList } from './ui';
 
-type Home = 'now' | 'transactions' | 'plan' | 'limits' | 'repeats' | 'trends' | 'credit' | 'acct' | null;
+type Home = 'now' | 'money' | 'budget' | 'forecast' | 'acct' | null;
 
 const NAV: { key: Home & string; label: string; href: string; icon: IconName }[] = [
   { key: 'now', label: 'Now', href: '/', icon: 'now' },
-  { key: 'transactions', label: 'Transactions', href: '/transactions', icon: 'transactions' },
-  { key: 'plan', label: 'Plan', href: '/plan', icon: 'plan' },
-  { key: 'limits', label: 'Limits', href: '/limits', icon: 'limits' },
-  { key: 'repeats', label: 'Repeats', href: '/repeats', icon: 'repeats' },
-  { key: 'trends', label: 'Trends', href: '/trends', icon: 'trends' },
+  { key: 'money', label: 'Money', href: '/money', icon: 'money' },
+  { key: 'budget', label: 'Budget', href: '/budget', icon: 'budget' },
+  { key: 'forecast', label: 'Forecast', href: '/forecast', icon: 'forecast' },
 ];
 
 interface ShellProps {
-  /** Which nav item is lit. Child pages light their parent (Needs a look → transactions); Setup lights none. */
+  /** Which nav item is lit. Child pages light their parent (Needs a look → money); Setup lights none. */
   home: Home;
   glyph: IconName;
   title: string;
@@ -29,11 +27,12 @@ interface ShellProps {
   children: ReactNode;
 }
 
-/** Signed-in frame: header (icon nav, + Add credit, Account menu, month ruler) over aside + main. One per page. */
+/** Signed-in frame: header (icon nav, Account menu, month ruler) over aside + main. One per page. */
 export function AppShell({ home, glyph, title, description, aside, children }: ShellProps) {
   return (
     <div className="app">
       <Header home={home} />
+      <DemoBar />
       <div className="scroller">
         <aside className="aside">
           <Glyph name={glyph} />
@@ -43,6 +42,27 @@ export function AppShell({ home, glyph, title, description, aside, children }: S
         </aside>
         <main className="main">{children}</main>
       </div>
+    </div>
+  );
+}
+
+/** Leave the demo: end its session and open the About page (a full load, so no cached Now page is shown). */
+async function leaveDemo() {
+  try { await api.post('/auth/logout'); } catch { /* the cookie is gone either way once the server answers */ }
+  window.location.assign('/');
+}
+
+/** Sits under the header while the sample-data demo account is open. */
+function DemoBar() {
+  const { data: me } = useMe();
+  if (!me?.demo) return null;
+  return (
+    <div className="demo-bar" role="status">
+      <span>You are looking at a demo with sample data. It is read-only.</span>
+      <span className="demo-bar-links">
+        <Link href="/create-account" className="link">Create your own account</Link>
+        <button type="button" className="link" onClick={() => void leaveDemo()}>Exit demo</button>
+      </span>
     </div>
   );
 }
@@ -59,13 +79,12 @@ function Header({ home }: { home: Home }) {
             {NAV.map((n) => (
               <Link key={n.key} href={n.href} className="navlink" aria-current={home === n.key ? 'page' : undefined}>
                 <NavIcon name={n.icon} />{n.label}
-                {n.key === 'transactions' && me && me.untaggedCount > 0 && <span className="badge mono">{me.untaggedCount}</span>}
+                {n.key === 'money' && me && me.untaggedCount > 0 && <span className="badge mono">{me.untaggedCount}</span>}
               </Link>
             ))}
           </nav>
         </div>
         <div className="hdr-right">
-          <Link href="/credit" className="add" aria-current={home === 'credit' ? 'page' : undefined}>+ Add credit</Link>
           <AccountMenu acctPage={home === 'acct'} />
         </div>
       </div>
@@ -99,7 +118,7 @@ const MENU: { label: string; href: string; hint: string }[] = [
   { label: 'Security', href: '/account/security', hint: 'two-step, passkeys' },
   { label: 'Devices and Telegram', href: '/account/devices', hint: 'bot, token' },
   { label: 'Setup guide', href: '/setup', hint: '3 steps' },
-  { label: 'Needs a look', href: '/transactions/unread', hint: '' },
+  { label: 'Needs a look', href: '/money/unread', hint: '' },
 ];
 
 function AccountMenu({ acctPage }: { acctPage: boolean }) {
@@ -118,6 +137,7 @@ function AccountMenu({ acctPage }: { acctPage: boolean }) {
   }, [open]);
 
   async function signOut() {
+    if (me?.demo) { await leaveDemo(); return; }
     try { await api.post('/auth/logout'); } catch { /* the cookie is gone either way once the server answers */ }
     router.replace('/sign-in');
   }
@@ -140,7 +160,7 @@ function AccountMenu({ acctPage }: { acctPage: boolean }) {
               </span>
             </div>
             {MENU.map((m) => {
-              const hint = m.href === '/transactions/unread' ? (me ? `${me.needsLookCount} message${me.needsLookCount === 1 ? '' : 's'}` : '') : m.hint;
+              const hint = m.href === '/money/unread' ? (me ? `${me.needsLookCount} message${me.needsLookCount === 1 ? '' : 's'}` : '') : m.hint;
               return (
                 <Link key={m.href} role="menuitem" href={m.href} className="mi" aria-current={path === m.href ? 'page' : undefined} onClick={() => setOpen(false)}>
                   <span>{m.label}</span><span className="hint mono">{hint}</span>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BudgetDto } from '@/contracts';
-import { daysLeftText, headline, limitRow, limitRows, warningText } from '@/features/limits';
+import { daysLeftText, headline, hitText, limitRow, limitRows, warningText } from '@/features/limits';
 
 const R = (n: number) => n * 100;
 const display = (n: string) => n.charAt(0).toUpperCase() + n.slice(1);
@@ -79,5 +79,24 @@ describe('small copy', () => {
     expect(warningText(alert, budgets, 80, display)).toBe('Fun passed 90%');
     expect(warningText(alert, [], 80, display)).toBe('Fun passed 80%');
     expect(warningText({ ...alert, level: 'exceeded' }, budgets, 80, display)).toBe('Fun went over its limit');
+  });
+});
+
+describe('hitText', () => {
+  // October, day 21 of 31
+  const t = { month: '2026-10', day: 21, days: 31 };
+  it('names the day the pace reaches the limit and how far away it is', () => {
+    expect(hitText({ spentMinor: R(6420), limitMinor: R(7000) }, t)).toBe('At this pace you hit it on Oct 23, in 2 days');
+    expect(hitText({ spentMinor: R(4280), limitMinor: R(5500) }, t)).toBe('At this pace you hit it on Oct 27, in 6 days');
+  });
+  it('is null when the pace stays inside, or nothing is spent', () => {
+    expect(hitText({ spentMinor: R(1180), limitMinor: R(2500) }, t)).toBeNull();
+    expect(hitText({ spentMinor: 0, limitMinor: R(2500) }, t)).toBeNull();
+  });
+  it('is null once the limit is passed', () => {
+    expect(hitText({ spentMinor: R(7000), limitMinor: R(7000) }, t)).toBeNull();
+  });
+  it('says in 1 day when it lands tomorrow', () => {
+    expect(hitText({ spentMinor: R(6900), limitMinor: R(7000) }, { month: '2026-10', day: 21, days: 31 })).toBe('At this pace you hit it on Oct 22, in 1 day');
   });
 });

@@ -4,10 +4,10 @@ import type { z } from 'zod';
 import { displayTag, inr, monthDay, parseAmount } from '@/common';
 import type { AlertsRes, BudgetDto, BudgetsRes } from '@/contracts';
 import { AppShell } from '@/components/shell';
-import { barFor, Button, ConfirmWell, Empty, ErrorLine, Field, GhostButton, IndexList, Loading, ProgressBar, Switch, TextLink } from '@/components/ui';
+import { barFor, Button, ConfirmWell, Empty, ErrorLine, Field, GhostButton, IndexList, Loading, ProgressBar, SectionTabs, Switch, TextLink } from '@/components/ui';
 import { api, errorText, fieldErrors, useApi } from '@/lib/api';
 import { useToday } from '@/lib/me';
-import { daysLeftText, headline, LEVELS, type LimitRow, limitRows, warningText } from '@/features/limits';
+import { daysLeftText, headline, LEVELS, type LimitRow, hitText, limitRows, warningText } from '@/features/limits';
 import { monthName } from '@/features/plan';
 import s from './page.module.css';
 
@@ -62,7 +62,13 @@ export default function LimitsPage() {
   );
 
   return (
-    <AppShell home="limits" glyph="limits" title="Limits" description="A spending ceiling per category, with a warning before you hit it." aside={aside}>
+    <AppShell home="budget" glyph="budget" title="Budget" description="Step 2: a spending ceiling per category, with a warning before you hit it." aside={aside}>
+      <div className={s.tabs}>
+        <SectionTabs label="Budget" tabs={[
+          { href: '/budget', label: 'Plan', active: false },
+          { href: '/budget/limits', label: 'Limits', active: true },
+        ]} />
+      </div>
       <div className="rise" style={{ flex: 'none' }}>
         <div className="lbl">{today ? daysLeftText(today.day, today.days, mName) : ' '}</div>
         <div className={s.headline}>{rows ? headline(rows, displayTag) : '—'}</div>
@@ -87,7 +93,7 @@ export default function LimitsPage() {
         ) : rows.length === 0 ? (
           <Empty>No limits yet. Add one below.</Empty>
         ) : (
-          rows.map((r) => <LimitItem key={r.id} row={r} month={month} mName={mName} onChanged={() => budgets.mutate()} />)
+          rows.map((r) => <LimitItem key={r.id} row={r} month={month} mName={mName} hit={today ? hitText(r, today) : null} onChanged={() => budgets.mutate()} />)
         )}
       </div>
 
@@ -117,7 +123,7 @@ export default function LimitsPage() {
   );
 }
 
-function LimitItem({ row: r, month, mName, onChanged }: { row: LimitRow; month: string | undefined; mName: string; onChanged: () => unknown }) {
+function LimitItem({ row: r, month, mName, hit, onChanged }: { row: LimitRow; month: string | undefined; mName: string; hit: string | null; onChanged: () => unknown }) {
   const [mode, setMode] = useState<'edit' | 'remove' | null>(null);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -161,6 +167,7 @@ function LimitItem({ row: r, month, mName, onChanged }: { row: LimitRow; month: 
           At this pace you reach {inr(r.projectedMinor)} by month end,{' '}
           <b className={r.diffMinor > 0 ? 'neg' : ''}>{r.diffMinor > 0 ? `${inr(r.diffMinor)} over` : `${inr(-r.diffMinor)} under`}</b>
         </span>
+        {hit && <span className="neg">{hit}</span>}
       </div>
 
       {mode === 'edit' && (

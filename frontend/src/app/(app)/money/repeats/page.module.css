@@ -1,3 +1,5 @@
+/* tab bar above the 30-day heading */
+.tabs { margin-bottom: 16px; }
 .block { margin-top: 24px; padding-bottom: 7px; border-bottom: 1px solid var(--ink); }
 .sumRow { display: flex; justify-content: space-between; padding: 5px 0; }
 .sumRow[data-off="true"] span { color: var(--disabled); text-decoration: line-through; }

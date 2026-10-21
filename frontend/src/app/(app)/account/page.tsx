@@ -114,7 +114,8 @@ export default function ProfilePage() {
   async function signOut() {
     setSigningOut(true);
     try { await api.post('/auth/logout'); } catch { /* the cookie is gone once the server answers; go on either way */ }
-    router.replace('/sign-in');
+    if (me?.demo) window.location.assign('/'); // the demo ends at the About page
+    else router.replace('/sign-in');
   }
 
   const sum = profileSummary(audit.data?.entries ?? [], AUDIT_LIMIT);

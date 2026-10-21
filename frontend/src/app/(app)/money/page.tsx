@@ -4,11 +4,13 @@ import type { z } from 'zod';
 import type { CategoriesUsageRes } from '@/contracts';
 import { CheckPanel } from '@/components/check-panel';
 import { AppShell } from '@/components/shell';
-import { Empty, ErrorLine, IndexList, Loading, Segmented, StripLink, TextLink } from '@/components/ui';
+import { Empty, ErrorLine, IndexList, Loading, Segmented, SectionTabs, StripLink, TextLink } from '@/components/ui';
 import { useApi } from '@/lib/api';
-import { shortMonth } from '@/common';
+import { inr, shortMonth } from '@/common';
 import { useMe, useToday } from '@/lib/me';
 import { CAT_ALL, categoryIndex, endMark, isSrcFilter, isUnaccountedOpen, type TransactionRow, lookText, rowView, shownText, SOURCE_FILTERS, splitChoices, type SrcFilter } from '@/features/transactions';
+import { nextDue } from '@/features/now';
+import { nextRule, type RecurringList } from '@/features/repeats';
 import { TransactionRowItem } from './transaction-row';
 import { SplitPanel } from './split-panel';
 import { TagWell } from './tag-well';
@@ -23,10 +25,12 @@ export default function TransactionsPage() {
   const month = today?.month ?? null;
   const { data: me, mutate: mutateMe } = useMe();
   const categories = useApi<z.infer<typeof CategoriesUsageRes>>('/categories?sort=usage');
+  const recurring = useApi<RecurringList>('/recurring');
+  const next = recurring.data ? nextRule(recurring.data.items) : null;
 
   const [cat, setCat] = useState(CAT_ALL);
   const [src, setSrc] = useState<SrcFilter>('all');
-  // a link from Now (`/transactions?cat=needs-tag`) lands on its filter
+  // a link from Now (`/money?cat=needs-tag`, redirected from the old `/transactions` address) lands on its filter
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
     const wantedSrc = q.get('src');
@@ -57,16 +61,27 @@ export default function TransactionsPage() {
         By category · {today ? shortMonth(today.month) : ''} total
       </div>
       <IndexList label="Category" items={index.map((i) => ({ ...i, active: i.key === cat, onClick: () => setCat(i.key) }))} />
+      <div className="opt2" style={{ marginTop: 24, borderTop: '1px solid var(--rule)', paddingTop: 14 }}>
+        <div className="lbl">Log it in Telegram</div>
+        <div className="mono cap" style={{ marginTop: 6, lineHeight: 1.9 }}>/350 food<br />+1500 salary</div>
+      </div>
     </>
   );
 
   return (
-    <AppShell home="transactions" glyph="transactions" title="Transactions" description="Every payment you logged and every credit you added." aside={aside}>
+    <AppShell home="money" glyph="money" title="Money" description="Every payment and credit you logged, and what repeats next." aside={aside}>
+      <div className={s.tabs}>
+        <SectionTabs label="Money" tabs={[
+          { href: '/money', label: 'Activity', active: true },
+          { href: '/money/repeats', label: 'Repeats', count: recurring.data?.items.length, active: false },
+        ]} />
+      </div>
       <div className={`strip ${s.strip}`}>
-        <StripLink tag="LOOK" href="/transactions/unread">{lookText(me?.needsLookCount ?? 0)}</StripLink>
+        <StripLink tag="LOOK" href="/money/unread">{lookText(me?.needsLookCount ?? 0)}</StripLink>
         <button type="button" aria-expanded={checkOpen} onClick={() => setCheckOpen((v) => !v)}>
           <span className="lbl">CHECK</span><span>Compare with your bank’s balance</span><span aria-hidden="true">{checkOpen ? '↑' : '↓'}</span>
         </button>
+        {next && <StripLink tag="NEXT" href="/money/repeats">{next.name} {inr(next.amountMinor)} on {nextDue(next.nextDue)}</StripLink>}
       </div>
       {checkOpen && view && <CheckPanel listBelow transactionsMinor={view.balanceMinor} onChanged={changed} />}
       {splitting && view && (

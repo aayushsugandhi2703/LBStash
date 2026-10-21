@@ -153,7 +153,7 @@ export default function SignInPage() {
 
   return (
     <AuthFrame
-      right={<span className="mono lbl">one private account</span>}
+      right={<Link href="/welcome" className="mono lbl signin-header-link">← about LBStash</Link>}
       glyph="signin"
       title={step === 'password' ? 'Sign in' : step === 'verify' ? 'Second step' : 'Signed in'}
       description={
