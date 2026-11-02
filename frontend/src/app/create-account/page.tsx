@@ -7,7 +7,7 @@ import type { AuthSessionRes } from '@/contracts';
 import { checkPassword, passwordLabel, passwordScore } from '@/common';
 import { AuthEm, AuthFrame } from '@/components/auth-frame';
 import { Button, ErrorLine, Field } from '@/components/ui';
-import { api, ApiError, errorText, fieldErrors } from '@/lib/api';
+import { api, errorText, fieldErrors } from '@/lib/api';
 
 const RULES = [
   { key: 'len', label: 'At least 12 characters' },
@@ -43,10 +43,6 @@ export default function CreateAccountPage() {
       });
       setCreated(true);
     } catch (e) {
-      if (e instanceof ApiError && e.code === 'forbidden') {
-        window.location.assign('/sign-in');
-        return;
-      }
       setError(Object.values(fieldErrors(e))[0] ?? errorText(e, 'Could not create the account. Please try again.'));
     } finally {
       setBusy(false);
